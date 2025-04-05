@@ -1,0 +1,11 @@
+services:
+  db:
+    image: mysql
+    container_name: MYSQL
+    ports:
+      - 3010:3010
+    environment:
+      MYSQL_ROOT_PASSWORD: password_core_db
+      MYSQL_DATABASE: core_db
+    volumes:
+      - ./mysql-data:/var/lib/mysql
