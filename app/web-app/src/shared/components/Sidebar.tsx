@@ -9,35 +9,90 @@ import {
   FaSignOutAlt,
   FaSun,
   FaMoon,
+  FaCog,
 } from 'react-icons/fa';
 import { useAuth } from '../../core/context/AuthContext';
 import { useTheme } from '../../core/context/ThemeContext';
 
 interface NavItemProps {
-  to: string;
   icon: React.ReactNode;
   text: string;
   isCollapsed: boolean;
   isActive: boolean;
+  nestedItems?: { to: string; text: string }[];
 }
 
-const NavItem = ({ to, icon, text, isCollapsed, isActive }: NavItemProps) => (
-  <NavLink
-    to={to}
-    className={`flex items-center ${
-      isCollapsed ? 'justify-center' : 'justify-start'
-    } h-[42px] rounded-lg transition-all duration-200 ${
-      isActive
-        ? 'bg-[#3C2729] bg-opacity-70'
-        : 'hover:bg-[#3C2729] hover:bg-opacity-70'
-    }`}
-  >
-    <div className="w-[42px] flex items-center justify-center">
-      <div className="w-[18px] h-[18px] text-white">{icon}</div>
+const NavItem = ({
+  icon,
+  text,
+  isCollapsed,
+  isActive,
+  nestedItems,
+}: NavItemProps) => {
+  const [showNested, setShowNested] = useState(false);
+
+  return (
+    <div className="relative">
+      <div
+        onClick={() => nestedItems && setShowNested(!showNested)}
+        className={`flex items-center ${
+          isCollapsed ? 'justify-center' : 'justify-start'
+        } h-[42px] rounded-lg transition-all duration-200 cursor-pointer ${
+          isActive
+            ? 'bg-[#3C2729] bg-opacity-70'
+            : 'hover:bg-[#3C2729] hover:bg-opacity-70'
+        }`}
+      >
+        <div className="w-[42px] flex items-center justify-center">
+          <div className="w-[18px] h-[18px] text-white">{icon}</div>
+        </div>
+        {!isCollapsed && (
+          <>
+            <span className="text-white ml-2">{text}</span>
+            {nestedItems && (
+              <FaChevronRight
+                className={`ml-auto mr-2 text-white transition-transform duration-200 ${
+                  showNested ? 'rotate-90' : ''
+                }`}
+              />
+            )}
+          </>
+        )}
+      </div>
+      {nestedItems && (
+        <div
+          className={`${
+            isCollapsed
+              ? 'absolute left-full top-0 ml-2'
+              : 'relative w-full mt-2'
+          } ${showNested ? 'block' : 'hidden'}`}
+        >
+          <div
+            className={`${
+              isCollapsed
+                ? 'bg-[#0F090C] bg-opacity-50 rounded-lg p-2 min-w-[200px]'
+                : 'space-y-2'
+            }`}
+          >
+            {nestedItems.map((item) => (
+              <NavLink
+                key={item.to}
+                to={item.to}
+                className={`flex items-center h-[36px] rounded-lg transition-all duration-200 ${
+                  isCollapsed
+                    ? 'hover:bg-[#3C2729] hover:bg-opacity-70 px-3'
+                    : 'pl-4 hover:bg-[#3C2729] hover:bg-opacity-70'
+                }`}
+              >
+                <span className="text-white text-sm">{item.text}</span>
+              </NavLink>
+            ))}
+          </div>
+        </div>
+      )}
     </div>
-    {!isCollapsed && <span className="text-white ml-2">{text}</span>}
-  </NavLink>
-);
+  );
+};
 
 const ActionItem = ({
   icon,
@@ -73,13 +128,23 @@ export const Sidebar = () => {
     navigate('/login');
   };
 
+  const managementItems = [
+    { to: '/management/users', text: 'Usuarios' },
+    { to: '/management/assets', text: 'Activos' },
+    { to: '/management/work-orders', text: 'Órdenes de Trabajo' },
+  ];
+
   return (
     <div
       className={`relative h-full transition-all duration-300 ${
         isCollapsed ? 'w-20' : 'w-40'
       }`}
     >
-      <aside className="fixed h-full bg-[#0F090C] bg-opacity-50 p-4 rounded-r-[21px] flex flex-col">
+      <aside
+        className={`fixed h-full bg-[#0F090C] ${
+          isDarkMode ? 'bg-opacity-90' : 'bg-opacity-50'
+        } p-4 rounded-r-[21px] flex flex-col`}
+      >
         {/* Profile and Toggle Button */}
         <div className="relative mb-8 flex justify-center">
           <div className="flex items-center justify-center">
@@ -100,18 +165,23 @@ export const Sidebar = () => {
         {/* Navigation */}
         <nav className="space-y-4 flex-1">
           <NavItem
-            to="/home"
             icon={<FaHome />}
             text="Inicio"
             isCollapsed={isCollapsed}
             isActive={location.pathname === '/home'}
           />
           <NavItem
-            to="/dashboard"
             icon={<FaChartBar />}
             text="Dashboard"
             isCollapsed={isCollapsed}
             isActive={location.pathname === '/dashboard'}
+          />
+          <NavItem
+            icon={<FaCog />}
+            text="Gestión"
+            isCollapsed={isCollapsed}
+            isActive={location.pathname.startsWith('/management')}
+            nestedItems={managementItems}
           />
         </nav>
 

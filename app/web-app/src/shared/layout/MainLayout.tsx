@@ -1,10 +1,15 @@
 import { Outlet } from 'react-router-dom';
 import { Sidebar } from '../components/Sidebar';
 import { BottomNav } from '../components/BottomNav';
+import { useTheme } from '../../core/context/ThemeContext';
 
 export const MainLayout = () => {
+  const { isDarkMode } = useTheme();
+
   return (
-    <div className="min-h-screen flex bg-gray-100">
+    <div
+      className={`min-h-screen flex ${isDarkMode ? 'bg-background-dark' : 'bg-background-light'}`}
+    >
       {/* Sidebar - Solo visible en desktop */}
       <div className="hidden md:block">
         <Sidebar />
@@ -17,7 +22,13 @@ export const MainLayout = () => {
         </main>
 
         {/* Bottom Navigation - Solo visible en mobile */}
-        <nav className="block md:hidden bg-white border-t border-gray-200">
+        <nav
+          className={`block md:hidden ${
+            isDarkMode
+              ? 'bg-gray-800 border-gray-700'
+              : 'bg-white border-gray-200'
+          } border-t`}
+        >
           <BottomNav />
         </nav>
       </div>
