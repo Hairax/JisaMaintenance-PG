@@ -1,6 +1,6 @@
 import { Module } from '@nestjs/common';
+import { AuthController } from './auth.controller';
 import { ClientsModule, Transport } from '@nestjs/microservices';
-import { UserController } from './user/user.controller';
 
 @Module({
   imports: [
@@ -9,12 +9,12 @@ import { UserController } from './user/user.controller';
         name: 'AUTH_SERVICE',
         transport: Transport.TCP,
         options: {
-          host: 'localhost',
-          port: 3001,
+          host: process.env.AUTH_SERVICE_HOST || 'localhost',
+          port: parseInt(process.env.AUTH_SERVICE_PORT || '3001'),
         },
       },
     ]),
   ],
-  controllers: [UserController],
+  controllers: [AuthController],
 })
 export class AuthModule {}

@@ -7,18 +7,30 @@ import {
   FaSun,
   FaMoon,
   FaSignOutAlt,
+  FaHome,
+  FaChartBar,
+  FaCogs,
 } from 'react-icons/fa';
-import { useTheme } from '../../core/context/ThemeContext';
-import { useAuth } from '../../core/context/AuthContext';
+import { useTheme } from '../../shared/contexts/ThemeContext';
+import { useAuth } from '../../shared/contexts/AuthContext';
 
-type Props = { className?: string };
-
-export const BottomNav = ({ className }: Props) => {
+export const BottomNav = () => {
   const [showManagement, setShowManagement] = useState(false);
   const [showSettings, setShowSettings] = useState(false);
-  const { isDarkMode, toggleTheme } = useTheme();
+  const { theme, toggleTheme } = useTheme();
   const { logout } = useAuth();
   const navigate = useNavigate();
+
+  // Paleta de colores definida por el cliente
+  const colors = {
+    brown: '#9E5533',
+    beige: '#E1CD9B',
+    gold: '#FBAF11',
+    darkBg: '#1A1A1A',
+    lightBg: '#E6E6E6',
+    darkText: '#000000',
+    lightText: '#FFFFFF',
+  };
 
   const managementItems = [
     { to: '/management/users', text: 'Usuarios' },
@@ -28,14 +40,16 @@ export const BottomNav = ({ className }: Props) => {
 
   const settingsItems = [
     {
-      icon: isDarkMode ? <FaSun /> : <FaMoon />,
+      icon: theme === 'dark' ? <FaSun size={16} /> : <FaMoon size={16} />,
+      text: theme === 'dark' ? 'Modo Claro' : 'Modo Oscuro',
       onClick: () => {
         toggleTheme();
         setShowSettings(false);
       },
     },
     {
-      icon: <FaSignOutAlt />,
+      icon: <FaSignOutAlt size={16} />,
+      text: 'Cerrar Sesión',
       onClick: () => {
         logout();
         navigate('/login');
@@ -43,114 +57,115 @@ export const BottomNav = ({ className }: Props) => {
     },
   ];
 
+  // Estilo de navegación base en función del tema
+  const navBgColor = theme === 'dark' ? colors.darkBg : colors.lightBg;
+  const textColor = theme === 'dark' ? colors.lightText : colors.darkText;
+  const menuBgColor = theme === 'dark' ? colors.darkBg : colors.beige;
+  const borderColor =
+    theme === 'dark' ? `${colors.brown}40` : `${colors.brown}40`;
+  const iconColor = colors.brown;
+
   return (
     <nav
-      className={`${className} fixed bottom-0 left-0 w-full ${
-        isDarkMode ? 'bg-gray-800' : 'bg-white'
-      } shadow-md z-50`}
+      className="fixed bottom-0 left-0 w-full shadow-md z-50"
+      style={{
+        backgroundColor: navBgColor,
+        borderTop: `1px solid ${borderColor}`,
+      }}
     >
       <ul className="flex justify-around text-sm py-2">
         <li>
           <Link
             to="/"
-            className={`flex flex-col items-center ${
-              isDarkMode ? 'text-gray-200' : 'text-gray-700'
-            }`}
+            className="flex flex-col items-center py-1"
+            style={{ color: textColor }}
           >
-            <span>🏠</span>Inicio
+            <span style={{ color: iconColor }}>
+              <FaHome size={18} />
+            </span>
+            <span className="mt-1">Inicio</span>
           </Link>
         </li>
         <li>
           <Link
             to="/dashboard"
-            className={`flex flex-col items-center ${
-              isDarkMode ? 'text-gray-200' : 'text-gray-700'
-            }`}
+            className="flex flex-col items-center py-1"
+            style={{ color: textColor }}
           >
-            <span>📊</span>Dashboard
+            <span style={{ color: iconColor }}>
+              <FaChartBar size={18} />
+            </span>
+            <span className="mt-1">Dashboard</span>
           </Link>
         </li>
         <li className="relative">
           <button
             onClick={() => setShowManagement(!showManagement)}
-            className={`flex flex-col items-center ${
-              isDarkMode ? 'text-gray-200' : 'text-gray-700'
-            }`}
+            className="flex flex-col items-center py-1"
+            style={{ color: textColor }}
           >
-            <span>
-              <FaCog />
+            <span style={{ color: iconColor }}>
+              <FaCogs size={18} />
             </span>
-            Gestión
-            {showManagement ? (
-              <FaChevronUp className="mt-1" />
-            ) : (
-              <FaChevronDown className="mt-1" />
-            )}
+            <span className="mt-1 flex items-center">
+              Gestión
+              {showManagement ? (
+                <FaChevronUp className="ml-1" size={12} />
+              ) : (
+                <FaChevronDown className="ml-1" size={12} />
+              )}
+            </span>
           </button>
           {showManagement && (
             <div
-              className={`absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 w-[150px] ${
-                isDarkMode ? 'bg-gray-800' : 'bg-white'
-              } shadow-lg rounded-lg overflow-hidden border ${
-                isDarkMode ? 'border-gray-700' : 'border-gray-100'
-              }`}
+              className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 w-[200px] shadow-lg rounded-lg overflow-hidden"
+              style={{
+                backgroundColor: menuBgColor,
+                border: `1px solid ${borderColor}`,
+              }}
             >
-              <div className="py-2">
-                {managementItems.map((item) => (
-                  <Link
-                    key={item.to}
-                    to={item.to}
-                    className={`block py-3 px-4 text-sm ${
-                      isDarkMode
-                        ? 'text-gray-200 hover:bg-gray-700'
-                        : 'text-gray-700 hover:bg-gray-50'
-                    } transition-colors duration-150`}
-                  >
-                    {item.text}
-                  </Link>
-                ))}
-              </div>
+              {managementItems.map((item) => (
+                <Link
+                  key={item.to}
+                  to={item.to}
+                  className="block px-4 py-2 text-sm text-gray-800 hover:bg-gray-100"
+                  style={{ color: textColor }}
+                >
+                  {item.text}
+                </Link>
+              ))}
             </div>
           )}
         </li>
         <li className="relative">
           <button
             onClick={() => setShowSettings(!showSettings)}
-            className={`flex flex-col items-center ${
-              isDarkMode ? 'text-gray-200' : 'text-gray-700'
-            }`}
+            className="flex flex-col items-center py-1"
+            style={{ color: textColor }}
           >
-            <span>⚙️</span>
-            Ajustes
-            {showSettings ? (
-              <FaChevronUp className="mt-1" />
-            ) : (
-              <FaChevronDown className="mt-1" />
-            )}
+            <span style={{ color: iconColor }}>
+              <FaCog size={18} />
+            </span>
+            <span className="mt-1 flex items-center">Configuración</span>
           </button>
           {showSettings && (
             <div
-              className={`absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 w-auto ${
-                isDarkMode ? 'bg-gray-800' : 'bg-white'
-              } shadow-lg rounded-lg overflow-hidden border ${
-                isDarkMode ? 'border-gray-700' : 'border-gray-100'
-              }`}
+              className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 w-[200px] shadow-lg rounded-lg overflow-hidden"
+              style={{
+                backgroundColor: menuBgColor,
+                border: `1px solid ${borderColor}`,
+              }}
             >
-              <div className="py-2">
-                {settingsItems.map((item, index) => (
-                  <button
-                    key={index}
-                    onClick={item.onClick}
-                    className={`flex items-center w-full py-3 px-4 text-sm ${
-                      isDarkMode
-                        ? 'text-gray-200 hover:bg-gray-700'
-                        : 'text-gray-700 hover:bg-gray-50'
-                    } transition-colors duration-150`}
-                  >
-                    <span className="mr-2">{item.icon}</span>
-                  </button>
-                ))}
-              </div>
+              {settingsItems.map((item) => (
+                <button
+                  key={item.text}
+                  onClick={item.onClick}
+                  className="block px-4 py-2 text-sm text-gray-800 hover:bg-gray-100 w-full text-left"
+                  style={{ color: textColor }}
+                >
+                  {item.text}
+                </button>
+              ))}
             </div>
           )}
         </li>

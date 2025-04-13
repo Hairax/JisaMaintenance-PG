@@ -1,19 +1,19 @@
-import { useAuth } from '../../../core/context/AuthContext';
-import { useTheme } from '../../../core/context/ThemeContext';
+import { useAuth } from '../../../shared/contexts/AuthContext';
+import { useTheme } from '../../../shared/contexts/ThemeContext';
 
 export const HomePage = () => {
   const { logout } = useAuth();
-  const { isDarkMode } = useTheme();
+  const { theme } = useTheme();
 
   return (
     <div
-      className={`min-h-screen p-6 ${isDarkMode ? 'bg-background-dark' : 'bg-background-light'}`}
+      className={`min-h-screen p-6 ${theme === 'dark' ? 'bg-dark' : 'bg-light'}`}
     >
       <div className="max-w-7xl mx-auto space-y-6">
         <div className="flex justify-between items-center">
           <h1
             className={`text-2xl font-bold ${
-              isDarkMode ? 'text-white' : 'text-gray-900'
+              theme === 'dark' ? 'text-white' : 'text-gray-900'
             }`}
           >
             Bienvenido a Jisa Maintenance
@@ -27,10 +27,10 @@ export const HomePage = () => {
         </div>
         <div
           className={`p-6 rounded-lg shadow ${
-            isDarkMode ? 'bg-gray-800' : 'bg-white'
+            theme === 'dark' ? 'bg-gray-800' : 'bg-white'
           }`}
         >
-          <p className={isDarkMode ? 'text-gray-200' : 'text-gray-700'}>
+          <p className={theme === 'dark' ? 'text-gray-200' : 'text-gray-700'}>
             Esta es la página principal de Jisa Maintenance. Aquí podrás
             gestionar todas las operaciones de mantenimiento.
           </p>

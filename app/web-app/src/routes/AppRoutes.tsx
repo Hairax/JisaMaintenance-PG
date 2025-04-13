@@ -4,6 +4,7 @@ import { AuthLayout } from '../shared/layout/AuthLayout';
 import { ProtectedRoute } from '../shared/components/auth/ProtectedRoute';
 import { LoginPage } from '../features/auth/pages/LoginPage';
 import { HomePage } from '../features/home/pages/HomePage';
+import { UserManagementPage } from '../features/user-management/pages/UsManagmentPage';
 
 export const AppRoutes = () => {
   return (
@@ -23,6 +24,7 @@ export const AppRoutes = () => {
       >
         <Route path="/home" element={<HomePage />} />
         <Route path="/" element={<Navigate to="/home" replace />} />
+        <Route path="/management/users" element={<UserManagementPage />} />
       </Route>
 
       {/* Redirección por defecto */}

@@ -45,6 +45,7 @@ export default [
         'warn',
         { allowConstantExport: true },
       ],
+      '@typescript-eslint/no-unsafe-call': 'off',
     },
   },
   pluginJs.configs.recommended,
