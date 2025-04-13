@@ -15,6 +15,7 @@ export class InitializationService implements OnModuleInit {
     try {
       // Buscar si ya existe un administrador
       const users = await this.userService.findAll();
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-enum-comparison
       const adminExists = users.some((user) => user.cargo === UserRole.ADMIN);
 
       if (!adminExists) {
