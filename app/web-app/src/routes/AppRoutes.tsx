@@ -5,6 +5,7 @@ import { ProtectedRoute } from '../shared/components/auth/ProtectedRoute';
 import { LoginPage } from '../features/auth/pages/LoginPage';
 import { HomePage } from '../features/home/pages/HomePage';
 import { UserManagementPage } from '../features/user-management/pages/UsManagmentPage';
+import { CoCeManagement } from '../features/cost-center-management/page/CoCeManagementPage';
 
 export const AppRoutes = () => {
   return (
@@ -25,6 +26,7 @@ export const AppRoutes = () => {
         <Route path="/home" element={<HomePage />} />
         <Route path="/" element={<Navigate to="/home" replace />} />
         <Route path="/management/users" element={<UserManagementPage />} />
+        <Route path="/management/cost-centers" element={<CoCeManagement />} />
       </Route>
 
       {/* Redirección por defecto */}

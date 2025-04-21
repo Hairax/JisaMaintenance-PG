@@ -4,7 +4,6 @@ import { UserTable } from '../components/UserTable';
 import { UserModal } from '../components/UserModal';
 import { useUserManagement } from '../hooks/useUserManagement';
 
-// Paleta de colores
 export const colors = {
   brown: '#9E5533',
   beige: '#E1CD9B',

@@ -263,7 +263,7 @@ export const UserModal: React.FC<UserModalProps> = ({
                 .
               </p>
               <p className="text-sm mb-4">
-                Esta acción cambiará su estado a "Inactivo".
+                Esta acción eliminara de manera permanente el usuario.
               </p>
               {deleteCountdown > 0 && (
                 <p

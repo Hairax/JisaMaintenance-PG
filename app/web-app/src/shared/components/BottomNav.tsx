@@ -36,6 +36,7 @@ export const BottomNav = () => {
     { to: '/management/users', text: 'Usuarios' },
     { to: '/management/assets', text: 'Activos' },
     { to: '/management/work-orders', text: 'Órdenes de Trabajo' },
+    { to: '/management/cost-centers', text: 'Centros de costos' },
   ];
 
   const settingsItems = [

@@ -5,11 +5,12 @@
   "main": "index.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
-    "dev": "run-p dev:auth dev:api-gateway dev:app dev:user-service dev:inventary-service",
+    "dev": "run-p dev:auth dev:api-gateway dev:app dev:user-service dev:inventary-service dev:ot-service",
     "dev:auth": "pnpm --filter auth-service run start:dev",
     "dev:api-gateway": "pnpm --filter api-gateway run start:dev",
     "dev:user-service": "pnpm --filter users-service run start:dev",
     "dev:inventary-service": "pnpm --filter inventary-service run start:dev",
+    "dev:ot-service": "pnpm --filter ot-service run start:dev",
     "dev:app": "pnpm --filter web-app run dev",
     "lint": "eslint .",
     "format": "prettier --write .",

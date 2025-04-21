@@ -17,7 +17,6 @@ export const useUserManagement = () => {
     deleteCountdown: 10,
     canConfirmDelete: false,
   });
-
   const countdownIntervalRef = useRef<ReturnType<typeof setInterval> | null>(
     null,
   );

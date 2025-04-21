@@ -45,6 +45,7 @@ export const Sidebar = () => {
     { to: '/management/users', text: 'Usuarios' },
     { to: '/management/assets', text: 'Activos' },
     { to: '/management/work-orders', text: 'Órdenes de Trabajo' },
+    { to: '/management/cost-centers', text: 'Centros de costos' },
   ];
 
   // Definir colores para Sidebar basados en el tema
