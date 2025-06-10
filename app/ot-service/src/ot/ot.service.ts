@@ -7,7 +7,7 @@ import { UpdateOrdenTrabajoDto } from './dto/update-orden-trabajo.dto';
 @Injectable()
 export class OrdenTrabajoService {
   constructor(
-    @Inject(OrdenTrabajo)
+    @Inject('OT_REPOSITORY')
     private readonly repo: Repository<OrdenTrabajo>,
   ) {}
 

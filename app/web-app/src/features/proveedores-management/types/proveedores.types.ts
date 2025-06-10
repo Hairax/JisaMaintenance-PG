@@ -7,8 +7,8 @@ export type ProveedorFormData = Omit<
   id?: number;
   createdAt?: Date;
   updatedAt?: Date;
-  nombre?: string;
   telefono?: string;
+  nombre?: string;
   ruc?: string;
   correoElectronico?: string;
   direccion?: string;

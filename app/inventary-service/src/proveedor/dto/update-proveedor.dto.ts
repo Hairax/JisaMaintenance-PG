@@ -3,7 +3,7 @@ import { IsString, IsNotEmpty } from 'class-validator';
 export class UpdateProveedorDto {
   @IsString()
   @IsNotEmpty()
-  name?: string;
+  nombre?: string;
 
   @IsString()
   @IsNotEmpty()

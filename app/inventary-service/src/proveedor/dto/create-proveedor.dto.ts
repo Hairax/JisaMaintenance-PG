@@ -2,7 +2,7 @@ import { IsString } from 'class-validator';
 
 export class CreateProveedorDto {
   @IsString()
-  name: string;
+  nombre: string;
   @IsString()
   ruc: string;
   @IsString()

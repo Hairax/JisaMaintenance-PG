@@ -43,9 +43,17 @@ export const Sidebar = () => {
 
   const managementItems = [
     { to: '/management/users', text: 'Usuarios' },
-    { to: '/management/assets', text: 'Activos' },
-    { to: '/management/work-orders', text: 'Órdenes de Trabajo' },
-    { to: '/management/cost-centers', text: 'Centros de costos' },
+    { to: '/management/cost-centers', text: 'Centros de Costos' },
+    { to: '/departamento', text: 'Departamentos' },
+    { to: '/maquina', text: 'Máquinas' },
+    { to: '/objeto', text: 'Objetos' },
+    { to: '/ot', text: 'Órdenes de Trabajo' },
+    { to: '/process', text: 'Procesos' },
+    { to: '/proveedores', text: 'Proveedores' },
+    { to: '/repuesto', text: 'Repuestos' },
+    { to: '/repuesto-maquina', text: 'Repuestos por Máquina' },
+    { to: '/subunidad', text: 'Subunidades' },
+    { to: '/tipo-mantenimiento', text: 'Tipos de Mantenimiento' },
   ];
 
   // Definir colores para Sidebar basados en el tema

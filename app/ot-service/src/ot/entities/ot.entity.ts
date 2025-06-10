@@ -7,11 +7,11 @@ import {
   ManyToOne,
   JoinColumn,
 } from 'typeorm';
-import { Maquina } from '../../../../inventary-service/src/maquina/entities/maquina.entity';
-import { User } from '../../../../users-service/src/user/entities/user.entity';
-import { CostCenter } from '../../../../inventary-service/src/cost-centers/entities/cost-center.entity';
-import { Process } from '../../../../inventary-service/src/process/entities/process.entity';
-import { SubUnidad } from '../../../../inventary-service/src/subUnidad/entitites/subUnidad.entity';
+import { Maquina } from './maquina.entity';
+import { User } from './user.entity';
+import { CostCenter } from './cost-center.entity';
+import { Process } from './process.entity';
+import { SubUnidad } from './subUnidad.entity';
 import { Departamento } from '../../departamento/entities/departamento.entity';
 import { Objeto } from '../../objeto/entities/objeto.entity';
 import { TipoMantenimiento } from '../../tipoMantenimiento/entities/tipoMantenimiento.entity';
@@ -27,7 +27,7 @@ export class OrdenTrabajo {
 
   @ManyToOne(() => CostCenter)
   @JoinColumn({ name: 'centroCosto_id' })
-  centroCosto: CostCenter;
+  costCenter: CostCenter;
 
   @ManyToOne(() => Process)
   @JoinColumn({ name: 'proceso_id' })
@@ -40,9 +40,6 @@ export class OrdenTrabajo {
   @ManyToOne(() => SubUnidad, { nullable: true })
   @JoinColumn({ name: 'subUnidad_id' })
   subUnidad?: SubUnidad;
-
-  @Column()
-  tipoEjecucion: string; // Ej: 'preventivo' | 'correctivo'
 
   @ManyToOne(() => Departamento)
   @JoinColumn({ name: 'departamento_id' })

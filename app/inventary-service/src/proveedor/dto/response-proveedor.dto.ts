@@ -1,6 +1,6 @@
 export class ResponseProveedorDto {
   id: number;
-  name: string;
+  nombre: string;
   ruc: string;
   correoElectronico: string;
   telefono: string;

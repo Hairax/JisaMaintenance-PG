@@ -7,9 +7,11 @@ export class CreateRepuestoDto {
   @IsInt()
   @Min(0)
   cantidad: number;
+
   @IsDecimal({ decimal_digits: '0,2' })
   @Min(0)
   costoUnitario: number;
+
   @IsString()
   descripcion: string;
 }

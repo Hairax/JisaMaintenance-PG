@@ -14,7 +14,7 @@ export class ProveedorService {
 
   async create(dto: CreateProveedorDto): Promise<ResponseProveedorDto> {
     const proveedor = this.proveedorRepository.create({
-      nombre: dto.name,
+      nombre: dto.nombre,
       ruc: dto.ruc,
       correoElectronico: dto.correoElectronico,
       telefono: dto.telefono,
@@ -45,7 +45,7 @@ export class ProveedorService {
     if (!proveedor) throw new Error('Proveedor not found');
     const updated = this.proveedorRepository.merge(proveedor, {
       ...dto,
-      nombre: dto.name ?? proveedor.nombre,
+      nombre: dto.nombre ?? proveedor.nombre,
       updatedAt: new Date(),
     });
     const saved = await this.proveedorRepository.save(updated);
@@ -60,7 +60,7 @@ export class ProveedorService {
 
   private toResponseDto = (p: Proveedor): ResponseProveedorDto => ({
     id: p.id,
-    name: p.nombre,
+    nombre: p.nombre,
     ruc: p.ruc,
     correoElectronico: p.correoElectronico,
     telefono: p.telefono,
