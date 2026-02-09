@@ -16,7 +16,20 @@ import { RepuestoPage } from '../features/repuesto/page/repuestoPage';
 import { RepuestoMaquinaPage } from '../features/repuesto-maquina/page/repuestoMaquinaPage';
 import { SubUnidadPage } from '../features/subUnidad/page/subUnidadPage';
 import { TipoMantenimientoPage } from '../features/tipoMantenimiento/page/tipoMantenimientoPage';
-import { DashboardPage } from '../features/dashboard/pages/DashboardPage';
+import { InformePage } from '../features/informe/page/informePage';
+import KardexValoradoPage from '../features/reportesCont/KardexValoradoPage';
+import CostosMantenimientoPage from '../features/reportesCont/CostosMantenimientoPage';
+import CostosOrdenesTrabajoPage from '../features/reportesCont/CostosOrdenesTrabajoPage';
+import ComprasMaterialesPage from '../features/reportesCont/ComprasMaterialesPage';
+import ConsumoMaterialesPage from '../features/reportesCont/ConsumoMaterialesPage';
+import TomaFisicaInventarioPage from '../features/reportesCont/TomaFisicaInventarioPage';
+import MantenimientoPorActivoPage from '../features/reportesCont/MantenimientoPorActivoPage';
+import BiDashboardPage from '../features/web-app/src/features/bi/page/BiDashboardPage';
+import DisponibilidadPage from '../features/kpis/Disponibilidad';
+import TMEFPage from '../features/kpis/TMEFPage';
+import TMPRPage from '../features/kpis/TMPRPage';
+import KPICostoPorActivo from '../features/kpis/KPICostoPorActivo';
+import CompraInventarioPage from '../features/Compra/page/compraPage';
 
 export const AppRoutes = () => {
   return (
@@ -36,7 +49,7 @@ export const AppRoutes = () => {
       >
         <Route path="/home" element={<HomePage />} />
         <Route path="/" element={<Navigate to="/home" replace />} />
-        <Route path="/dashboard" element={<DashboardPage />} />
+        <Route path="/dashboard" element={<BiDashboardPage />} />
         <Route path="/management/users" element={<UserManagementPage />} />
         <Route path="/management/cost-centers" element={<CoCeManagement />} />
         <Route path="/departamento" element={<DepartamentoPage />} />
@@ -49,6 +62,37 @@ export const AppRoutes = () => {
         <Route path="/repuesto-maquina" element={<RepuestoMaquinaPage />} />
         <Route path="/subunidad" element={<SubUnidadPage />} />
         <Route path="/tipo-mantenimiento" element={<TipoMantenimientoPage />} />
+        <Route path="/informe" element={<InformePage />} />
+        <Route path="/compras" element={<CompraInventarioPage />} />
+
+        {/* Ruta para reportes contables */}
+        <Route path="/reportes/kardex" element={<KardexValoradoPage />} />
+        <Route path="/reportes/costos" element={<CostosMantenimientoPage />} />
+        <Route
+          path="/reportes/costos-ordenes-trabajo"
+          element={<CostosOrdenesTrabajoPage />}
+        />
+        <Route
+          path="/reportes/compras-materiales"
+          element={<ComprasMaterialesPage />}
+        />
+        <Route
+          path="/reportes/consumo-materiales"
+          element={<ConsumoMaterialesPage />}
+        />
+        <Route
+          path="/reportes/tomas-inventario"
+          element={<TomaFisicaInventarioPage />}
+        />
+        <Route
+          path="/reportes/mantenimiento-activo"
+          element={<MantenimientoPorActivoPage />}
+        />
+
+        <Route path="/kpis/disponibilidad" element={<DisponibilidadPage />} />
+        <Route path="/kpis/tmef" element={<TMEFPage />} />
+        <Route path="/kpis/tmpr" element={<TMPRPage />} />
+        <Route path="/kpis/costo-por-activo" element={<KPICostoPorActivo />} />
       </Route>
 
       {/* Redirección por defecto */}

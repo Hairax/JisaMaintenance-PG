@@ -1,4 +1,5 @@
 import React from 'react';
+import { exportUsersToExcel } from '../functions/exportExcel';
 import { useTheme } from '../../../shared/contexts/ThemeContext';
 import { UserTable } from '../components/UserTable';
 import { UserModal } from '../components/UserModal';
@@ -35,36 +36,51 @@ export const UserManagementPage: React.FC = () => {
   };
 
   return (
-    <div style={pageStyle}>
-      <UserTable
-        users={state.users}
-        theme={theme}
-        onAddUser={() => handleOpenModal('add')}
-        onViewUser={(user) => handleOpenModal('view', user)}
-        loading={state.loading}
-        error={state.error}
-      />
+      <div style={pageStyle}>
+        <button
+          style={{
+            marginBottom: '16px',
+            padding: '8px 16px',
+            backgroundColor: colors.gold,
+            color: colors.darkText,
+            border: 'none',
+            borderRadius: '4px',
+            cursor: 'pointer',
+          }}
+          onClick={() => exportUsersToExcel(state.users)}
+        >
+          Exportar a Excel
+        </button>
 
-      <UserModal
-        isOpen={state.isModalOpen}
-        mode={state.modalMode}
-        selectedUser={state.selectedUser}
-        formData={state.formData}
-        theme={theme}
-        showDeleteConfirm={state.showDeleteConfirm}
-        deleteCountdown={state.deleteCountdown}
-        canConfirmDelete={state.canConfirmDelete}
-        loading={state.loading}
-        onClose={handleCloseModal}
-        onInputChange={handleInputChange}
-        onCreateUser={handleCreateUser}
-        onUpdateUser={handleUpdateUser}
-        onDeleteClick={handleDeleteClick}
-        onDelete={handleDelete}
-        onEditMode={() =>
-          state.selectedUser && handleOpenModal('edit', state.selectedUser)
-        }
-      />
-    </div>
+        <UserTable
+          users={state.users}
+          theme={theme}
+          onAddUser={() => handleOpenModal('add')}
+          onViewUser={(user) => handleOpenModal('view', user)}
+          loading={state.loading}
+          error={state.error}
+        />
+
+        <UserModal
+          isOpen={state.isModalOpen}
+          mode={state.modalMode}
+          selectedUser={state.selectedUser}
+          formData={state.formData}
+          theme={theme}
+          showDeleteConfirm={state.showDeleteConfirm}
+          deleteCountdown={state.deleteCountdown}
+          canConfirmDelete={state.canConfirmDelete}
+          loading={state.loading}
+          onClose={handleCloseModal}
+          onInputChange={handleInputChange}
+          onCreateUser={handleCreateUser}
+          onUpdateUser={handleUpdateUser}
+          onDeleteClick={handleDeleteClick}
+          onDelete={handleDelete}
+          onEditMode={() =>
+            state.selectedUser && handleOpenModal('edit', state.selectedUser)
+          }
+        />
+      </div>
   );
 };

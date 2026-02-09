@@ -60,4 +60,12 @@ export class UpdateOrdenTrabajoDto {
   @IsOptional()
   @IsNumber()
   tipoCambio?: number;
+
+  @IsOptional()
+  @IsString()
+  estado?: string; // Estado de la OT, por ejemplo: 'pendiente', '
+
+  @IsOptional()
+  @IsNumber({}, { each: true })
+  tecnicos?: number[]; // Lista de IDs de técnicos asignados
 }

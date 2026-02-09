@@ -24,4 +24,5 @@ export class OrdenTrabajoResponse {
   tipoCambio: number;
   estado: string; // Abierta | En Progreso Técnico | En Progreso Almacén | Cerrada
   fechaCreacion: Date;
+  tecnicos: number[];
 }

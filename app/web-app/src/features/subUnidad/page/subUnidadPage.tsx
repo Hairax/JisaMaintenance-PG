@@ -1,18 +1,11 @@
 import React from 'react';
+import { exportSubUnidadesToExcel } from '../functions/exportExcel';
 import { useTheme } from '../../../shared/contexts/ThemeContext';
 import { useSubUnidad } from '../hooks/useSubUnidad';
 import { SubUnidadTable } from '../components/subUnidadTable';
 import { SubUnidadModal } from '../components/subUnidadModal';
 
-export const colors = {
-  brown: '#9E5533',
-  beige: '#E1CD9B',
-  gold: '#FBAF11',
-  darkBg: '#1A1A1A',
-  lightBg: '#E6E6E6',
-  darkText: '#000000',
-  lightText: '#FFFFFF',
-};
+import { colors } from '../types/colors';
 
 export const SubUnidadPage: React.FC = () => {
   const { theme } = useTheme();
@@ -35,6 +28,14 @@ export const SubUnidadPage: React.FC = () => {
         color: theme === 'dark' ? colors.lightText : colors.darkText,
       }}
     >
+      <div className="flex justify-end p-4">
+        <button
+          className="bg-green-600 hover:bg-green-700 text-white font-bold py-2 px-4 rounded shadow"
+          onClick={() => exportSubUnidadesToExcel(state.subUnidades)}
+        >
+          Exportar a Excel
+        </button>
+      </div>
       <SubUnidadTable
         subUnidades={state.subUnidades}
         theme={theme}

@@ -8,6 +8,7 @@ import {
 } from '../types/repuestoMaquina.types';
 import { RepuestoMaquinaTable } from '../components/repuestoMaquinaTable';
 import { RepuestoMaquinaModal } from '../components/repuestoMaquinaModal';
+import { exportRepuestosToExcel } from '../functions/exportExcel';
 
 // Paleta de colores igual que user-management
 export const colors = {
@@ -154,16 +155,28 @@ export const RepuestoMaquinaPage: React.FC = () => {
     <div style={pageStyle} className="p-6 max-w-5xl mx-auto">
       <div className="flex justify-between items-center mb-6">
         <h1 className="text-2xl font-bold">Repuestos de Máquina</h1>
-        <button
-          onClick={handleAdd}
-          style={{
-            backgroundColor: colors.gold,
-            color: colors.darkText,
-          }}
-          className="px-4 py-2 rounded shadow hover:bg-yellow-500 transition"
-        >
-          Agregar Repuesto
-        </button>
+        <div className="flex gap-4">
+          <button
+            onClick={handleAdd}
+            style={{
+              backgroundColor: colors.gold,
+              color: colors.darkText,
+            }}
+            className="px-4 py-2 rounded shadow hover:bg-yellow-500 transition"
+          >
+            Agregar Repuesto
+          </button>
+          <button
+            onClick={() => exportRepuestosToExcel(repuestos)}
+            style={{
+              backgroundColor: colors.brown,
+              color: colors.lightText,
+            }}
+            className="px-4 py-2 rounded shadow hover:bg-orange-700 transition"
+          >
+            Exportar a Excel
+          </button>
+        </div>
       </div>
       {error && (
         <div

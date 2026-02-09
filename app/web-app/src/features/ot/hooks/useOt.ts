@@ -39,6 +39,9 @@ export function useOt() {
   const [maquinas, setMaquinas] = useState<{ id: number; nombre: string }[]>(
     [],
   );
+  const [tecnicos, setTecnicos] = useState<{ id: number; nombre: string }[]>(
+    [],
+  );
   // ...otros catálogos si necesitas...
 
   // 2. Efecto para cargar las listas al montar el hook
@@ -55,6 +58,9 @@ export function useOt() {
     fetch('http://localhost:3000/maquinas')
       .then((res) => res.json())
       .then(setMaquinas);
+    fetch('http://localhost:3000/users')
+      .then((res) => res.json())
+      .then(setTecnicos);
     // ...otros fetch si necesitas...
   }, []);
 
@@ -227,5 +233,6 @@ export function useOt() {
     centrosCosto,
     procesos,
     maquinas,
+    tecnicos,
   };
 }

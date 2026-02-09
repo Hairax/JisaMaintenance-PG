@@ -4,7 +4,7 @@ import { TipoMantenimientoHttpController } from './tipoMantenimiento/tipo-manten
 import { ObjetoHttpController } from './objeto/objeto.controller';
 import { DepartamentoHttpController } from './departamento/departamento.controller';
 import { OtHttpController } from './ot/ot.controller';
-
+import { InformeHttpController } from './informe/informe.controller';
 @Module({
   imports: [
     ClientsModule.register([
@@ -23,6 +23,7 @@ import { OtHttpController } from './ot/ot.controller';
     ObjetoHttpController,
     DepartamentoHttpController,
     OtHttpController,
+    InformeHttpController,
   ],
   providers: [],
 })

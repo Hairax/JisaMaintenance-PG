@@ -1,4 +1,3 @@
-// src/orden-trabajo/entities/orden-trabajo.entity.ts
 import {
   Entity,
   PrimaryGeneratedColumn,
@@ -41,6 +40,9 @@ export class OrdenTrabajo {
   @JoinColumn({ name: 'subUnidad_id' })
   subUnidad?: SubUnidad;
 
+  @Column({ type: 'varchar', nullable: true })
+  tipoEjecucion?: string;
+
   @ManyToOne(() => Departamento)
   @JoinColumn({ name: 'departamento_id' })
   departamento: Departamento;
@@ -70,4 +72,7 @@ export class OrdenTrabajo {
 
   @CreateDateColumn()
   fechaCreacion: Date;
+
+  @Column({ type: 'json', nullable: true })
+  tecnicos: number[]; // Lista de IDs de técnicos asignados
 }

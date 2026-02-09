@@ -49,4 +49,11 @@ export class CreateOrdenTrabajoDto {
 
   @IsNumber()
   tipoCambio: number;
+
+  @IsOptional()
+  @IsString()
+  estado?: string;
+
+  @IsOptional()
+  tecnicos?: number[];
 }

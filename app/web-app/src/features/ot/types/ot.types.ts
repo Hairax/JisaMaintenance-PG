@@ -8,6 +8,7 @@ export interface OrdenTrabajo {
   departamento_id?: number;
   objeto_id?: number;
   supervisor_id?: number;
+  tecnicos: number[];
   tipoOT?: {
     id: number;
     nombre: string;
@@ -75,6 +76,7 @@ export type OrdenTrabajoFormData = Partial<
   departamento_id?: number;
   objeto_id?: number;
   supervisor_id?: number;
+  tecnicos?: number[];
 };
 
 export type ModalMode = 'view' | 'edit' | 'create';

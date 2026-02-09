@@ -37,6 +37,17 @@ export const BottomNav = () => {
     { to: '/management/assets', text: 'Activos' },
     { to: '/management/work-orders', text: 'Órdenes de Trabajo' },
     { to: '/management/cost-centers', text: 'Centros de costos' },
+    { to: '/departamento', text: 'Departamentos' },
+    { to: '/maquina', text: 'Máquinas' },
+    { to: '/objeto', text: 'Objetos' },
+    { to: '/ot', text: 'Órdenes de Trabajo' },
+    { to: '/process', text: 'Procesos' },
+    { to: '/proveedores', text: 'Proveedores' },
+    { to: '/repuesto', text: 'Repuestos' },
+    { to: '/repuesto-maquina', text: 'Repuestos por Máquina' },
+    { to: '/subunidad', text: 'Subunidades' },
+    { to: '/tipo-mantenimiento', text: 'Tipos de Mantenimiento' },
+    { to: '/informe', text: 'Informes Diarios' },
   ];
 
   const settingsItems = [

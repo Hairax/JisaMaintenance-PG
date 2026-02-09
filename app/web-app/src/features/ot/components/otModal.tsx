@@ -41,6 +41,7 @@ interface OtModalProps {
   centrosCosto: { id: number; nombre: string }[];
   procesos: { id: number; nombre: string }[];
   maquinas: { id: number; nombre: string }[];
+  tecnicos: { id: number; nombre: string }[];
 }
 
 export const OtModal: React.FC<OtModalProps> = ({
@@ -64,6 +65,7 @@ export const OtModal: React.FC<OtModalProps> = ({
   centrosCosto,
   procesos,
   maquinas,
+  tecnicos,
 }) => {
   if (!isOpen) return null;
 
@@ -160,6 +162,51 @@ export const OtModal: React.FC<OtModalProps> = ({
     </div>
   );
 
+  // Campo de selección múltiple para técnicos
+  const renderMultiSelectField = (
+    label: string,
+    name: keyof OrdenTrabajoFormData,
+    options: { id: number; label: string }[],
+    required = false,
+  ) => (
+    <div>
+      <label
+        htmlFor={name}
+        style={{ color: secondaryTextColor }}
+        className="block text-sm font-medium mb-1"
+      >
+        {label}
+      </label>
+      <select
+        name={name}
+        id={name}
+        multiple
+        value={formData[name] ?? []}
+        onChange={(e) => {
+          const selected = Array.from(e.target.selectedOptions, (opt) =>
+            Number(opt.value),
+          );
+          onInputChange({
+            target: { name, value: selected },
+          } as any);
+        }}
+        required={required}
+        style={{
+          backgroundColor: inputBgColor,
+          borderColor: inputBorderColor,
+          color: textColor,
+        }}
+        className="w-full px-3 py-2 rounded border focus:outline-none focus:ring-1"
+      >
+        {options.map((opt) => (
+          <option key={opt.id} value={opt.id}>
+            {opt.label}
+          </option>
+        ))}
+      </select>
+    </div>
+  );
+
   return (
     <div
       style={{ backgroundColor: overlayBgColor }}
@@ -203,19 +250,19 @@ export const OtModal: React.FC<OtModalProps> = ({
               {renderSelectField(
                 'Centro de Costo',
                 'centroCosto_id',
-                centrosCosto.map((c) => ({ id: c.id, label: c.name })),
+                centrosCosto.map((c) => ({ id: c.id, label: c.nombre })),
                 true,
               )}
               {renderSelectField(
                 'Proceso',
                 'proceso_id',
-                procesos.map((p) => ({ id: p.id, label: p.name })),
+                procesos.map((p) => ({ id: p.id, label: p.nombre })),
                 true,
               )}
               {renderSelectField(
                 'Máquina',
                 'maquina_id',
-                maquinas.map((m) => ({ id: m.id, label: m.name })),
+                maquinas.map((m) => ({ id: m.id, label: m.nombre })),
                 true,
               )}
               {renderFormField(
@@ -232,7 +279,18 @@ export const OtModal: React.FC<OtModalProps> = ({
               )}
               {renderFormField('Tipo de Cambio', 'tipoCambio', 'number', true)}
               {renderFormField('Estado', 'estado', 'text', true)}
-              {renderFormField('Tiempo Estimado', 'tiempoEstimado', 'number')}
+              {renderFormField(
+                'Tiempo Estimado',
+                'tiempoEstimado',
+                'number',
+                true,
+              )}
+              {renderMultiSelectField(
+                'Técnicos asignados',
+                'tecnicos',
+                tecnicos.map((t) => ({ id: t.id, label: t.nombre })),
+                true,
+              )}
             </form>
           )}
 

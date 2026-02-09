@@ -10,12 +10,18 @@ export interface BiData {
     totalOTs: number;
     completedOTs: number;
     pendingOTs: number;
-    avgCompletionTime: number;
+    avgCompletionTime: number; // en días
+    mttr: number; // en horas
+    mtbf: number; // en días
+    totalCost: number; // en Bs
   };
   otsByMonth: BiDataPoint[];
   otsByDepartment: BiDataPoint[];
   otsByType: BiDataPoint[];
   completionTrend: BiDataPoint[];
+  costByMonth: BiDataPoint[];
+  mttrTrend: BiDataPoint[];
+  otRatioPreventiveVsCorrective: BiDataPoint[];
 }
 
 export const useBiData = () => {
@@ -28,18 +34,17 @@ export const useBiData = () => {
       try {
         setLoading(true);
         setError(null);
-        
-        // TODO: Replace with actual API call
-        // const response = await fetch('/api/bi/dashboard');
-        // const biData = await response.json();
-        
-        // Mock data for now
+
+        // Simulación de datos
         const mockData: BiData = {
           summary: {
             totalOTs: 1250,
             completedOTs: 980,
             pendingOTs: 270,
-            avgCompletionTime: 4.2,
+            avgCompletionTime: 4.2, // días
+            mttr: 3.1, // horas
+            mtbf: 15.4, // días
+            totalCost: 84500, // Bs
           },
           otsByMonth: [
             { name: 'Ene', value: 120 },
@@ -61,13 +66,33 @@ export const useBiData = () => {
             { name: 'Predictivo', value: 200 },
           ],
           completionTrend: [
-            { name: 'Sem 1', value: 85 },
-            { name: 'Sem 2', value: 78 },
-            { name: 'Sem 3', value: 92 },
-            { name: 'Sem 4', value: 88 },
+            { name: 'Semana 1', value: 85 },
+            { name: 'Semana 2', value: 78 },
+            { name: 'Semana 3', value: 92 },
+            { name: 'Semana 4', value: 88 },
+          ],
+          costByMonth: [
+            { name: 'Ene', value: 10200 },
+            { name: 'Feb', value: 8450 },
+            { name: 'Mar', value: 9600 },
+            { name: 'Abr', value: 8800 },
+            { name: 'May', value: 9900 },
+            { name: 'Jun', value: 11550 },
+          ],
+          mttrTrend: [
+            { name: 'Ene', value: 3.5 },
+            { name: 'Feb', value: 3.2 },
+            { name: 'Mar', value: 3.0 },
+            { name: 'Abr', value: 2.9 },
+            { name: 'May', value: 2.8 },
+            { name: 'Jun', value: 3.1 },
+          ],
+          otRatioPreventiveVsCorrective: [
+            { name: 'Preventivo', value: 620 },
+            { name: 'Correctivo', value: 430 },
           ],
         };
-        
+
         setData(mockData);
       } catch (err) {
         setError('Error al cargar los datos de BI');
@@ -80,5 +105,5 @@ export const useBiData = () => {
     fetchBiData();
   }, []);
 
-  return { data, loading, error, refetch: () => fetchBiData() };
+  return { data, loading, error };
 };

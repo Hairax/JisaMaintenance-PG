@@ -10,6 +10,7 @@ import {
   FaSun,
   FaMoon,
   FaCog,
+  FaChartLine,
 } from 'react-icons/fa';
 import { useAuth } from '../../contexts/AuthContext';
 import { useTheme } from '../../contexts/ThemeContext';
@@ -54,6 +55,29 @@ export const Sidebar = () => {
     { to: '/repuesto-maquina', text: 'Repuestos por Máquina' },
     { to: '/subunidad', text: 'Subunidades' },
     { to: '/tipo-mantenimiento', text: 'Tipos de Mantenimiento' },
+    { to: '/informe', text: 'Informes Diarios' },
+    { to: '/compras', text: 'Compras de Inventario' },
+  ];
+
+  const reportesContItems = [
+    { to: '/reportes/kardex', text: 'Kardex Valorado de Repuestos' },
+    { to: '/reportes/costos', text: 'Costos de Mantenimiento' },
+    {
+      to: '/reportes/costos-ordenes-trabajo',
+      text: 'Costos por Órdenes de Trabajo',
+    },
+    { to: '/reportes/compras-materiales', text: 'Compras de Materiales' },
+    { to: '/reportes/consumo-materiales', text: 'Consumo de Materiales' },
+    { to: '/reportes/tomas-inventario', text: 'Tomas Físicas de Inventario' },
+    { to: '/reportes/mantenimiento-activo', text: 'Mantenimiento por Activo' },
+    // Puedes agregar más reportes contables aquí
+  ];
+
+  const kpis = [
+    { to: '/kpis/disponibilidad', text: 'Disponibilidad' },
+    { to: '/kpis/tmef', text: 'TMEF' },
+    { to: '/kpis/tmpr', text: 'TMPR' },
+    { to: '/kpis/costo-por-activo', text: 'Costo por Activo' },
   ];
 
   // Definir colores para Sidebar basados en el tema
@@ -130,6 +154,27 @@ export const Sidebar = () => {
             isCollapsed={isCollapsed}
             isActive={location.pathname.startsWith('/management')}
             nestedItems={managementItems}
+            colors={colors}
+            theme={theme}
+          />
+
+          {/* --- Reportes Contables (con submenú) --- */}
+          <NavItem
+            icon={<FaChartBar />}
+            text="Reportes Contables"
+            isCollapsed={isCollapsed}
+            isActive={location.pathname.startsWith('/reportes')}
+            nestedItems={reportesContItems}
+            colors={colors}
+            theme={theme}
+          />
+          {/* --- KPIs (con submenú) --- */}
+          <NavItem
+            icon={<FaChartLine />}
+            text="KPIs"
+            isCollapsed={isCollapsed}
+            isActive={location.pathname.startsWith('/kpis')}
+            nestedItems={kpis}
             colors={colors}
             theme={theme}
           />

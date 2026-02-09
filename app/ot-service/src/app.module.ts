@@ -4,6 +4,7 @@ import { TipoMantenimientoModule } from './tipoMantenimiento/tipo-mantenimiento.
 import { DepartamentoModule } from './departamento/departamento.module';
 import { ObjetoModule } from './objeto/objeto.module';
 import { OtModule } from './ot/ot.module';
+import { InformeModule } from './informe/informe.module';
 @Module({
   imports: [
     DatabaseModule,
@@ -11,6 +12,7 @@ import { OtModule } from './ot/ot.module';
     DepartamentoModule,
     ObjetoModule,
     OtModule,
+    InformeModule,
   ],
   controllers: [],
   providers: [],

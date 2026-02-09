@@ -1,4 +1,5 @@
 import React from 'react';
+import { exportMaquinasToExcel } from '../functions/exportExcel';
 import { useTheme } from '../../../shared/contexts/ThemeContext';
 import { useMaquina } from '../hooks/useMaquina';
 import { MaquinaTable } from '../components/maquinaTable';
@@ -45,6 +46,23 @@ export const MaquinaPage: React.FC = () => {
   };
   return (
     <div style={pageStyle}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
+        <h2>Gestión de Máquinas</h2>
+        <button
+          onClick={() => exportMaquinasToExcel(state.maquinas)}
+          style={{
+            backgroundColor: colors.gold,
+            color: colors.darkText,
+            border: 'none',
+            padding: '8px 16px',
+            borderRadius: 4,
+            cursor: 'pointer',
+            fontWeight: 'bold',
+          }}
+        >
+          Exportar a Excel
+        </button>
+      </div>
       <MaquinaTable
         maquinas={state.maquinas}
         theme={theme}

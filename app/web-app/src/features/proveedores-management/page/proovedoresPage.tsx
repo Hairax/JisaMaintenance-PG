@@ -3,6 +3,7 @@ import { useTheme } from '../../../shared/contexts/ThemeContext';
 import { useProveedores } from '../hooks/useProveedores';
 import { ProveedoresTable } from '../components/proovedoresTable';
 import { ProveedoresModal } from '../components/proovedoresModal';
+import { exportProveedoresToExcel } from '../functions/exportExcel';
 
 export const colors = {
   brown: '#9E5533',
@@ -35,6 +36,26 @@ export const ProovedoresPage: React.FC = () => {
 
   return (
     <div style={pageStyle}>
+      <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: 16 }}>
+        <button
+          onClick={() => exportProveedoresToExcel(state.proveedores)}
+          style={{
+            backgroundColor: colors.gold,
+            color: colors.darkText,
+            padding: '8px 16px',
+            borderRadius: 8,
+            fontWeight: 'bold',
+            boxShadow: '0 2px 6px rgba(0,0,0,0.08)',
+            border: 'none',
+            cursor: 'pointer',
+            marginRight: 16,
+          }}
+          onMouseOver={e => (e.currentTarget.style.backgroundColor = '#E69D00')}
+          onMouseOut={e => (e.currentTarget.style.backgroundColor = colors.gold)}
+        >
+          Exportar a Excel
+        </button>
+      </div>
       <ProveedoresTable
         proveedores={state.proveedores}
         theme={theme}

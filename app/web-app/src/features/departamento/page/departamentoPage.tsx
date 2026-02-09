@@ -1,4 +1,5 @@
 import React from 'react';
+import { exportDepartamentoExcel } from '../functions/exportExcel';
 import { useTheme } from '../../../shared/contexts/ThemeContext';
 import { DepartamentoTable } from '../components/departamentoTable';
 import { DepartamentoModal } from '../components/departamentoModal';
@@ -106,33 +107,42 @@ export const DepartamentoPage: React.FC = () => {
   };
 
   return (
-    <div className="w-full h-full">
-      <DepartamentoTable
-        departamentos={departamentos}
-        theme={theme}
-        onAddDepartamento={handleAddDepartamento}
-        onViewDepartamento={handleViewDepartamento}
-        loading={loading}
-        error={error}
-      />
-      <DepartamentoModal
-        isOpen={isModalOpen}
-        mode={modalMode}
-        selectedDepartamento={selectedDepartamento}
-        formData={formData}
-        theme={theme}
-        showDeleteConfirm={showDeleteConfirm}
-        deleteCountdown={deleteCountdown}
-        canConfirmDelete={canConfirmDelete}
-        loading={loading}
-        onClose={handleCloseModal}
-        onInputChange={handleInputChange}
-        onCreateDepartamento={handleCreateDepartamento}
-        onUpdateDepartamento={handleUpdateDepartamento}
-        onDeleteClick={handleDeleteClick}
-        onDelete={handleDelete}
-        onEditMode={handleEditMode}
-      />
-    </div>
+      <div className="w-full h-full">
+        <div className="flex justify-between items-center mb-4">
+          <h2 className="text-xl font-bold">Departamentos</h2>
+          <button
+            className="px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700"
+            onClick={() => exportDepartamentoExcel(departamentos)}
+          >
+            Exportar a Excel
+          </button>
+        </div>
+        <DepartamentoTable
+          departamentos={departamentos}
+          theme={theme}
+          onAddDepartamento={handleAddDepartamento}
+          onViewDepartamento={handleViewDepartamento}
+          loading={loading}
+          error={error}
+        />
+        <DepartamentoModal
+          isOpen={isModalOpen}
+          mode={modalMode}
+          selectedDepartamento={selectedDepartamento}
+          formData={formData}
+          theme={theme}
+          showDeleteConfirm={showDeleteConfirm}
+          deleteCountdown={deleteCountdown}
+          canConfirmDelete={canConfirmDelete}
+          loading={loading}
+          onClose={handleCloseModal}
+          onInputChange={handleInputChange}
+          onCreateDepartamento={handleCreateDepartamento}
+          onUpdateDepartamento={handleUpdateDepartamento}
+          onDeleteClick={handleDeleteClick}
+          onDelete={handleDelete}
+          onEditMode={handleEditMode}
+        />
+      </div>
   );
 };

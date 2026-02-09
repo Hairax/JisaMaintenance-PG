@@ -1,6 +1,7 @@
 import React from 'react';
 import { useTheme } from '../../../shared/contexts/ThemeContext';
 import { useObjeto } from '../hooks/useObjeto';
+import { exportExcel } from '../functions/exportExcel';
 import { ObjetoTable } from '../components/objetoTable';
 import { ObjetoModal } from '../components/objetoModal';
 
@@ -35,6 +36,22 @@ export const ObjetoPage: React.FC = () => {
 
   return (
     <div style={pageStyle}>
+      <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: 16 }}>
+        <button
+          onClick={() => exportExcel(state.objetos)}
+          style={{
+            background: colors.gold,
+            color: colors.darkText,
+            border: 'none',
+            padding: '8px 16px',
+            borderRadius: 4,
+            cursor: 'pointer',
+            fontWeight: 'bold',
+          }}
+        >
+          Exportar a Excel
+        </button>
+      </div>
       <ObjetoTable
         objetos={state.objetos}
         theme={theme}

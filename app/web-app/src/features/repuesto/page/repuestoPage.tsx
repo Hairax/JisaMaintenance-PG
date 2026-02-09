@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { useRepuesto } from '../hooks/useRepuesto';
+import { exportExcel } from '../functions/exportExcel';
 import { RepuestoTable } from '../components/repuestoTable';
 import { RepuestoModal, ModalMode } from '../components/repuestoModal';
 import { CreateRepuestoDto } from '../types/repuesto.types';
@@ -126,6 +127,23 @@ export const RepuestoPage: React.FC = () => {
 
   return (
     <div style={pageStyle}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
+        <h2>Repuestos</h2>
+        <button
+          onClick={() => exportExcel(repuestos, 'repuestos.xlsx')}
+          style={{
+            background: colors.gold,
+            color: colors.darkText,
+            border: 'none',
+            borderRadius: 4,
+            padding: '8px 16px',
+            cursor: 'pointer',
+            fontWeight: 'bold',
+          }}
+        >
+          Exportar a Excel
+        </button>
+      </div>
       <RepuestoTable
         repuestos={repuestos}
         theme={theme}

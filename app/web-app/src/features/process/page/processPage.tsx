@@ -1,4 +1,5 @@
 import React from 'react';
+import { exportProcessToExcel } from '../functions/exportExcel';
 import { useTheme } from '../../../shared/contexts/ThemeContext';
 import { useProcess } from '../hooks/useProcess';
 import { ProcessTable } from '../components/processTable';
@@ -33,8 +34,28 @@ export const ProcessPage: React.FC = () => {
     padding: '20px 0',
   };
 
+  const handleExportExcel = () => {
+    exportProcessToExcel(state.processes);
+  };
+
   return (
     <div style={pageStyle}>
+      <button
+        onClick={handleExportExcel}
+        style={{
+          marginBottom: '16px',
+          padding: '8px 16px',
+          backgroundColor: colors.gold,
+          color: colors.darkText,
+          border: 'none',
+          borderRadius: '4px',
+          cursor: 'pointer',
+          fontWeight: 'bold',
+        }}
+      >
+        Exportar a Excel
+      </button>
+
       <ProcessTable
         processes={state.processes}
         theme={theme}

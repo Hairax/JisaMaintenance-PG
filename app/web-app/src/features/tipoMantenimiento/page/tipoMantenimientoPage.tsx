@@ -2,7 +2,8 @@ import React from 'react';
 import { TipoMantenimientoTable } from '../components/tipoMantenimientoTable';
 import { TipoMantenimientoModal } from '../components/tipoMantenimientoModal';
 import { useTipoMantenimiento } from '../hooks/useTipoMantenimiento';
-import { useTheme } from '../../../shared/contexts/ThemeContext'; // <-- Agrega esto
+import { useTheme } from '../../../shared/contexts/ThemeContext';
+import { exportTipoMantenimientoToExcel } from '../functions/exportExcel';
 
 const colors = {
   brown: '#9E5533',
@@ -32,6 +33,7 @@ export const TipoMantenimientoPage: React.FC = () => {
   const buttonBgColor = colors.gold;
   const buttonHoverColor = '#E69D00';
 
+
   return (
     <div
       style={{
@@ -45,22 +47,40 @@ export const TipoMantenimientoPage: React.FC = () => {
         <h1 style={{ color: textColor }} className="text-2xl font-bold">
           Tipos de Mantenimiento
         </h1>
-        <button
-          style={{
-            backgroundColor: buttonBgColor,
-            color: colors.darkText,
-          }}
-          className="ml-auto flex items-center gap-2 px-4 py-2 rounded-lg shadow transition duration-150 ease-in-out"
-          onMouseOver={(e) =>
-            (e.currentTarget.style.backgroundColor = buttonHoverColor)
-          }
-          onMouseOut={(e) =>
-            (e.currentTarget.style.backgroundColor = buttonBgColor)
-          }
-          onClick={() => handleOpenModal('create')}
-        >
-          Nuevo Tipo de Mantenimiento
-        </button>
+        <div className="flex gap-2">
+          <button
+            style={{
+              backgroundColor: buttonBgColor,
+              color: colors.darkText,
+            }}
+            className="flex items-center gap-2 px-4 py-2 rounded-lg shadow transition duration-150 ease-in-out"
+            onMouseOver={(e) =>
+              (e.currentTarget.style.backgroundColor = buttonHoverColor)
+            }
+            onMouseOut={(e) =>
+              (e.currentTarget.style.backgroundColor = buttonBgColor)
+            }
+            onClick={() => handleOpenModal('create')}
+          >
+            Nuevo Tipo de Mantenimiento
+          </button>
+          <button
+            style={{
+              backgroundColor: buttonBgColor,
+              color: colors.darkText,
+            }}
+            className="flex items-center gap-2 px-4 py-2 rounded-lg shadow transition duration-150 ease-in-out"
+            onMouseOver={(e) =>
+              (e.currentTarget.style.backgroundColor = buttonHoverColor)
+            }
+            onMouseOut={(e) =>
+              (e.currentTarget.style.backgroundColor = buttonBgColor)
+            }
+            onClick={() => exportTipoMantenimientoToExcel(state.tiposMantenimiento)}
+          >
+            Exportar a Excel
+          </button>
+        </div>
       </div>
       <TipoMantenimientoTable
         tiposMantenimiento={state.tiposMantenimiento}

@@ -4,6 +4,7 @@ import { useAuth } from '../../../shared/contexts/AuthContext';
 import { useTheme } from '../../../shared/contexts/ThemeContext';
 import { LocationState } from '../../../shared/types/navigation';
 import { FaSun, FaMoon, FaEye, FaEyeSlash } from 'react-icons/fa';
+import Logo from '../../../assets/logoJacha.png';
 
 export const LoginPage = () => {
   const [email, setEmail] = useState('');
@@ -86,9 +87,9 @@ export const LoginPage = () => {
             style={{ borderColor: colors.gold }}
           >
             <img
-              src="/logo.png"
+              src={Logo}
               alt="Jisa Logo"
-              className="w-16 h-16 object-contain"
+              className="w-16 h-16 object-contain rounded-full"
               onError={(e) => {
                 const target = e.target as HTMLImageElement;
                 target.src = 'https://via.placeholder.com/64x64?text=JISA';

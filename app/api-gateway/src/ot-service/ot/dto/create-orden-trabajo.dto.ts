@@ -49,4 +49,11 @@ export class CreateOrdenTrabajoDto {
 
   @IsNumber()
   tipoCambio: number;
+
+  @IsOptional()
+  @IsString()
+  estado?: string; // Nuevo campo opcional para el estado de la OT
+
+  @IsOptional()
+  tecnicos?: number[]; // Nuevo campo opcional para la lista de IDs de técnicos
 }

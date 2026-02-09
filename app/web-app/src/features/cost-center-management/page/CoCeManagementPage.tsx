@@ -1,18 +1,11 @@
 import React from 'react';
+import { exportCostCentersToExcel } from '../functions/exportExcel';
+import { colors } from '../constants/colors';
 import { useTheme } from '../../../shared/contexts/ThemeContext';
-import { CoCeTable } from '../components/CoCeTable';
 import { useCoCeManagement } from '../hooks/useCoCeManagement';
+import { CoCeTable } from '../components/CoCeTable';
 import { CoCeModal } from '../components/CoCeModal';
-
-export const colors = {
-  brown: '#9E5533',
-  beige: '#E1CD9B',
-  gold: '#FBAF11',
-  darkBg: '#1A1A1A',
-  lightBg: '#E6E6E6',
-  darkText: '#000000',
-  lightText: '#FFFFFF',
-};
+import { CostCenter } from '../../../shared/types/cost-center.types';
 
 export const CoCeManagement: React.FC = () => {
   const { theme } = useTheme();
@@ -35,37 +28,54 @@ export const CoCeManagement: React.FC = () => {
   };
 
   return (
-    <div style={pageStyle}>
-      <CoCeTable
-        costCenters={state.costCenters}
-        theme={theme}
-        onAddCostCenter={() => handleOpenModal('add')}
-        onViewCostCenter={(costCenter) => handleOpenModal('view', costCenter)}
-        loading={state.loading}
-        error={state.error}
-      />
+      <div style={pageStyle}>
+        <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: 16 }}>
+          <button
+            onClick={() => exportCostCentersToExcel(state.costCenters)}
+            style={{
+              backgroundColor: colors.gold,
+              color: colors.lightText,
+              padding: '8px 16px',
+              borderRadius: 8,
+              border: 'none',
+              cursor: 'pointer',
+              fontWeight: 'bold',
+              boxShadow: '0 2px 6px rgba(0,0,0,0.08)',
+            }}
+          >
+            Exportar a Excel
+          </button>
+        </div>
+        <CoCeTable
+          costCenters={state.costCenters}
+          theme={theme}
+          onAddCostCenter={() => handleOpenModal('add')}
+          onViewCostCenter={(costCenter: CostCenter) => handleOpenModal('view', costCenter)}
+          loading={state.loading}
+          error={state.error}
+        />
 
-      <CoCeModal
-        isOpen={state.isModalOpen}
-        mode={state.modalMode}
-        selectedCostCenter={state.selectedCostCenter}
-        formData={state.formData}
-        theme={theme}
-        showDeleteConfirm={state.showDeleteConfirm}
-        deleteCountdown={state.deleteCountdown}
-        canConfirmDelete={state.canConfirmDelete}
-        loading={state.loading}
-        onClose={handleCloseModal}
-        onInputChange={handleInputChange}
-        onCreateCostCenter={handleCreateCostCenter}
-        onUpdateCostCenter={handleUpdateCostCenter}
-        onDeleteClick={handleDeleteClick}
-        onDelete={handleDelete}
-        onEditMode={() =>
-          state.selectedCostCenter &&
-          handleOpenModal('edit', state.selectedCostCenter)
-        }
-      />
-    </div>
+        <CoCeModal
+          isOpen={state.isModalOpen}
+          mode={state.modalMode}
+          selectedCostCenter={state.selectedCostCenter}
+          formData={state.formData}
+          theme={theme}
+          showDeleteConfirm={state.showDeleteConfirm}
+          deleteCountdown={state.deleteCountdown}
+          canConfirmDelete={state.canConfirmDelete}
+          loading={state.loading}
+          onClose={handleCloseModal}
+          onInputChange={handleInputChange}
+          onCreateCostCenter={handleCreateCostCenter}
+          onUpdateCostCenter={handleUpdateCostCenter}
+          onDeleteClick={handleDeleteClick}
+          onDelete={handleDelete}
+          onEditMode={() =>
+            state.selectedCostCenter &&
+            handleOpenModal('edit', state.selectedCostCenter)
+          }
+        />
+      </div>
   );
 };

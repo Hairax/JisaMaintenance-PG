@@ -1,6 +1,7 @@
 import React from 'react';
 import { useTheme } from '../../../shared/contexts/ThemeContext';
 import { useOt } from '../hooks/useOt';
+import { exportOtsToExcel } from '../functions/exportExcel';
 import { OtTable } from '../components/otTable';
 import { OtModal } from '../components/otModal';
 
@@ -29,6 +30,7 @@ export const OtPage: React.FC = () => {
     centrosCosto,
     procesos,
     maquinas,
+    tecnicos,
     fetchOts,
   } = useOt();
 
@@ -42,6 +44,22 @@ export const OtPage: React.FC = () => {
 
   return (
     <div style={pageStyle}>
+      <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: 16 }}>
+        <button
+          onClick={() => exportOtsToExcel(state.ots)}
+          style={{
+            padding: '8px 16px',
+            backgroundColor: colors.gold,
+            color: colors.darkText,
+            border: 'none',
+            borderRadius: 4,
+            cursor: 'pointer',
+            fontWeight: 'bold',
+          }}
+        >
+          Exportar a Excel
+        </button>
+      </div>
       <OtTable
         ots={state.ots}
         theme={theme}
@@ -76,6 +94,7 @@ export const OtPage: React.FC = () => {
         centrosCosto={centrosCosto}
         procesos={procesos}
         maquinas={maquinas}
+        tecnicos={tecnicos}
       />
     </div>
   );

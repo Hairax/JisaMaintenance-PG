@@ -9,6 +9,8 @@ import { Maquina } from '../ot/entities/maquina.entity';
 import { SubUnidad } from '../ot/entities/subUnidad.entity';
 import { User } from '../ot/entities/user.entity';
 import { Proveedor } from '../ot/entities/proveedor.entity';
+import { InformeDiarioTrabajo } from '../informe/entities/informeDiarioTrabajo.entity';
+import { InformeDetalleTrabajo } from '../informe/entities/informeDetalleTrabajo.entity';
 export const databaseProviders = [
   {
     provide: 'DATA_SOURCE',
@@ -31,6 +33,8 @@ export const databaseProviders = [
           SubUnidad,
           User,
           Proveedor,
+          InformeDiarioTrabajo,
+          InformeDetalleTrabajo,
         ],
         synchronize: true,
       });
