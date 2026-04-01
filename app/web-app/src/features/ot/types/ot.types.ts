@@ -15,6 +15,10 @@ export interface OrdenTrabajo {
     createdAt: string | Date;
     updatedAt: string | Date;
   };
+  costCenter?: {
+    id: number;
+    name: string;
+  };
   centroCosto?: {
     id: number;
     nombre: string;
@@ -22,10 +26,12 @@ export interface OrdenTrabajo {
   proceso?: {
     id: number;
     nombre: string;
+    name?: string;
   };
   maquina?: {
     id: number;
     nombre: string;
+    name?: string;
   };
   subUnidad?: {
     id: number;

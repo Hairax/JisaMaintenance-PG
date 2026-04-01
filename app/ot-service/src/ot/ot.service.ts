@@ -16,10 +16,33 @@ export class OrdenTrabajoService {
     return this.repo.save(ordenTrabajo);
   }
   async findAll(): Promise<OrdenTrabajo[]> {
-    return this.repo.find();
+    return this.repo.find({
+      relations: [
+        'tipoOT',
+        'costCenter',
+        'proceso',
+        'maquina',
+        'supervisor',
+        'departamento',
+        'objeto',
+        'subUnidad',
+      ],
+    });
   }
   async findOne(id: number): Promise<OrdenTrabajo> {
-    const ordenTrabajo = await this.repo.findOne({ where: { id } });
+    const ordenTrabajo = await this.repo.findOne({
+      where: { id },
+      relations: [
+        'tipoOT',
+        'costCenter',
+        'proceso',
+        'maquina',
+        'supervisor',
+        'departamento',
+        'objeto',
+        'subUnidad',
+      ],
+    });
     if (!ordenTrabajo) throw new Error('Orden de trabajo no encontrada');
     return ordenTrabajo;
   }

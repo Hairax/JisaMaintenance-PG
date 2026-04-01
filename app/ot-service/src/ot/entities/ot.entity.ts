@@ -20,6 +20,32 @@ export class OrdenTrabajo {
   @PrimaryGeneratedColumn()
   id: number;
 
+  // Explícitamente almacenar los IDs de las relaciones
+  @Column({ type: 'int', nullable: true })
+  tipoOT_id: number;
+
+  @Column({ type: 'int', nullable: true })
+  centroCosto_id: number;
+
+  @Column({ type: 'int', nullable: true })
+  proceso_id: number;
+
+  @Column({ type: 'int', nullable: true })
+  maquina_id: number;
+
+  @Column({ type: 'int', nullable: true })
+  subUnidad_id?: number;
+
+  @Column({ type: 'int', nullable: true })
+  departamento_id: number;
+
+  @Column({ type: 'int', nullable: true })
+  objeto_id: number;
+
+  @Column({ type: 'int', nullable: true })
+  supervisor_id: number;
+
+  // Relaciones ManyToOne
   @ManyToOne(() => TipoMantenimiento)
   @JoinColumn({ name: 'tipoOT_id' })
   tipoOT: TipoMantenimiento;

@@ -31,7 +31,10 @@ export const OtPage: React.FC = () => {
     procesos,
     maquinas,
     tecnicos,
-    fetchOts,
+    departamentos,
+    objetos,
+    supervisores,
+    subUnidades,
   } = useOt();
 
   // Estilos de la página según el tema
@@ -44,7 +47,13 @@ export const OtPage: React.FC = () => {
 
   return (
     <div style={pageStyle}>
-      <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: 16 }}>
+      <div
+        style={{
+          display: 'flex',
+          justifyContent: 'flex-end',
+          marginBottom: 16,
+        }}
+      >
         <button
           onClick={() => exportOtsToExcel(state.ots)}
           style={{
@@ -95,6 +104,10 @@ export const OtPage: React.FC = () => {
         procesos={procesos}
         maquinas={maquinas}
         tecnicos={tecnicos}
+        departamentos={departamentos}
+        objetos={objetos}
+        supervisores={supervisores}
+        subUnidades={subUnidades}
       />
     </div>
   );

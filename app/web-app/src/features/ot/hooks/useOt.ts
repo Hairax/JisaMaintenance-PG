@@ -1,10 +1,5 @@
 import { useState, useCallback, useRef, useEffect } from 'react';
-import {
-  OrdenTrabajo,
-  OrdenTrabajoFormData,
-  OTManagementState,
-  ModalMode,
-} from '../types/ot.types';
+import { OrdenTrabajo, OTManagementState, ModalMode } from '../types/ot.types';
 
 const API_BASE_URL = 'http://localhost:3000/ots';
 
@@ -42,26 +37,129 @@ export function useOt() {
   const [tecnicos, setTecnicos] = useState<{ id: number; nombre: string }[]>(
     [],
   );
-  // ...otros catálogos si necesitas...
+  const [departamentos, setDepartamentos] = useState<
+    { id: number; nombre: string }[]
+  >([]);
+  const [objetos, setObjetos] = useState<{ id: number; nombre: string }[]>([]);
+  const [supervisores, setSupervisores] = useState<
+    { id: number; nombre: string }[]
+  >([]);
+  const [subUnidades, setSubUnidades] = useState<
+    { id: number; nombre: string }[]
+  >([]);
 
   // 2. Efecto para cargar las listas al montar el hook
   useEffect(() => {
-    fetch('http://localhost:3000/tipo-mantenimientos')
-      .then((res) => res.json())
-      .then(setTiposMantenimiento);
-    fetch('http://localhost:3000/cost-centers')
-      .then((res) => res.json())
-      .then(setCentrosCosto);
-    fetch('http://localhost:3000/process')
-      .then((res) => res.json())
-      .then(setProcesos);
-    fetch('http://localhost:3000/maquinas')
-      .then((res) => res.json())
-      .then(setMaquinas);
-    fetch('http://localhost:3000/users')
-      .then((res) => res.json())
-      .then(setTecnicos);
-    // ...otros fetch si necesitas...
+    const loadCatalogs = async () => {
+      try {
+        // Cargar Tipos de Mantenimiento
+        const resTypes = await fetch(
+          'http://localhost:3000/tipo-mantenimientos',
+        );
+        if (resTypes.ok) {
+          const dataTypes = await resTypes.json();
+          setTiposMantenimiento(Array.isArray(dataTypes) ? dataTypes : []);
+        }
+
+        // Cargar Centros de Costo
+        const resCenters = await fetch('http://localhost:3000/cost-centers');
+        if (resCenters.ok) {
+          const dataCenters = await resCenters.json();
+          const centrosFormateados = Array.isArray(dataCenters)
+            ? dataCenters.map((center: any) => ({
+                id: center.id,
+                nombre: center.name || 'Sin nombre',
+              }))
+            : [];
+          setCentrosCosto(centrosFormateados);
+        }
+
+        // Cargar Procesos
+        const resProcess = await fetch('http://localhost:3000/process');
+        if (resProcess.ok) {
+          const dataProcess = await resProcess.json();
+          const procesosFormateados = Array.isArray(dataProcess)
+            ? dataProcess.map((process: any) => ({
+                id: process.id,
+                nombre: process.name || 'Sin nombre',
+              }))
+            : [];
+          setProcesos(procesosFormateados);
+        }
+
+        // Cargar Máquinas
+        const resMachines = await fetch('http://localhost:3000/maquinas');
+        if (resMachines.ok) {
+          const dataMachines = await resMachines.json();
+          const maquinasFormateadas = Array.isArray(dataMachines)
+            ? dataMachines.map((maquina: any) => ({
+                id: maquina.id,
+                nombre: maquina.name || 'Sin nombre',
+              }))
+            : [];
+          setMaquinas(maquinasFormateadas);
+        }
+
+        // Cargar Usuarios/Técnicos
+        const resUsers = await fetch('http://localhost:3000/users');
+        if (resUsers.ok) {
+          const dataUsers = await resUsers.json();
+          // Mapear campos de User a { id, nombre }
+          const tecnicosFormateados = Array.isArray(dataUsers)
+            ? dataUsers.map((user: any) => ({
+                id: user.id,
+                nombre: `${user.name} ${user.lastName}`.trim(),
+              }))
+            : [];
+          setTecnicos(tecnicosFormateados);
+          // También usar como supervisores
+          setSupervisores(tecnicosFormateados);
+        }
+
+        // Cargar Departamentos
+        const resDepts = await fetch('http://localhost:3000/departamentos');
+        if (resDepts.ok) {
+          const dataDepts = await resDepts.json();
+          const deptsFormateados = Array.isArray(dataDepts)
+            ? dataDepts.map((dept: any) => ({
+                id: dept.id,
+                nombre: dept.nombre || dept.name || 'Sin nombre',
+              }))
+            : [];
+          setDepartamentos(deptsFormateados);
+        }
+
+        // Cargar Objetos
+        const resObjetos = await fetch('http://localhost:3000/objetos');
+        if (resObjetos.ok) {
+          const dataObjetos = await resObjetos.json();
+          const objetosFormateados = Array.isArray(dataObjetos)
+            ? dataObjetos.map((obj: any) => ({
+                id: obj.id,
+                nombre: obj.nombre || obj.name || 'Sin nombre',
+              }))
+            : [];
+          setObjetos(objetosFormateados);
+        }
+
+        // Cargar SubUnidades
+        const resSubUnidades = await fetch('http://localhost:3000/subunidades');
+        if (resSubUnidades.ok) {
+          const dataSubUnidades = await resSubUnidades.json();
+          const subUnidadesFormateadas = Array.isArray(dataSubUnidades)
+            ? dataSubUnidades.map((su: any) => ({
+                id: su.id,
+                nombre: su.descripcion || su.name || 'Sin nombre',
+              }))
+            : [];
+          setSubUnidades(subUnidadesFormateadas);
+        }
+      } catch (error) {
+        console.error('Error cargando catálogos:', error);
+      }
+    };
+
+    loadCatalogs();
   }, []);
 
   // Fetch all OTs
@@ -120,9 +218,11 @@ export function useOt() {
 
   // Form input handler
   const handleInputChange = (
-    e: React.ChangeEvent<
-      HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement
-    >,
+    e:
+      | React.ChangeEvent<
+          HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement
+        >
+      | { target: { name: string; value: any } },
   ) => {
     const { name, value } = e.target;
     setState((prev) => ({
@@ -135,10 +235,31 @@ export function useOt() {
   const handleCreateOt = async () => {
     setState((prev) => ({ ...prev, loading: true, error: null }));
     try {
+      // Preparar datos con campos obligatorios
+      const dataToSend = {
+        tipoOT_id: state.formData.tipoOT_id,
+        centroCosto_id: state.formData.centroCosto_id,
+        proceso_id: state.formData.proceso_id,
+        maquina_id: state.formData.maquina_id,
+        subUnidad_id: state.formData.subUnidad_id,
+        tipoEjecucion: state.formData.tipoEjecucion || 'preventivo',
+        departamento_id: state.formData.departamento_id,
+        objeto_id: state.formData.objeto_id,
+        supervisor_id: state.formData.supervisor_id,
+        descripcionTarea: state.formData.descripcionTarea,
+        fechaHora: state.formData.fechaHora,
+        tipoCambio: state.formData.tipoCambio,
+        tiempoEstimado: state.formData.tiempoEstimado,
+        estado: state.formData.estado || 'Abierta',
+        tecnicos: state.formData.tecnicos || [],
+      };
+
+      console.log('Enviando datos al crear OT:', dataToSend);
+
       const res = await fetch(API_BASE_URL, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(state.formData),
+        body: JSON.stringify(dataToSend),
       });
       if (!res.ok) throw new Error('Error al crear OT');
       await fetchOts();
@@ -157,10 +278,40 @@ export function useOt() {
     if (!state.selectedOT) return;
     setState((prev) => ({ ...prev, loading: true, error: null }));
     try {
+      // Preparar datos con campos obligatorios
+      const dataToSend = {
+        tipoOT_id: state.formData.tipoOT_id || state.selectedOT.tipoOT_id,
+        centroCosto_id:
+          state.formData.centroCosto_id || state.selectedOT.centroCosto_id,
+        proceso_id: state.formData.proceso_id || state.selectedOT.proceso_id,
+        maquina_id: state.formData.maquina_id || state.selectedOT.maquina_id,
+        subUnidad_id:
+          state.formData.subUnidad_id || state.selectedOT.subUnidad_id,
+        tipoEjecucion:
+          state.formData.tipoEjecucion ||
+          state.selectedOT.tipoEjecucion ||
+          'preventivo',
+        departamento_id:
+          state.formData.departamento_id || state.selectedOT.departamento_id,
+        objeto_id: state.formData.objeto_id || state.selectedOT.objeto_id,
+        supervisor_id:
+          state.formData.supervisor_id || state.selectedOT.supervisor_id,
+        descripcionTarea:
+          state.formData.descripcionTarea || state.selectedOT.descripcionTarea,
+        fechaHora: state.formData.fechaHora || state.selectedOT.fechaHora,
+        tipoCambio: state.formData.tipoCambio || state.selectedOT.tipoCambio,
+        tiempoEstimado:
+          state.formData.tiempoEstimado || state.selectedOT.tiempoEstimado,
+        estado: state.formData.estado || state.selectedOT.estado || 'Abierta',
+        tecnicos: state.formData.tecnicos || state.selectedOT.tecnicos || [],
+      };
+
+      console.log('Enviando datos al actualizar OT:', dataToSend);
+
       const res = await fetch(`${API_BASE_URL}/${state.selectedOT.id}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(state.formData),
+        body: JSON.stringify(dataToSend),
       });
       if (!res.ok) throw new Error('Error al actualizar OT');
       await fetchOts();
@@ -234,5 +385,9 @@ export function useOt() {
     procesos,
     maquinas,
     tecnicos,
+    departamentos,
+    objetos,
+    supervisores,
+    subUnidades,
   };
 }
