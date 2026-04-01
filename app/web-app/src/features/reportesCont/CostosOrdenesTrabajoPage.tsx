@@ -1,78 +1,362 @@
-import React, { useState } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import * as XLSX from 'xlsx';
 
-// Datos simulados para el reporte de costos por órdenes de trabajo
-const ordenesTrabajoData = [
-  {
-    id: 1,
-    codigo: 'OT-001',
-    activo: 'Compresor A',
-    fecha: '2025-07-01',
-    manoObra: 600,
-    materiales: 300,
-    serviciosExternos: 200,
-  },
-  {
-    id: 2,
-    codigo: 'OT-002',
-    activo: 'Cinta Transportadora 2',
-    fecha: '2025-07-02',
-    manoObra: 450,
-    materiales: 150,
-    serviciosExternos: 100,
-  },
-  {
-    id: 3,
-    codigo: 'OT-003',
-    activo: 'Bomba Hidráulica B',
-    fecha: '2025-07-04',
-    manoObra: 750,
-    materiales: 500,
-    serviciosExternos: 350,
-  },
-  {
-    id: 4,
-    codigo: 'OT-004',
-    activo: 'Panel Eléctrico Principal',
-    fecha: '2025-07-05',
-    manoObra: 300,
-    materiales: 200,
-    serviciosExternos: 150,
-  },
-];
+const API = 'http://localhost:3000';
+
+// ── Types ─────────────────────────────────────────────────────────────────────
+
+interface Usuario {
+  id: number;
+  name: string;
+  lastName: string;
+}
+
+interface InformeDetalle {
+  id: number;
+  informeId: number;
+  otId: number;
+  observaciones?: string;
+  horaInicio: string;
+  horaFinalización: string;
+  createdAt: string;
+}
+
+interface Informe {
+  id: number;
+  userId: number;
+  detalles: InformeDetalle[];
+  createdAt: string;
+}
+
+interface SalidaDetalle {
+  tipoProducto: string;
+  productoId: number;
+  nombre: string;
+  unidadMedida: string;
+  cantidad: number;
+  precioUnitario: number;
+  subtotal: number;
+}
+
+interface Salida {
+  id: number;
+  nroSalida: string;
+  otId: number;
+  fecha: string;
+  observacion?: string;
+  subtotal: number;
+  descuentoTotal: number;
+  total: number;
+  estado: string;
+  detalles: SalidaDetalle[];
+}
+
+interface OT {
+  id: number;
+  descripcionTarea: string;
+  estado: string;
+  fechaHora: string;
+  fechaCreacion: string;
+  tiempoEstimado?: number;
+  tipoCambio: number;
+  tipoEjecucion?: string;
+  tecnicos?: number[];
+  tipoOT?: { nombre?: string; name?: string };
+  maquina?: { nombre?: string; name?: string };
+  costCenter?: { nombre?: string; name?: string };
+  proceso?: { nombre?: string; name?: string };
+  departamento?: { nombre?: string; name?: string };
+  objeto?: { nombre?: string; name?: string };
+  supervisor?: { name?: string; lastName?: string };
+}
+
+// ── Computed row type ─────────────────────────────────────────────────────────
+
+interface ManoObraRow {
+  tecnicoNombre: string;
+  fecha: string;
+  horaInicio: string;
+  horaFin: string;
+  horas: number;
+  observaciones?: string;
+}
+
+interface OTReportRow {
+  ot: OT;
+  manoObra: ManoObraRow[];
+  totalHoras: number;
+  salidas: Salida[];
+  totalMateriales: number;
+  costoTotal: number;
+}
+
+// ── Helpers ───────────────────────────────────────────────────────────────────
+
+const parseHours = (t: string): number => {
+  if (!t) return 0;
+  const parts = t.split(':').map(Number);
+  return (parts[0] ?? 0) + (parts[1] ?? 0) / 60 + (parts[2] ?? 0) / 3600;
+};
+
+const fmtHours = (h: number) => {
+  const hrs = Math.floor(h);
+  const mins = Math.round((h - hrs) * 60);
+  return `${hrs}h ${mins.toString().padStart(2, '0')}m`;
+};
+
+const fmtDate = (d: string) => {
+  if (!d) return '—';
+  return new Date(d).toLocaleDateString('es-BO', {
+    day: '2-digit',
+    month: '2-digit',
+    year: 'numeric',
+  });
+};
+
+const fmtCurrency = (n: number) =>
+  n.toLocaleString('es-BO', {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  });
+
+const getName = (obj?: { nombre?: string; name?: string }) =>
+  obj?.nombre ?? obj?.name ?? '—';
+
+const ESTADO_COLORS: Record<string, { bg: string; color: string }> = {
+  Abierta: { bg: '#E3F2FD', color: '#1565C0' },
+  'En Progreso Técnico': { bg: '#FFF3E0', color: '#E65100' },
+  'En Progreso Almacén': { bg: '#F3E5F5', color: '#6A1B9A' },
+  Cerrada: { bg: '#E8F5E9', color: '#2E7D32' },
+};
+
+const estadoBadge = (estado: string) => {
+  const c = ESTADO_COLORS[estado] ?? { bg: '#F5F5F5', color: '#555' };
+  return (
+    <span
+      style={{
+        padding: '2px 10px',
+        borderRadius: 12,
+        fontSize: '0.78rem',
+        fontWeight: 600,
+        background: c.bg,
+        color: c.color,
+      }}
+    >
+      {estado}
+    </span>
+  );
+};
+
+// ── Component ─────────────────────────────────────────────────────────────────
 
 export default function CostosOrdenesTrabajoPage() {
-  const [filtro, setFiltro] = useState('');
-
-  const dataFiltrada = ordenesTrabajoData.filter((item) =>
-    filtro ? item.activo.toLowerCase().includes(filtro.toLowerCase()) : true,
+  const [rows, setRows] = useState<OTReportRow[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [filtroDesc, setFiltroDesc] = useState('');
+  const [filtroEstado, setFiltroEstado] = useState('todos');
+  const [expandedId, setExpandedId] = useState<number | null>(null);
+  const [expandTab, setExpandTab] = useState<Record<number, 'mano' | 'mat'>>(
+    {},
   );
 
+  const cargarDatos = useCallback(async () => {
+    setLoading(true);
+    setError(null);
+    try {
+      const [resOTs, resInformes, resSalidas, resUsers] = await Promise.all([
+        fetch(`${API}/ots`),
+        fetch(`${API}/informes`),
+        fetch(`${API}/salidas`),
+        fetch(`${API}/users`),
+      ]);
+
+      const [ots, informes, salidas, users] = (await Promise.all([
+        resOTs.ok ? resOTs.json() : [],
+        resInformes.ok ? resInformes.json() : [],
+        resSalidas.ok ? resSalidas.json() : [],
+        resUsers.ok ? resUsers.json() : [],
+      ])) as [OT[], Informe[], Salida[], Usuario[]];
+
+      const userMap: Record<number, string> = {};
+      for (const u of Array.isArray(users) ? users : []) {
+        userMap[u.id] = `${u.name} ${u.lastName}`.trim();
+      }
+
+      const reportRows: OTReportRow[] = (Array.isArray(ots) ? ots : []).map(
+        (ot) => {
+          // --- Mano de obra: extraer detalles de informes para esta OT ---
+          const manoObra: ManoObraRow[] = [];
+          for (const inf of Array.isArray(informes) ? informes : []) {
+            for (const det of inf.detalles ?? []) {
+              if (Number(det.otId) === ot.id) {
+                const horas =
+                  parseHours(det['horaFinalización']) -
+                  parseHours(det.horaInicio);
+                manoObra.push({
+                  tecnicoNombre:
+                    userMap[inf.userId] ?? `Técnico #${inf.userId}`,
+                  fecha: det.createdAt ?? inf.createdAt,
+                  horaInicio: det.horaInicio,
+                  horaFin: det['horaFinalización'],
+                  horas: Math.max(0, horas),
+                  observaciones: det.observaciones,
+                });
+              }
+            }
+          }
+          const totalHoras = manoObra.reduce((s, r) => s + r.horas, 0);
+
+          // --- Materiales: salidas vinculadas a esta OT ---
+          const otSalidas = (Array.isArray(salidas) ? salidas : []).filter(
+            (s) => Number(s.otId) === ot.id,
+          );
+          const totalMateriales = otSalidas.reduce(
+            (s, sal) => s + Number(sal.total),
+            0,
+          );
+
+          return {
+            ot,
+            manoObra,
+            totalHoras,
+            salidas: otSalidas,
+            totalMateriales,
+            costoTotal: totalMateriales, // labor monetary cost not stored; shown as hours
+          };
+        },
+      );
+
+      setRows(reportRows);
+    } catch (err) {
+      console.error(err);
+      setError(
+        'Error al cargar los datos. Verifique la conexión con el servidor.',
+      );
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    cargarDatos();
+  }, [cargarDatos]);
+
+  const filtrados = rows.filter((r) => {
+    const matchDesc =
+      !filtroDesc ||
+      r.ot.descripcionTarea.toLowerCase().includes(filtroDesc.toLowerCase()) ||
+      String(r.ot.id).includes(filtroDesc);
+    const matchEstado =
+      filtroEstado === 'todos' || r.ot.estado === filtroEstado;
+    return matchDesc && matchEstado;
+  });
+
+  const totalHorasGlobal = filtrados.reduce((s, r) => s + r.totalHoras, 0);
+  const totalMatsGlobal = filtrados.reduce((s, r) => s + r.totalMateriales, 0);
+
+  const toggleExpand = (id: number) =>
+    setExpandedId((prev) => (prev === id ? null : id));
+
+  const getTab = (id: number): 'mano' | 'mat' => expandTab[id] ?? 'mano';
+
+  const setTab = (id: number, tab: 'mano' | 'mat') =>
+    setExpandTab((prev) => ({ ...prev, [id]: tab }));
+
   const exportarExcel = () => {
-    // Transformar los datos para el Excel
-    const datosParaExportar = dataFiltrada.map((item) => ({
-      Fecha: item.fecha,
-      'Código OT': item.codigo,
-      Activo: item.activo,
-      'Mano de Obra': item.manoObra,
-      Materiales: item.materiales,
-      'Servicios Externos': item.serviciosExternos,
-      'Costo Total': item.manoObra + item.materiales + item.serviciosExternos,
-    }));
-
-    // Crear hoja de Excel
-    const hoja = XLSX.utils.json_to_sheet(datosParaExportar);
-
-    // Crear libro y añadir hoja
+    const datos: Record<string, unknown>[] = [];
+    for (const r of filtrados) {
+      datos.push({
+        'OT #': r.ot.id,
+        Descripción: r.ot.descripcionTarea,
+        Estado: r.ot.estado,
+        Fecha: fmtDate(r.ot.fechaHora),
+        'Tipo Mantenimiento': getName(r.ot.tipoOT),
+        Máquina: getName(r.ot.maquina),
+        'Centro Costo': getName(r.ot.costCenter),
+        Proceso: getName(r.ot.proceso),
+        'Tiempo Estimado (h)': r.ot.tiempoEstimado ?? '—',
+        'Total Horas Trabajadas': r.totalHoras.toFixed(2),
+        'Costo Materiales (Bs)': r.totalMateriales.toFixed(2),
+        Sección: 'Resumen',
+      });
+      for (const mo of r.manoObra) {
+        datos.push({
+          'OT #': r.ot.id,
+          Descripción: '',
+          Estado: '',
+          Fecha: fmtDate(mo.fecha),
+          'Tipo Mantenimiento': '',
+          Máquina: '',
+          'Centro Costo': '',
+          Proceso: '',
+          'Tiempo Estimado (h)': '',
+          'Total Horas Trabajadas': mo.horas.toFixed(2),
+          'Costo Materiales (Bs)': '',
+          Sección: `Mano Obra – ${mo.tecnicoNombre} (${mo.horaInicio} → ${mo.horaFin})`,
+        });
+      }
+      for (const sal of r.salidas) {
+        for (const det of sal.detalles ?? []) {
+          datos.push({
+            'OT #': r.ot.id,
+            Descripción: '',
+            Estado: '',
+            Fecha: fmtDate(sal.fecha),
+            'Tipo Mantenimiento': '',
+            Máquina: '',
+            'Centro Costo': '',
+            Proceso: '',
+            'Tiempo Estimado (h)': '',
+            'Total Horas Trabajadas': '',
+            'Costo Materiales (Bs)': Number(det.subtotal).toFixed(2),
+            Sección: `Material – ${det.nombre} (${det.cantidad} ${det.unidadMedida})`,
+          });
+        }
+      }
+    }
+    const hoja = XLSX.utils.json_to_sheet(datos);
     const libro = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(libro, hoja, 'Órdenes de Trabajo');
-
-    // Descargar archivo
-    XLSX.writeFile(libro, 'reporte_ordenes_trabajo.xlsx');
+    XLSX.utils.book_append_sheet(libro, hoja, 'Costos OT');
+    XLSX.writeFile(libro, 'reporte_costos_ordenes_trabajo.xlsx');
   };
 
+  if (loading) {
+    return (
+      <div style={{ padding: '2rem', textAlign: 'center', color: '#666' }}>
+        Cargando órdenes de trabajo...
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div style={{ padding: '2rem', textAlign: 'center' }}>
+        <p style={{ color: '#D32F2F', marginBottom: 12 }}>{error}</p>
+        <button
+          onClick={cargarDatos}
+          style={{
+            padding: '0.5rem 1.2rem',
+            borderRadius: 8,
+            background: '#FBAF11',
+            color: '#fff',
+            border: 'none',
+            cursor: 'pointer',
+          }}
+        >
+          Reintentar
+        </button>
+      </div>
+    );
+  }
+
+  const estados = [
+    'todos',
+    ...Array.from(new Set(rows.map((r) => r.ot.estado))),
+  ];
+
   return (
-    <div style={{ padding: '2rem', maxWidth: 1000, margin: '0 auto' }}>
+    <div style={{ padding: '2rem', maxWidth: 1300, margin: '0 auto' }}>
       <div
         style={{
           background: '#fff',
@@ -90,109 +374,204 @@ export default function CostosOrdenesTrabajoPage() {
         >
           Costos Totales por Órdenes de Trabajo
         </h2>
+
+        {/* Filters */}
         <div
           style={{
             display: 'flex',
-            gap: 16,
+            gap: 12,
             alignItems: 'flex-end',
-            marginBottom: 24,
+            marginBottom: 20,
+            flexWrap: 'wrap',
           }}
         >
           <input
             type="text"
-            placeholder="Filtrar por nombre de activo"
-            value={filtro}
-            onChange={(e) => setFiltro(e.target.value)}
+            placeholder="Buscar por descripción o N° OT..."
+            value={filtroDesc}
+            onChange={(e) => setFiltroDesc(e.target.value)}
             style={{
               padding: '0.5rem 1rem',
               borderRadius: 8,
               border: '1px solid #ccc',
               flex: 1,
+              minWidth: 200,
             }}
           />
+          <select
+            value={filtroEstado}
+            onChange={(e) => setFiltroEstado(e.target.value)}
+            style={{
+              padding: '0.5rem 1rem',
+              borderRadius: 8,
+              border: '1px solid #ccc',
+            }}
+          >
+            {estados.map((e) => (
+              <option key={e} value={e}>
+                {e === 'todos' ? 'Todos los estados' : e}
+              </option>
+            ))}
+          </select>
           <button
-            onClick={() => setFiltro('')}
+            onClick={() => {
+              setFiltroDesc('');
+              setFiltroEstado('todos');
+            }}
             style={{
               padding: '0.5rem 1.2rem',
               borderRadius: 8,
-              background: '#FBAF11',
+              background: '#888',
               color: '#fff',
               border: 'none',
-              fontWeight: 500,
               cursor: 'pointer',
             }}
           >
             Limpiar
           </button>
           <button
+            onClick={cargarDatos}
+            style={{
+              padding: '0.5rem 1.2rem',
+              borderRadius: 8,
+              background: '#1565C0',
+              color: '#fff',
+              border: 'none',
+              cursor: 'pointer',
+            }}
+          >
+            Actualizar
+          </button>
+          <button
             onClick={exportarExcel}
             style={{
               padding: '0.5rem 1.2rem',
               borderRadius: 8,
-              background: '#4CAF50',
+              background: '#FBAF11',
               color: '#fff',
               border: 'none',
-              fontWeight: 500,
               cursor: 'pointer',
             }}
           >
-            Exportar a Excel
+            Exportar Excel
           </button>
         </div>
+
+        {/* Summary cards */}
+        <div
+          style={{
+            display: 'flex',
+            gap: 12,
+            marginBottom: 24,
+            flexWrap: 'wrap',
+          }}
+        >
+          {[
+            { label: 'Total OTs', value: filtrados.length, color: '#5D3312' },
+            {
+              label: 'Abiertas',
+              value: filtrados.filter((r) => r.ot.estado === 'Abierta').length,
+              color: '#1565C0',
+            },
+            {
+              label: 'En Progreso',
+              value: filtrados.filter((r) =>
+                r.ot.estado.startsWith('En Progreso'),
+              ).length,
+              color: '#E65100',
+            },
+            {
+              label: 'Cerradas',
+              value: filtrados.filter((r) => r.ot.estado === 'Cerrada').length,
+              color: '#2E7D32',
+            },
+            {
+              label: 'Total Horas',
+              value: fmtHours(totalHorasGlobal),
+              color: '#6A1B9A',
+            },
+            {
+              label: 'Costo Materiales',
+              value: `Bs ${fmtCurrency(totalMatsGlobal)}`,
+              color: '#D32F2F',
+            },
+          ].map((s) => (
+            <div
+              key={s.label}
+              style={{
+                background: '#F5F5F5',
+                borderRadius: 8,
+                padding: '0.75rem 1.25rem',
+                textAlign: 'center',
+                minWidth: 110,
+              }}
+            >
+              <div
+                style={{ fontSize: '1.3rem', fontWeight: 700, color: s.color }}
+              >
+                {s.value}
+              </div>
+              <div style={{ fontSize: '0.76rem', color: '#666' }}>
+                {s.label}
+              </div>
+            </div>
+          ))}
+        </div>
+
+        {/* Main table */}
         <div style={{ overflowX: 'auto' }}>
           <table
             style={{
               width: '100%',
               borderCollapse: 'collapse',
-              fontSize: '1rem',
+              fontSize: '0.88rem',
             }}
           >
             <thead>
               <tr style={{ background: '#E1CD9B' }}>
+                <th style={{ padding: '0.75rem', width: 28 }} />
+                <th style={{ padding: '0.75rem', textAlign: 'left' }}>OT #</th>
+                <th style={{ padding: '0.75rem', textAlign: 'left' }}>
+                  Descripción
+                </th>
+                <th style={{ padding: '0.75rem', textAlign: 'left' }}>
+                  Estado
+                </th>
                 <th style={{ padding: '0.75rem', textAlign: 'left' }}>Fecha</th>
                 <th style={{ padding: '0.75rem', textAlign: 'left' }}>
-                  Código OT
+                  Máquina
                 </th>
                 <th style={{ padding: '0.75rem', textAlign: 'left' }}>
-                  Activo
+                  Tipo Mant.
                 </th>
-                <th style={{ padding: '0.75rem', textAlign: 'left' }}>
-                  Mano de Obra
+                <th style={{ padding: '0.75rem', textAlign: 'right' }}>
+                  T. Estimado
                 </th>
-                <th style={{ padding: '0.75rem', textAlign: 'left' }}>
-                  Materiales
+                <th
+                  style={{
+                    padding: '0.75rem',
+                    textAlign: 'right',
+                    color: '#6A1B9A',
+                  }}
+                >
+                  Horas Trabajadas
                 </th>
-                <th style={{ padding: '0.75rem', textAlign: 'left' }}>
-                  Servicios Externos
-                </th>
-                <th style={{ padding: '0.75rem', textAlign: 'left' }}>
-                  Costo Total
+                <th
+                  style={{
+                    padding: '0.75rem',
+                    textAlign: 'right',
+                    color: '#D32F2F',
+                  }}
+                >
+                  Costo Mat. (Bs)
                 </th>
               </tr>
             </thead>
             <tbody>
-              {dataFiltrada.map((item) => (
-                <tr
-                  key={item.id}
-                  style={{ background: item.id % 2 === 0 ? '#fff' : '#F5F5F5' }}
-                >
-                  <td style={{ padding: '0.75rem' }}>{item.fecha}</td>
-                  <td style={{ padding: '0.75rem' }}>{item.codigo}</td>
-                  <td style={{ padding: '0.75rem' }}>{item.activo}</td>
-                  <td style={{ padding: '0.75rem' }}>${item.manoObra}</td>
-                  <td style={{ padding: '0.75rem' }}>${item.materiales}</td>
-                  <td style={{ padding: '0.75rem' }}>
-                    ${item.serviciosExternos}
-                  </td>
-                  <td style={{ padding: '0.75rem' }}>
-                    ${item.manoObra + item.materiales + item.serviciosExternos}
-                  </td>
-                </tr>
-              ))}
-              {dataFiltrada.length === 0 && (
+              {filtrados.length === 0 && (
                 <tr>
                   <td
-                    colSpan={7}
+                    colSpan={10}
                     style={{
                       padding: '1.5rem',
                       textAlign: 'center',
@@ -203,6 +582,547 @@ export default function CostosOrdenesTrabajoPage() {
                   </td>
                 </tr>
               )}
+              {filtrados.map((r, idx) => {
+                const isExpanded = expandedId === r.ot.id;
+                const tab = getTab(r.ot.id);
+                return (
+                  <React.Fragment key={r.ot.id}>
+                    <tr
+                      style={{
+                        background: idx % 2 === 0 ? '#fff' : '#F5F5F5',
+                        cursor: 'pointer',
+                      }}
+                      onClick={() => toggleExpand(r.ot.id)}
+                    >
+                      <td
+                        style={{
+                          padding: '0.75rem',
+                          textAlign: 'center',
+                          color: '#888',
+                        }}
+                      >
+                        {isExpanded ? '▼' : '▶'}
+                      </td>
+                      <td style={{ padding: '0.75rem', fontWeight: 600 }}>
+                        #{r.ot.id}
+                      </td>
+                      <td style={{ padding: '0.75rem', maxWidth: 260 }}>
+                        {r.ot.descripcionTarea}
+                      </td>
+                      <td style={{ padding: '0.75rem' }}>
+                        {estadoBadge(r.ot.estado)}
+                      </td>
+                      <td style={{ padding: '0.75rem' }}>
+                        {fmtDate(r.ot.fechaHora)}
+                      </td>
+                      <td style={{ padding: '0.75rem' }}>
+                        {getName(r.ot.maquina)}
+                      </td>
+                      <td style={{ padding: '0.75rem' }}>
+                        {getName(r.ot.tipoOT)}
+                      </td>
+                      <td style={{ padding: '0.75rem', textAlign: 'right' }}>
+                        {r.ot.tiempoEstimado != null
+                          ? `${r.ot.tiempoEstimado}h`
+                          : '—'}
+                      </td>
+                      <td
+                        style={{
+                          padding: '0.75rem',
+                          textAlign: 'right',
+                          fontWeight: 600,
+                          color: '#6A1B9A',
+                        }}
+                      >
+                        {r.totalHoras > 0 ? fmtHours(r.totalHoras) : '—'}
+                      </td>
+                      <td
+                        style={{
+                          padding: '0.75rem',
+                          textAlign: 'right',
+                          fontWeight: 600,
+                          color: '#D32F2F',
+                        }}
+                      >
+                        {r.totalMateriales > 0
+                          ? fmtCurrency(r.totalMateriales)
+                          : '—'}
+                      </td>
+                    </tr>
+
+                    {isExpanded && (
+                      <tr>
+                        <td
+                          colSpan={10}
+                          style={{ padding: 0, background: '#F9F6EE' }}
+                        >
+                          <div style={{ padding: '1.25rem 2rem 1.5rem' }}>
+                            {/* OT info header */}
+                            <div
+                              style={{
+                                display: 'grid',
+                                gridTemplateColumns:
+                                  'repeat(auto-fill, minmax(200px, 1fr))',
+                                gap: '0.5rem 1.5rem',
+                                marginBottom: '1.25rem',
+                                padding: '0.75rem 1rem',
+                                background: '#fff',
+                                borderRadius: 8,
+                                border: '1px solid #E1CD9B',
+                              }}
+                            >
+                              {[
+                                ['Centro de Costo', getName(r.ot.costCenter)],
+                                ['Proceso', getName(r.ot.proceso)],
+                                ['Departamento', getName(r.ot.departamento)],
+                                ['Objeto', getName(r.ot.objeto)],
+                                ['Tipo Ejecución', r.ot.tipoEjecucion ?? '—'],
+                                ['Tipo Cambio', `Bs ${r.ot.tipoCambio}`],
+                                [
+                                  'Supervisor',
+                                  r.ot.supervisor
+                                    ? `${r.ot.supervisor.name ?? ''} ${r.ot.supervisor.lastName ?? ''}`.trim()
+                                    : '—',
+                                ],
+                                [
+                                  'Técnicos asignados',
+                                  (r.ot.tecnicos ?? []).length > 0
+                                    ? (r.ot.tecnicos ?? []).join(', ')
+                                    : '—',
+                                ],
+                                ['Fecha creación', fmtDate(r.ot.fechaCreacion)],
+                              ].map(([label, val]) => (
+                                <div key={label}>
+                                  <div
+                                    style={{
+                                      fontSize: '0.72rem',
+                                      color: '#888',
+                                      marginBottom: 2,
+                                    }}
+                                  >
+                                    {label}
+                                  </div>
+                                  <div
+                                    style={{
+                                      fontWeight: 500,
+                                      fontSize: '0.85rem',
+                                    }}
+                                  >
+                                    {val}
+                                  </div>
+                                </div>
+                              ))}
+                            </div>
+
+                            {/* Tabs */}
+                            <div
+                              style={{
+                                display: 'flex',
+                                gap: 8,
+                                marginBottom: 12,
+                              }}
+                            >
+                              {(['mano', 'mat'] as const).map((t) => (
+                                <button
+                                  key={t}
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    setTab(r.ot.id, t);
+                                  }}
+                                  style={{
+                                    padding: '0.4rem 1rem',
+                                    borderRadius: 8,
+                                    border: 'none',
+                                    cursor: 'pointer',
+                                    fontWeight: 600,
+                                    fontSize: '0.85rem',
+                                    background:
+                                      tab === t ? '#5D3312' : '#E1CD9B',
+                                    color: tab === t ? '#fff' : '#5D3312',
+                                  }}
+                                >
+                                  {t === 'mano'
+                                    ? `Mano de Obra (${r.manoObra.length} registros · ${fmtHours(r.totalHoras)})`
+                                    : `Materiales / Salidas (${r.salidas.length}) · Bs ${fmtCurrency(r.totalMateriales)}`}
+                                </button>
+                              ))}
+                            </div>
+
+                            {/* Tab: Mano de Obra */}
+                            {tab === 'mano' && (
+                              <table
+                                style={{
+                                  width: '100%',
+                                  borderCollapse: 'collapse',
+                                  fontSize: '0.84rem',
+                                }}
+                              >
+                                <thead>
+                                  <tr style={{ background: '#E1CD9B' }}>
+                                    <th
+                                      style={{
+                                        padding: '0.5rem 0.75rem',
+                                        textAlign: 'left',
+                                      }}
+                                    >
+                                      Técnico
+                                    </th>
+                                    <th
+                                      style={{
+                                        padding: '0.5rem 0.75rem',
+                                        textAlign: 'left',
+                                      }}
+                                    >
+                                      Fecha Registro
+                                    </th>
+                                    <th
+                                      style={{
+                                        padding: '0.5rem 0.75rem',
+                                        textAlign: 'left',
+                                      }}
+                                    >
+                                      Hora Inicio
+                                    </th>
+                                    <th
+                                      style={{
+                                        padding: '0.5rem 0.75rem',
+                                        textAlign: 'left',
+                                      }}
+                                    >
+                                      Hora Fin
+                                    </th>
+                                    <th
+                                      style={{
+                                        padding: '0.5rem 0.75rem',
+                                        textAlign: 'right',
+                                      }}
+                                    >
+                                      Horas
+                                    </th>
+                                    <th
+                                      style={{
+                                        padding: '0.5rem 0.75rem',
+                                        textAlign: 'left',
+                                      }}
+                                    >
+                                      Observaciones
+                                    </th>
+                                  </tr>
+                                </thead>
+                                <tbody>
+                                  {r.manoObra.length === 0 && (
+                                    <tr>
+                                      <td
+                                        colSpan={6}
+                                        style={{
+                                          padding: '0.75rem',
+                                          textAlign: 'center',
+                                          color: '#999',
+                                        }}
+                                      >
+                                        Sin registros de trabajo aún.
+                                      </td>
+                                    </tr>
+                                  )}
+                                  {r.manoObra.map((mo, i) => (
+                                    <tr
+                                      key={i}
+                                      style={{
+                                        background:
+                                          i % 2 === 0 ? '#fff' : '#F9F6EE',
+                                      }}
+                                    >
+                                      <td
+                                        style={{
+                                          padding: '0.5rem 0.75rem',
+                                          fontWeight: 500,
+                                        }}
+                                      >
+                                        {mo.tecnicoNombre}
+                                      </td>
+                                      <td style={{ padding: '0.5rem 0.75rem' }}>
+                                        {fmtDate(mo.fecha)}
+                                      </td>
+                                      <td style={{ padding: '0.5rem 0.75rem' }}>
+                                        {mo.horaInicio}
+                                      </td>
+                                      <td style={{ padding: '0.5rem 0.75rem' }}>
+                                        {mo.horaFin}
+                                      </td>
+                                      <td
+                                        style={{
+                                          padding: '0.5rem 0.75rem',
+                                          textAlign: 'right',
+                                          fontWeight: 600,
+                                          color: '#6A1B9A',
+                                        }}
+                                      >
+                                        {fmtHours(mo.horas)}
+                                      </td>
+                                      <td
+                                        style={{
+                                          padding: '0.5rem 0.75rem',
+                                          color: '#666',
+                                        }}
+                                      >
+                                        {mo.observaciones ?? '—'}
+                                      </td>
+                                    </tr>
+                                  ))}
+                                  {r.manoObra.length > 0 && (
+                                    <tr
+                                      style={{
+                                        background: '#EDE7F6',
+                                        fontWeight: 700,
+                                      }}
+                                    >
+                                      <td
+                                        colSpan={4}
+                                        style={{
+                                          padding: '0.5rem 0.75rem',
+                                          textAlign: 'right',
+                                        }}
+                                      >
+                                        Total horas trabajadas:
+                                      </td>
+                                      <td
+                                        style={{
+                                          padding: '0.5rem 0.75rem',
+                                          textAlign: 'right',
+                                          color: '#6A1B9A',
+                                        }}
+                                      >
+                                        {fmtHours(r.totalHoras)}
+                                      </td>
+                                      <td />
+                                    </tr>
+                                  )}
+                                </tbody>
+                              </table>
+                            )}
+
+                            {/* Tab: Materiales */}
+                            {tab === 'mat' && (
+                              <>
+                                {r.salidas.length === 0 && (
+                                  <p
+                                    style={{
+                                      color: '#999',
+                                      padding: '0.5rem 0',
+                                    }}
+                                  >
+                                    Sin salidas de almacén registradas para esta
+                                    OT.
+                                  </p>
+                                )}
+                                {r.salidas.map((sal) => (
+                                  <div
+                                    key={sal.id}
+                                    style={{ marginBottom: 16 }}
+                                  >
+                                    <div
+                                      style={{
+                                        display: 'flex',
+                                        gap: 24,
+                                        padding: '0.5rem 0.75rem',
+                                        background: '#fff',
+                                        borderRadius: 6,
+                                        marginBottom: 4,
+                                        border: '1px solid #ddd',
+                                        fontSize: '0.83rem',
+                                      }}
+                                    >
+                                      <span>
+                                        <strong>Salida:</strong>{' '}
+                                        {sal.nroSalida || `#${sal.id}`}
+                                      </span>
+                                      <span>
+                                        <strong>Fecha:</strong>{' '}
+                                        {fmtDate(sal.fecha)}
+                                      </span>
+                                      <span>
+                                        <strong>Estado:</strong> {sal.estado}
+                                      </span>
+                                      <span>
+                                        <strong>Total:</strong> Bs{' '}
+                                        {fmtCurrency(Number(sal.total))}
+                                      </span>
+                                      {sal.observacion && (
+                                        <span>
+                                          <strong>Obs:</strong>{' '}
+                                          {sal.observacion}
+                                        </span>
+                                      )}
+                                    </div>
+                                    <table
+                                      style={{
+                                        width: '100%',
+                                        borderCollapse: 'collapse',
+                                        fontSize: '0.83rem',
+                                      }}
+                                    >
+                                      <thead>
+                                        <tr style={{ background: '#E1CD9B' }}>
+                                          <th
+                                            style={{
+                                              padding: '0.4rem 0.75rem',
+                                              textAlign: 'left',
+                                            }}
+                                          >
+                                            Producto
+                                          </th>
+                                          <th
+                                            style={{
+                                              padding: '0.4rem 0.75rem',
+                                              textAlign: 'left',
+                                            }}
+                                          >
+                                            Tipo
+                                          </th>
+                                          <th
+                                            style={{
+                                              padding: '0.4rem 0.75rem',
+                                              textAlign: 'right',
+                                            }}
+                                          >
+                                            Cantidad
+                                          </th>
+                                          <th
+                                            style={{
+                                              padding: '0.4rem 0.75rem',
+                                              textAlign: 'left',
+                                            }}
+                                          >
+                                            U.M.
+                                          </th>
+                                          <th
+                                            style={{
+                                              padding: '0.4rem 0.75rem',
+                                              textAlign: 'right',
+                                            }}
+                                          >
+                                            Precio Unit.
+                                          </th>
+                                          <th
+                                            style={{
+                                              padding: '0.4rem 0.75rem',
+                                              textAlign: 'right',
+                                            }}
+                                          >
+                                            Subtotal (Bs)
+                                          </th>
+                                        </tr>
+                                      </thead>
+                                      <tbody>
+                                        {(sal.detalles ?? []).map((det, di) => (
+                                          <tr
+                                            key={di}
+                                            style={{
+                                              background:
+                                                di % 2 === 0
+                                                  ? '#fff'
+                                                  : '#F9F6EE',
+                                            }}
+                                          >
+                                            <td
+                                              style={{
+                                                padding: '0.4rem 0.75rem',
+                                              }}
+                                            >
+                                              {det.nombre}
+                                            </td>
+                                            <td
+                                              style={{
+                                                padding: '0.4rem 0.75rem',
+                                              }}
+                                            >
+                                              <span
+                                                style={{
+                                                  padding: '2px 6px',
+                                                  borderRadius: 8,
+                                                  fontSize: '0.75rem',
+                                                  background:
+                                                    det.tipoProducto ===
+                                                    'repuesto'
+                                                      ? '#E3F2FD'
+                                                      : '#F3E5F5',
+                                                  color:
+                                                    det.tipoProducto ===
+                                                    'repuesto'
+                                                      ? '#1565C0'
+                                                      : '#6A1B9A',
+                                                }}
+                                              >
+                                                {det.tipoProducto === 'repuesto'
+                                                  ? 'Repuesto'
+                                                  : 'Rep. Máq.'}
+                                              </span>
+                                            </td>
+                                            <td
+                                              style={{
+                                                padding: '0.4rem 0.75rem',
+                                                textAlign: 'right',
+                                              }}
+                                            >
+                                              {det.cantidad}
+                                            </td>
+                                            <td
+                                              style={{
+                                                padding: '0.4rem 0.75rem',
+                                              }}
+                                            >
+                                              {det.unidadMedida}
+                                            </td>
+                                            <td
+                                              style={{
+                                                padding: '0.4rem 0.75rem',
+                                                textAlign: 'right',
+                                              }}
+                                            >
+                                              {fmtCurrency(
+                                                Number(det.precioUnitario),
+                                              )}
+                                            </td>
+                                            <td
+                                              style={{
+                                                padding: '0.4rem 0.75rem',
+                                                textAlign: 'right',
+                                                fontWeight: 600,
+                                              }}
+                                            >
+                                              {fmtCurrency(
+                                                Number(det.subtotal),
+                                              )}
+                                            </td>
+                                          </tr>
+                                        ))}
+                                      </tbody>
+                                    </table>
+                                  </div>
+                                ))}
+                                {r.salidas.length > 0 && (
+                                  <div
+                                    style={{
+                                      textAlign: 'right',
+                                      fontWeight: 700,
+                                      color: '#D32F2F',
+                                      fontSize: '0.9rem',
+                                      paddingTop: 8,
+                                    }}
+                                  >
+                                    Total materiales: Bs{' '}
+                                    {fmtCurrency(r.totalMateriales)}
+                                  </div>
+                                )}
+                              </>
+                            )}
+                          </div>
+                        </td>
+                      </tr>
+                    )}
+                  </React.Fragment>
+                );
+              })}
             </tbody>
           </table>
         </div>
