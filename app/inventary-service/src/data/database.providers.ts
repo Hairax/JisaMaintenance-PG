@@ -6,6 +6,11 @@ import { Maquina } from 'src/maquina/entities/maquina.entity';
 import { SubUnidad } from 'src/subUnidad/entitites/subUnidad.entity';
 import { Repuesto } from 'src/repuesto/entities/repuesto.entity';
 import { RepuestoMaquina } from 'src/repuesto-maquina/entities/repuesto-maquina.entity';
+import { Compra } from '../compra/entities/compra.entity';
+import { CompraDetalle } from '../compra/entities/compra-detalle.entity';
+import { Salida } from '../salida/entities/salida.entity';
+import { SalidaDetalle } from '../salida/entities/salida-detalle.entity';
+
 export const databaseProviders = [
   {
     provide: 'DATA_SOURCE',
@@ -25,6 +30,10 @@ export const databaseProviders = [
           SubUnidad,
           Repuesto,
           RepuestoMaquina,
+          Compra,
+          CompraDetalle,
+          Salida,
+          SalidaDetalle,
         ],
         synchronize: true,
       });

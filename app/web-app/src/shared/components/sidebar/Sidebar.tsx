@@ -57,6 +57,7 @@ export const Sidebar = () => {
     { to: '/tipo-mantenimiento', text: 'Tipos de Mantenimiento' },
     { to: '/informe', text: 'Informes Diarios' },
     { to: '/compras', text: 'Compras de Inventario' },
+    { to: '/salidas', text: 'Salidas de Inventario' },
   ];
 
   const reportesContItems = [

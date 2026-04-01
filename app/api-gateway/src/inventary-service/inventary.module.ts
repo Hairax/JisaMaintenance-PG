@@ -7,6 +7,9 @@ import { MaquinaHttpController } from './maquina/maquina.controller';
 import { SubUnidadHttpController } from './subUnidad/subUnidad.controller';
 import { RepuestoHttpController } from './repuesto/repuesto.controller';
 import { RespuestoMaquinaHttpController } from './repuesto-maquina/respuestoMaquina.controller';
+import { CompraHttpController } from './compra/compra.controller';
+import { SalidaHttpController } from './salida/salida.controller';
+
 @Module({
   imports: [
     ClientsModule.register([
@@ -28,6 +31,8 @@ import { RespuestoMaquinaHttpController } from './repuesto-maquina/respuestoMaqu
     SubUnidadHttpController,
     RepuestoHttpController,
     RespuestoMaquinaHttpController,
+    CompraHttpController,
+    SalidaHttpController,
   ],
 })
 export class InventaryModule {}

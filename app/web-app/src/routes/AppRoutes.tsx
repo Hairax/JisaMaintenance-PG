@@ -30,6 +30,9 @@ import TMEFPage from '../features/kpis/TMEFPage';
 import TMPRPage from '../features/kpis/TMPRPage';
 import KPICostoPorActivo from '../features/kpis/KPICostoPorActivo';
 import CompraInventarioPage from '../features/Compra/page/compraPage';
+import { ListCompraPage } from '../features/Compra/page/listCompraPage';
+import SalidaPage from '../features/Salida/page/salidaPage';
+import { ListSalidaPage } from '../features/Salida/page/listSalidaPage';
 
 export const AppRoutes = () => {
   return (
@@ -63,7 +66,10 @@ export const AppRoutes = () => {
         <Route path="/subunidad" element={<SubUnidadPage />} />
         <Route path="/tipo-mantenimiento" element={<TipoMantenimientoPage />} />
         <Route path="/informe" element={<InformePage />} />
-        <Route path="/compras" element={<CompraInventarioPage />} />
+        <Route path="/compras" element={<ListCompraPage />} />
+        <Route path="/compras/crear" element={<CompraInventarioPage />} />
+        <Route path="/salidas" element={<ListSalidaPage />} />
+        <Route path="/salidas/registrar" element={<SalidaPage />} />
 
         {/* Ruta para reportes contables */}
         <Route path="/reportes/kardex" element={<KardexValoradoPage />} />
