@@ -1,9 +1,2 @@
-export class CreateInformeDetalleDto {
-  informeDiario_id: number;
-  ordenTrabajo_id: number;
-  horaInicio: string;
-  horaFin: string;
-  descripcionLabor: string;
-  horasCalculadas: number;
-  costoCalculado: number;
-}
+// Re-exported from create-informe-detalle-new.dto.ts for backwards compatibility
+export { CreateInformeDetalleDto } from './create-informe-detalle-new.dto';

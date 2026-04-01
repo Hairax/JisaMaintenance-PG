@@ -17,6 +17,8 @@ import { RepuestoMaquinaPage } from '../features/repuesto-maquina/page/repuestoM
 import { SubUnidadPage } from '../features/subUnidad/page/subUnidadPage';
 import { TipoMantenimientoPage } from '../features/tipoMantenimiento/page/tipoMantenimientoPage';
 import { InformePage } from '../features/informe/page/informePage';
+import RegisterInformePage from '../features/informe/page/registerInformePage';
+import ListInformePage from '../features/informe/page/listInformePage';
 import KardexValoradoPage from '../features/reportesCont/KardexValoradoPage';
 import CostosMantenimientoPage from '../features/reportesCont/CostosMantenimientoPage';
 import CostosOrdenesTrabajoPage from '../features/reportesCont/CostosOrdenesTrabajoPage';
@@ -66,6 +68,8 @@ export const AppRoutes = () => {
         <Route path="/subunidad" element={<SubUnidadPage />} />
         <Route path="/tipo-mantenimiento" element={<TipoMantenimientoPage />} />
         <Route path="/informe" element={<InformePage />} />
+        <Route path="/informes" element={<ListInformePage />} />
+        <Route path="/informes/registrar" element={<RegisterInformePage />} />
         <Route path="/compras" element={<ListCompraPage />} />
         <Route path="/compras/crear" element={<CompraInventarioPage />} />
         <Route path="/salidas" element={<ListSalidaPage />} />

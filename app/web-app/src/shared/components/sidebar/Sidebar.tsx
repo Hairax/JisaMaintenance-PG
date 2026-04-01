@@ -55,7 +55,7 @@ export const Sidebar = () => {
     { to: '/repuesto-maquina', text: 'Repuestos por Máquina' },
     { to: '/subunidad', text: 'Subunidades' },
     { to: '/tipo-mantenimiento', text: 'Tipos de Mantenimiento' },
-    { to: '/informe', text: 'Informes Diarios' },
+    { to: '/informes', text: 'Informes Diarios' },
     { to: '/compras', text: 'Compras de Inventario' },
     { to: '/salidas', text: 'Salidas de Inventario' },
   ];

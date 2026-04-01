@@ -1,6 +1,2 @@
-import { PartialType } from '@nestjs/mapped-types';
-import { CreateInformeDetalleTrabajoDto } from './create-informe-detalle-trabajo.dto';
-
-export class UpdateInformeDetalleTrabajoDto extends PartialType(
-  CreateInformeDetalleTrabajoDto,
-) {}
+// Re-exported from update-informe-detalle.dto.ts for backwards compatibility
+export { UpdateInformeDetalleDto as UpdateInformeDetalleTrabajoDto } from './update-informe-detalle.dto';

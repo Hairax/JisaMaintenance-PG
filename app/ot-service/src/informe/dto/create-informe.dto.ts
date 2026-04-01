@@ -1,0 +1,13 @@
+import { IsInt, IsArray, ValidateNested } from 'class-validator';
+import { Type } from 'class-transformer';
+import { CreateInformeDetalleDto } from './create-informe-detalle.dto';
+
+export class CreateInformeDto {
+  @IsInt()
+  userId: number;
+
+  @IsArray()
+  @ValidateNested({ each: true })
+  @Type(() => CreateInformeDetalleDto)
+  detalles: CreateInformeDetalleDto[];
+}
