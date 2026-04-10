@@ -5,16 +5,12 @@ import {
   IsOptional,
   IsArray,
   ValidateNested,
-  IsEnum,
 } from 'class-validator';
 import { Type } from 'class-transformer';
 
 export class ProductoSalidaDto {
-  @IsEnum(['repuesto', 'repuesto-maquina'])
-  tipoProducto: 'repuesto' | 'repuesto-maquina';
-
   @IsNumber()
-  productoId: number;
+  repuestoId: number;
 
   @IsString()
   codigo: string;
@@ -30,16 +26,9 @@ export class ProductoSalidaDto {
 
   @IsNumber()
   precioUnitario: number;
-
-  @IsOptional()
-  @IsNumber()
-  porcentajeDescuento?: number;
 }
 
 export class CreateSalidaDto {
-  @IsString()
-  nroSalida: string;
-
   @IsNumber()
   usuarioId: number;
 

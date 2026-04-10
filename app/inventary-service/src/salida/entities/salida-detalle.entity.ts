@@ -17,11 +17,15 @@ export class SalidaDetalle {
   @Column()
   salidaId: number;
 
-  @Column({ type: 'enum', enum: ['repuesto', 'repuesto-maquina'] })
+  @Column({
+    type: 'enum',
+    enum: ['repuesto', 'repuesto-maquina'],
+    default: 'repuesto',
+  })
   tipoProducto: 'repuesto' | 'repuesto-maquina';
 
   @Column({ nullable: true })
-  productoId: number;
+  repuestoId: number;
 
   @Column()
   codigo: string;

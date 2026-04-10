@@ -1,15 +1,13 @@
 export class SalidaDetalleResponseDto {
   id: number;
   tipoProducto: 'repuesto' | 'repuesto-maquina';
-  productoId: number;
+  repuestoId: number;
   codigo: string;
   nombre: string;
   unidadMedida: string;
   cantidad: number;
   precioUnitario: number;
   importe: number;
-  porcentajeDescuento: number;
-  descuentoMonto: number;
   subtotal: number;
 }
 
@@ -22,10 +20,9 @@ export class ResponseSalidaDto {
   observacion: string;
   almacen: string;
   subtotal: number;
-  descuentoTotal: number;
   total: number;
-  estado: 'pendiente' | 'completada' | 'cancelada';
   detalles: SalidaDetalleResponseDto[];
+  alertasStockCritico?: string[];
   createdAt: Date;
   updatedAt: Date;
 }

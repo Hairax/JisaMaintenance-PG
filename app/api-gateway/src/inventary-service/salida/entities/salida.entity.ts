@@ -7,10 +7,9 @@ export class Salida {
   observacion: string;
   almacen: string;
   subtotal: number;
-  descuentoTotal: number;
   total: number;
-  estado: 'pendiente' | 'completada' | 'cancelada';
   detalles: any[];
+  alertasStockCritico?: string[];
   createdAt: Date;
   updatedAt: Date;
 }

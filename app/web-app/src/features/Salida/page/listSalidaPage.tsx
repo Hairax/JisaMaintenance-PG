@@ -1,8 +1,15 @@
-import React, { useState, useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useTheme } from '../../../shared/contexts/ThemeContext';
 import { salidaService } from '../services/salida.service';
-import { FaTimes, FaEye, FaTrash, FaPlus } from 'react-icons/fa';
+import {
+  FaEdit,
+  FaEye,
+  FaPlus,
+  FaSearch,
+  FaTimes,
+  FaTrash,
+} from 'react-icons/fa';
 
 const colors = {
   brown: '#9E5533',
@@ -14,35 +21,68 @@ const colors = {
   lightText: '#FFFFFF',
 };
 
+interface SalidaDetalle {
+  repuestoId?: number;
+  productoId?: number;
+  nombre: string;
+  codigo: string;
+  unidadMedida: string;
+  cantidad: number;
+  precioUnitario: number;
+  importe: number;
+  subtotal: number;
+}
+
+interface Usuario {
+  id: number;
+  nombre?: string;
+  nombreCompleto?: string;
+  fullName?: string;
+  name?: string;
+  username?: string;
+  email?: string;
+}
+
+interface OT {
+  id: number;
+  descripcion?: string;
+  description?: string;
+  numeroOt?: string;
+  codigo?: string;
+  nombre?: string;
+}
+
 interface Salida {
   id: number;
-  nroSalida: string;
+  nroSalida?: string;
   usuarioId: number;
   otId: number;
   fecha: string;
-  observacion: string;
-  almacen: string;
+  observacion?: string;
+  almacen?: string;
   subtotal: number;
-  descuentoTotal: number;
   total: number;
-  estado: 'pendiente' | 'completada' | 'cancelada';
   createdAt: string;
-  detalles?: any[];
+  detalles?: SalidaDetalle[];
 }
 
 export const ListSalidaPage: React.FC = () => {
   const { theme } = useTheme();
   const navigate = useNavigate();
+
   const [salidas, setSalidas] = useState<Salida[]>([]);
+  const [usuarios, setUsuarios] = useState<Usuario[]>([]);
+  const [ots, setOts] = useState<OT[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [searchQ, setSearchQ] = useState('');
+
   const [modalOpen, setModalOpen] = useState(false);
   const [selectedSalida, setSelectedSalida] = useState<Salida | null>(null);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [deleteCountdown, setDeleteCountdown] = useState(3);
   const [canConfirmDelete, setCanConfirmDelete] = useState(false);
 
-  // Cargar salidas
   useEffect(() => {
     fetchSalidas();
   }, []);
@@ -50,41 +90,65 @@ export const ListSalidaPage: React.FC = () => {
   const fetchSalidas = async () => {
     try {
       setLoading(true);
-      const data = await salidaService.getSalidas();
-      // Convertir valores numéricos que vienen como strings
-      const salidasConNumeros = data.map((salida: any) => ({
-        ...salida,
-        subtotal: Number(salida.subtotal),
-        descuentoTotal: Number(salida.descuentoTotal),
-        total: Number(salida.total),
-        detalles: (salida.detalles || []).map((detalle: any) => ({
-          ...detalle,
-          cantidad: Number(detalle.cantidad),
-          precioUnitario: Number(detalle.precioUnitario),
-          importe: Number(detalle.importe),
-          porcentajeDescuento: Number(detalle.porcentajeDescuento),
-          descuentoMonto: Number(detalle.descuentoMonto),
-          subtotal: Number(detalle.subtotal),
-        })),
-      }));
+      const [data, usersData, otsData] = await Promise.all([
+        salidaService.getSalidas(),
+        salidaService.getUsers(),
+        salidaService.getOts(),
+      ]);
+
+      setUsuarios(Array.isArray(usersData) ? (usersData as Usuario[]) : []);
+      setOts(Array.isArray(otsData) ? (otsData as OT[]) : []);
+
+      const salidasConNumeros = (Array.isArray(data) ? data : []).map(
+        (salida: Salida & { detalles?: SalidaDetalle[] }) => ({
+          ...salida,
+          subtotal: Number(salida.subtotal),
+          total: Number(salida.total),
+          detalles: (salida.detalles || []).map((detalle: SalidaDetalle) => ({
+            ...detalle,
+            cantidad: Number(detalle.cantidad),
+            precioUnitario: Number(detalle.precioUnitario),
+            importe: Number(detalle.importe),
+            subtotal: Number(detalle.subtotal),
+          })),
+        }),
+      );
       setSalidas(salidasConNumeros);
       setError(null);
     } catch (err) {
-      console.error('❌ Error al cargar salidas:', err);
+      console.error('Error al cargar salidas:', err);
       setError('Error al cargar las salidas');
     } finally {
       setLoading(false);
     }
   };
 
-  // Abrir modal para ver
+  const getUsuarioNombreCompleto = (u?: Usuario) =>
+    u?.nombreCompleto ??
+    u?.fullName ??
+    u?.nombre ??
+    u?.name ??
+    u?.username ??
+    u?.email ??
+    '';
+
+  const getOtDescripcion = (o?: OT) =>
+    o?.descripcion ??
+    o?.description ??
+    o?.nombre ??
+    o?.codigo ??
+    o?.numeroOt ??
+    '';
+
+  const getUsuarioById = (id: number) => usuarios.find((u) => u.id === id);
+  const getOtById = (id: number) => ots.find((o) => o.id === id);
+
   const handleViewSalida = (salida: Salida) => {
     setSelectedSalida(salida);
     setModalOpen(true);
     setShowDeleteConfirm(false);
   };
 
-  // Cerrar modal
   const handleCloseModal = () => {
     setModalOpen(false);
     setShowDeleteConfirm(false);
@@ -93,7 +157,6 @@ export const ListSalidaPage: React.FC = () => {
     setSelectedSalida(null);
   };
 
-  // Eliminar salida (con confirmación)
   const handleDeleteClick = () => {
     setShowDeleteConfirm(true);
     setDeleteCountdown(3);
@@ -110,16 +173,14 @@ export const ListSalidaPage: React.FC = () => {
   };
 
   const handleDelete = async () => {
-    if (selectedSalida) {
-      try {
-        await salidaService.deleteSalida(selectedSalida.id);
-        console.log('✅ Salida eliminada');
-        setSalidas(salidas.filter((s) => s.id !== selectedSalida.id));
-        handleCloseModal();
-      } catch (err) {
-        console.error('❌ Error al eliminar:', err);
-        setError('Error al eliminar la salida');
-      }
+    if (!selectedSalida) return;
+    try {
+      await salidaService.deleteSalida(selectedSalida.id);
+      setSalidas(salidas.filter((s) => s.id !== selectedSalida.id));
+      handleCloseModal();
+    } catch (err) {
+      console.error('Error al eliminar:', err);
+      setError('Error al eliminar la salida');
     }
   };
 
@@ -128,7 +189,6 @@ export const ListSalidaPage: React.FC = () => {
   const bgColor = theme === 'dark' ? colors.darkBg : colors.lightBg;
   const theadBgColor = theme === 'dark' ? colors.brown : colors.gold;
   const theadTextColor = theme === 'dark' ? colors.lightText : colors.darkText;
-  const tbodyBgColor = theme === 'dark' ? '#232323' : '#FAFAFA';
   const hoverBgColor = theme === 'dark' ? '#2A2A2A' : '#F5F5F5';
   const inputBgColor = theme === 'dark' ? '#2A2A2A' : '#F5F5F5';
   const inputBorderColor = theme === 'dark' ? '#3A3A3A' : '#D6D6D6';
@@ -137,51 +197,114 @@ export const ListSalidaPage: React.FC = () => {
   const deleteColor = '#E53E3E';
   const deleteHoverColor = '#B91C1C';
 
-  const pageStyle = {
-    color: textColor,
-    minHeight: '100vh',
-    padding: '20px 0',
-  };
+  const filteredSalidas = salidas.filter((s) => {
+    if (!searchQ.trim()) return true;
+    const q = searchQ.toLowerCase();
+    const usuario = getUsuarioById(s.usuarioId);
+    const ot = getOtById(s.otId);
+    const usuarioNombre = getUsuarioNombreCompleto(usuario).toLowerCase();
+    const otDescripcion = getOtDescripcion(ot).toLowerCase();
 
-  const getEstadoBadgeColor = (estado: string) => {
-    switch (estado) {
-      case 'completada':
-        return '#4ADE80';
-      case 'cancelada':
-        return '#E53E3E';
-      default:
-        return colors.gold;
-    }
-  };
+    return (
+      String(s.id).includes(q) ||
+      String(s.nroSalida || '')
+        .toLowerCase()
+        .includes(q) ||
+      String(s.usuarioId).includes(q) ||
+      usuarioNombre.includes(q) ||
+      String(s.otId).includes(q) ||
+      otDescripcion.includes(q) ||
+      new Date(s.fecha).toLocaleDateString('es-ES').includes(q) ||
+      (s.detalles?.some(
+        (d) =>
+          String(d.repuestoId ?? d.productoId ?? '').includes(q) ||
+          String(d.codigo || '')
+            .toLowerCase()
+            .includes(q) ||
+          String(d.nombre || '')
+            .toLowerCase()
+            .includes(q),
+      ) ??
+        false)
+    );
+  });
 
   if (error && !loading) {
-    return <div className="text-center text-red-500 mt-10">{error}</div>;
+    return (
+      <div style={{ textAlign: 'center', color: '#E53E3E', marginTop: '2rem' }}>
+        {error}
+      </div>
+    );
   }
 
   return (
-    <div style={pageStyle}>
+    <div style={{ color: textColor, minHeight: '100vh', padding: '1.5rem' }}>
       <div
         style={{
           display: 'flex',
           justifyContent: 'space-between',
-          alignItems: 'center',
-          marginBottom: 16,
+          alignItems: 'flex-start',
+          marginBottom: 20,
+          flexWrap: 'wrap',
+          gap: '0.75rem',
         }}
       >
-        <h2>Salidas de Inventario</h2>
+        <div>
+          <div
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: '0.75rem',
+              marginBottom: 4,
+            }}
+          >
+            <div
+              style={{
+                width: 4,
+                height: 28,
+                background: colors.gold,
+                borderRadius: 2,
+              }}
+            />
+            <h2
+              style={{
+                fontSize: '1.4rem',
+                fontWeight: 700,
+                margin: 0,
+                color: textColor,
+              }}
+            >
+              Salidas de Repuestos
+            </h2>
+          </div>
+          <p
+            style={{
+              fontSize: '0.82rem',
+              color: secondaryTextColor,
+              margin: 0,
+              paddingLeft: 16,
+            }}
+          >
+            {loading
+              ? 'Cargando...'
+              : `${salidas.length} registro${salidas.length !== 1 ? 's' : ''}`}
+          </p>
+        </div>
         <button
           onClick={() => navigate('/salidas/registrar')}
           style={{
             background: colors.gold,
             color: colors.darkText,
             border: 'none',
-            borderRadius: 4,
-            padding: '8px 16px',
+            borderRadius: 6,
+            padding: '0.55rem 1.1rem',
             cursor: 'pointer',
-            fontWeight: 'bold',
+            fontWeight: 700,
             display: 'flex',
             alignItems: 'center',
-            gap: '8px',
+            gap: '0.5rem',
+            fontSize: '0.9rem',
+            whiteSpace: 'nowrap',
           }}
           onMouseOver={(e) => {
             e.currentTarget.style.background = '#E69D00';
@@ -190,313 +313,551 @@ export const ListSalidaPage: React.FC = () => {
             e.currentTarget.style.background = colors.gold;
           }}
         >
-          <FaPlus /> Registrar Salida
+          <FaPlus /> Nueva Salida
         </button>
       </div>
 
-      <div className="w-full px-4 sm:px-6 lg:px-8 max-w-screen-xl mx-auto pb-24">
-        <div
-          style={{ backgroundColor: bgColor }}
-          className="shadow-md rounded-lg overflow-hidden"
-        >
-          <div className="overflow-x-auto">
-            <table className="w-full text-sm md:text-base">
-              <thead
-                style={{
-                  backgroundColor: theadBgColor,
-                  color: theadTextColor,
-                }}
-              >
-                <tr>
-                  <th className="p-3 text-left font-semibold">Nro Salida</th>
-                  <th className="p-3 text-left font-semibold">Usuario ID</th>
-                  <th className="p-3 text-left font-semibold">OT ID</th>
-                  <th className="p-3 text-left font-semibold">Fecha</th>
-                  <th className="p-3 text-right font-semibold">Total</th>
-                  <th className="p-3 text-left font-semibold">Estado</th>
-                  <th className="p-3 text-center font-semibold">Acciones</th>
-                </tr>
-              </thead>
-              <tbody
-                style={{
-                  backgroundColor: tbodyBgColor,
-                  color: textColor,
-                  borderColor: borderColor,
-                }}
-                className="divide-y"
-              >
-                {salidas.map((salida) => (
-                  <tr
-                    key={salida.id}
-                    className="cursor-pointer transition duration-150 ease-in-out"
-                    onMouseOver={(e) => {
-                      e.currentTarget.style.backgroundColor = hoverBgColor;
-                    }}
-                    onMouseOut={(e) => {
-                      e.currentTarget.style.backgroundColor = tbodyBgColor;
-                    }}
-                  >
-                    <td className="p-3">{salida.nroSalida}</td>
-                    <td className="p-3">{salida.usuarioId}</td>
-                    <td className="p-3">{salida.otId}</td>
-                    <td className="p-3">
-                      {new Date(salida.fecha).toLocaleDateString()}
-                    </td>
-                    <td
-                      className="p-3 text-right font-semibold"
-                      style={{ color: colors.gold }}
-                    >
-                      ${salida.total.toFixed(2)}
-                    </td>
-                    <td className="p-3">
-                      <span
-                        style={{
-                          backgroundColor: getEstadoBadgeColor(salida.estado),
-                          color: '#fff',
-                          padding: '4px 8px',
-                          borderRadius: '4px',
-                          fontSize: '0.85rem',
-                          display: 'inline-block',
-                        }}
-                      >
-                        {salida.estado}
-                      </span>
-                    </td>
-                    <td className="p-3 text-center">
-                      <button
-                        onClick={() => handleViewSalida(salida)}
-                        style={{ color: colors.gold }}
-                        className="hover:opacity-80 transition"
-                        title="Ver detalles"
-                      >
-                        <FaEye className="h-4 w-4" />
-                      </button>
-                    </td>
-                  </tr>
-                ))}
-                {salidas.length === 0 && !loading && (
-                  <tr>
-                    <td
-                      colSpan={7}
-                      style={{ color: secondaryTextColor }}
-                      className="p-4 text-center"
-                    >
-                      No se encontraron salidas.
-                    </td>
-                  </tr>
-                )}
-              </tbody>
-            </table>
-          </div>
-          {loading && (
-            <div
-              className="p-4 text-center"
-              style={{ color: secondaryTextColor }}
-            >
-              Cargando...
-            </div>
-          )}
-        </div>
+      <div style={{ position: 'relative', marginBottom: '1.25rem' }}>
+        <FaSearch
+          style={{
+            position: 'absolute',
+            left: 12,
+            top: '50%',
+            transform: 'translateY(-50%)',
+            color: secondaryTextColor,
+            fontSize: '0.85rem',
+            pointerEvents: 'none',
+          }}
+        />
+        <input
+          type="text"
+          placeholder="Buscar por id salida, usuario (id/nombre), OT (id/descripcion), repuesto..."
+          value={searchQ}
+          onChange={(e) => setSearchQ(e.target.value)}
+          style={{
+            width: '100%',
+            padding: '0.6rem 2.5rem 0.6rem 2.4rem',
+            border: `1px solid ${inputBorderColor}`,
+            borderRadius: 8,
+            backgroundColor: inputBgColor,
+            color: textColor,
+            fontSize: '0.9rem',
+            boxSizing: 'border-box',
+          }}
+        />
+        {searchQ && (
+          <button
+            onClick={() => setSearchQ('')}
+            style={{
+              position: 'absolute',
+              right: 10,
+              top: '50%',
+              transform: 'translateY(-50%)',
+              background: 'none',
+              border: 'none',
+              cursor: 'pointer',
+              color: secondaryTextColor,
+              display: 'flex',
+              alignItems: 'center',
+            }}
+          >
+            <FaTimes />
+          </button>
+        )}
       </div>
 
-      {/* Modal */}
+      <div
+        style={{
+          background: bgColor,
+          borderRadius: 10,
+          border: `1px solid ${borderColor}`,
+          overflow: 'hidden',
+          boxShadow:
+            theme === 'dark'
+              ? '0 2px 12px rgba(0,0,0,0.4)'
+              : '0 2px 12px rgba(0,0,0,0.08)',
+        }}
+      >
+        <div style={{ overflowX: 'auto' }}>
+          <table
+            style={{
+              width: '100%',
+              borderCollapse: 'collapse',
+              fontSize: '0.875rem',
+            }}
+          >
+            <thead>
+              <tr
+                style={{ backgroundColor: theadBgColor, color: theadTextColor }}
+              >
+                <th style={{ padding: '0.75rem 1rem', textAlign: 'left' }}>
+                  Nro. Salida
+                </th>
+                <th style={{ padding: '0.75rem 1rem', textAlign: 'left' }}>
+                  Usuario
+                </th>
+                <th style={{ padding: '0.75rem 1rem', textAlign: 'left' }}>
+                  OT
+                </th>
+                <th style={{ padding: '0.75rem 1rem', textAlign: 'left' }}>
+                  Fecha
+                </th>
+                <th style={{ padding: '0.75rem 1rem', textAlign: 'right' }}>
+                  Total Bs.
+                </th>
+                <th style={{ padding: '0.75rem 1rem', textAlign: 'center' }}>
+                  Acciones
+                </th>
+              </tr>
+            </thead>
+            <tbody style={{ color: textColor }}>
+              {filteredSalidas.map((salida) => (
+                <tr
+                  key={salida.id}
+                  style={{
+                    borderBottom: `1px solid ${borderColor}`,
+                    transition: 'background 0.15s',
+                  }}
+                  onMouseOver={(e) => {
+                    e.currentTarget.style.backgroundColor = hoverBgColor;
+                  }}
+                  onMouseOut={(e) => {
+                    e.currentTarget.style.backgroundColor = 'transparent';
+                  }}
+                >
+                  <td style={{ padding: '0.75rem 1rem', fontWeight: 700 }}>
+                    #{salida.id}
+                  </td>
+                  <td style={{ padding: '0.75rem 1rem' }}>
+                    <span style={{ fontWeight: 600 }}>
+                      {getUsuarioNombreCompleto(
+                        getUsuarioById(salida.usuarioId),
+                      ) || `Usuario ${salida.usuarioId}`}
+                    </span>
+                    <span
+                      style={{
+                        display: 'block',
+                        fontSize: '0.75rem',
+                        color: secondaryTextColor,
+                      }}
+                    >
+                      ID: {salida.usuarioId}
+                    </span>
+                  </td>
+                  <td style={{ padding: '0.75rem 1rem' }}>
+                    <span style={{ fontWeight: 600 }}>
+                      {getOtDescripcion(getOtById(salida.otId)) ||
+                        `OT ${salida.otId}`}
+                    </span>
+                    <span
+                      style={{
+                        display: 'block',
+                        fontSize: '0.75rem',
+                        color: secondaryTextColor,
+                      }}
+                    >
+                      ID: {salida.otId}
+                    </span>
+                  </td>
+                  <td
+                    style={{
+                      padding: '0.75rem 1rem',
+                      whiteSpace: 'nowrap',
+                      color: secondaryTextColor,
+                    }}
+                  >
+                    {new Date(salida.fecha).toLocaleDateString('es-ES')}
+                  </td>
+                  <td
+                    style={{
+                      padding: '0.75rem 1rem',
+                      textAlign: 'right',
+                      fontWeight: 700,
+                      color: colors.gold,
+                      whiteSpace: 'nowrap',
+                    }}
+                  >
+                    {salida.total.toFixed(2)} Bs.
+                  </td>
+                  <td style={{ padding: '0.75rem 1rem', textAlign: 'center' }}>
+                    <button
+                      onClick={() => handleViewSalida(salida)}
+                      style={{
+                        background: 'none',
+                        border: `1px solid ${colors.gold}`,
+                        borderRadius: 6,
+                        color: colors.gold,
+                        padding: '0.3rem 0.65rem',
+                        cursor: 'pointer',
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        gap: 4,
+                        fontSize: '0.8rem',
+                        fontWeight: 600,
+                      }}
+                      onMouseOver={(e) => {
+                        e.currentTarget.style.background = colors.gold;
+                        e.currentTarget.style.color = colors.darkText;
+                      }}
+                      onMouseOut={(e) => {
+                        e.currentTarget.style.background = 'none';
+                        e.currentTarget.style.color = colors.gold;
+                      }}
+                    >
+                      <FaEye /> Ver
+                    </button>
+                  </td>
+                </tr>
+              ))}
+
+              {filteredSalidas.length === 0 && !loading && (
+                <tr>
+                  <td
+                    colSpan={6}
+                    style={{
+                      padding: '2.5rem 1rem',
+                      textAlign: 'center',
+                      color: secondaryTextColor,
+                    }}
+                  >
+                    {searchQ
+                      ? `No se encontraron resultados para "${searchQ}".`
+                      : 'No hay salidas registradas.'}
+                  </td>
+                </tr>
+              )}
+            </tbody>
+          </table>
+        </div>
+
+        {loading && (
+          <div
+            style={{
+              padding: '2rem',
+              textAlign: 'center',
+              color: secondaryTextColor,
+            }}
+          >
+            Cargando...
+          </div>
+        )}
+      </div>
+
       {modalOpen && (
         <div
-          style={{ backgroundColor: overlayBgColor }}
-          className="fixed inset-0 flex items-center justify-center z-50 p-4 transition-opacity duration-300"
+          style={{
+            position: 'fixed',
+            inset: 0,
+            background: overlayBgColor,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            zIndex: 50,
+            padding: '1rem',
+          }}
         >
           <div
             style={{
               backgroundColor: bgColor,
               color: textColor,
+              borderRadius: 12,
+              width: '100%',
+              maxWidth: 680,
+              padding: '1.5rem',
+              boxShadow: '0 20px 60px rgba(0,0,0,0.5)',
+              position: 'relative',
+              display: 'flex',
+              flexDirection: 'column',
+              maxHeight: '90vh',
+              border: `1px solid ${borderColor}`,
             }}
-            className="rounded-lg max-w-2xl w-full p-6 shadow-xl relative flex flex-col max-h-[90vh]"
           >
             {!showDeleteConfirm && (
               <button
-                style={{ color: secondaryTextColor }}
-                className="absolute top-3 right-4 hover:opacity-80 transition"
+                style={{
+                  position: 'absolute',
+                  top: 12,
+                  right: 14,
+                  background: 'none',
+                  border: 'none',
+                  cursor: 'pointer',
+                  color: secondaryTextColor,
+                  fontSize: '1rem',
+                  display: 'flex',
+                  alignItems: 'center',
+                }}
                 onClick={handleCloseModal}
                 aria-label="Cerrar modal"
               >
-                <FaTimes className="h-5 w-5" />
+                <FaTimes />
               </button>
             )}
 
-            <h2
-              style={{ color: textColor }}
-              className="text-xl font-semibold mb-4"
+            <div
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: '0.6rem',
+                marginBottom: '1.25rem',
+              }}
             >
-              Detalles de la Salida
-            </h2>
+              <div
+                style={{
+                  width: 4,
+                  height: 22,
+                  background: colors.gold,
+                  borderRadius: 2,
+                }}
+              />
+              <h2 style={{ fontSize: '1.1rem', fontWeight: 700, margin: 0 }}>
+                Detalles de la Salida
+              </h2>
+            </div>
 
-            <div className="flex-grow overflow-y-auto pr-2">
+            <div style={{ flexGrow: 1, overflowY: 'auto', paddingRight: 4 }}>
               {!showDeleteConfirm && selectedSalida && (
-                <div className="space-y-3 text-sm">
-                  <div className="grid grid-cols-2 gap-4">
-                    <div>
-                      <p
-                        style={{ color: secondaryTextColor }}
-                        className="font-semibold mb-1"
-                      >
-                        Nro Salida:
-                      </p>
-                      <p>{selectedSalida.nroSalida}</p>
-                    </div>
-                    <div>
-                      <p
-                        style={{ color: secondaryTextColor }}
-                        className="font-semibold mb-1"
-                      >
-                        Usuario ID:
-                      </p>
-                      <p>{selectedSalida.usuarioId}</p>
-                    </div>
-                    <div>
-                      <p
-                        style={{ color: secondaryTextColor }}
-                        className="font-semibold mb-1"
-                      >
-                        OT ID:
-                      </p>
-                      <p>{selectedSalida.otId}</p>
-                    </div>
-                    <div>
-                      <p
-                        style={{ color: secondaryTextColor }}
-                        className="font-semibold mb-1"
-                      >
-                        Fecha:
-                      </p>
-                      <p>
-                        {new Date(selectedSalida.fecha).toLocaleDateString()}
-                      </p>
-                    </div>
-                    <div>
-                      <p
-                        style={{ color: secondaryTextColor }}
-                        className="font-semibold mb-1"
-                      >
-                        Almacén:
-                      </p>
-                      <p>{selectedSalida.almacen || '-'}</p>
-                    </div>
-                    <div>
-                      <p
-                        style={{ color: secondaryTextColor }}
-                        className="font-semibold mb-1"
-                      >
-                        Estado:
-                      </p>
-                      <span
+                <div>
+                  <div
+                    style={{
+                      display: 'grid',
+                      gridTemplateColumns:
+                        'repeat(auto-fit, minmax(160px, 1fr))',
+                      gap: '0.75rem',
+                      marginBottom: '1.25rem',
+                    }}
+                  >
+                    {[
+                      { label: 'Nro. Salida', value: `#${selectedSalida.id}` },
+                      {
+                        label: 'Usuario',
+                        value:
+                          getUsuarioNombreCompleto(
+                            getUsuarioById(selectedSalida.usuarioId),
+                          ) || `Usuario ${selectedSalida.usuarioId}`,
+                      },
+                      {
+                        label: 'OT',
+                        value:
+                          getOtDescripcion(getOtById(selectedSalida.otId)) ||
+                          `OT ${selectedSalida.otId}`,
+                      },
+                      {
+                        label: 'ID Usuario/OT',
+                        value: `${selectedSalida.usuarioId} / ${selectedSalida.otId}`,
+                      },
+                      {
+                        label: 'Fecha',
+                        value: new Date(
+                          selectedSalida.fecha,
+                        ).toLocaleDateString('es-ES'),
+                      },
+                      {
+                        label: 'Almacen',
+                        value: selectedSalida.almacen || '-',
+                      },
+                    ].map(({ label, value }) => (
+                      <div
+                        key={label}
                         style={{
-                          backgroundColor: getEstadoBadgeColor(
-                            selectedSalida.estado,
-                          ),
-                          color: '#fff',
-                          padding: '2px 6px',
-                          borderRadius: '4px',
-                          fontSize: '0.85rem',
-                          display: 'inline-block',
+                          background: inputBgColor,
+                          borderRadius: 8,
+                          padding: '0.6rem 0.75rem',
+                          border: `1px solid ${inputBorderColor}`,
                         }}
                       >
-                        {selectedSalida.estado}
-                      </span>
-                    </div>
+                        <p
+                          style={{
+                            fontSize: '0.7rem',
+                            fontWeight: 700,
+                            textTransform: 'uppercase',
+                            letterSpacing: '0.05em',
+                            color: secondaryTextColor,
+                            margin: '0 0 4px',
+                          }}
+                        >
+                          {label}
+                        </p>
+                        <p
+                          style={{
+                            fontSize: '0.9rem',
+                            fontWeight: 600,
+                            margin: 0,
+                          }}
+                        >
+                          {value}
+                        </p>
+                      </div>
+                    ))}
                   </div>
 
                   {selectedSalida.observacion && (
                     <div
                       style={{
-                        borderColor,
                         borderTop: `1px solid ${borderColor}`,
+                        paddingTop: '0.75rem',
+                        marginBottom: '1rem',
                       }}
-                      className="pt-4 mt-4"
                     >
                       <p
-                        style={{ color: secondaryTextColor }}
-                        className="font-semibold mb-1"
+                        style={{
+                          fontSize: '0.72rem',
+                          fontWeight: 700,
+                          textTransform: 'uppercase',
+                          letterSpacing: '0.05em',
+                          color: secondaryTextColor,
+                          margin: '0 0 6px',
+                        }}
                       >
-                        Observación:
+                        Observacion
                       </p>
-                      <p>{selectedSalida.observacion}</p>
+                      <p style={{ margin: 0 }}>{selectedSalida.observacion}</p>
                     </div>
                   )}
 
                   <div
                     style={{
-                      borderColor,
                       borderTop: `1px solid ${borderColor}`,
+                      paddingTop: '1rem',
                     }}
-                    className="pt-4 mt-4"
                   >
                     <p
-                      style={{ color: secondaryTextColor }}
-                      className="font-semibold mb-3"
+                      style={{
+                        fontSize: '0.72rem',
+                        fontWeight: 700,
+                        textTransform: 'uppercase',
+                        letterSpacing: '0.05em',
+                        color: secondaryTextColor,
+                        margin: '0 0 0.75rem',
+                      }}
                     >
-                      Productos Saliendo:
+                      Repuestos de Salida (
+                      {selectedSalida.detalles?.length ?? 0})
                     </p>
                     {selectedSalida.detalles &&
                     selectedSalida.detalles.length > 0 ? (
-                      <div className="space-y-2">
+                      <div
+                        style={{
+                          display: 'flex',
+                          flexDirection: 'column',
+                          gap: '0.5rem',
+                        }}
+                      >
                         {selectedSalida.detalles.map((detalle, idx) => (
                           <div
                             key={idx}
                             style={{
                               backgroundColor: inputBgColor,
-                              borderColor: inputBorderColor,
+                              border: `1px solid ${inputBorderColor}`,
+                              borderRadius: 8,
+                              padding: '0.6rem 0.75rem',
                             }}
-                            className="p-3 border rounded text-xs"
                           >
-                            <p>
-                              <strong>{detalle.nombre}</strong> (
-                              {detalle.codigo})
-                            </p>
-                            <p>
-                              Cantidad: {detalle.cantidad}{' '}
-                              {detalle.unidadMedida} | Precio: $
-                              {detalle.precioUnitario.toFixed(2)} | Importe: $
-                              {detalle.importe.toFixed(2)}
-                            </p>
-                            {detalle.porcentajeDescuento > 0 && (
-                              <p style={{ color: colors.gold }}>
-                                Descuento: {detalle.porcentajeDescuento}% ($
-                                {detalle.descuentoMonto.toFixed(2)})
-                              </p>
-                            )}
+                            <div
+                              style={{
+                                display: 'flex',
+                                justifyContent: 'space-between',
+                                alignItems: 'flex-start',
+                                gap: '0.5rem',
+                                flexWrap: 'wrap',
+                              }}
+                            >
+                              <div>
+                                <p
+                                  style={{
+                                    fontWeight: 700,
+                                    fontSize: '0.875rem',
+                                    margin: '0 0 2px',
+                                  }}
+                                >
+                                  {detalle.nombre}
+                                </p>
+                                <p
+                                  style={{
+                                    fontSize: '0.75rem',
+                                    color: secondaryTextColor,
+                                    margin: 0,
+                                    fontFamily: 'monospace',
+                                  }}
+                                >
+                                  {detalle.codigo} - {detalle.unidadMedida}
+                                </p>
+                              </div>
+                              <div
+                                style={{ textAlign: 'right', flexShrink: 0 }}
+                              >
+                                <p
+                                  style={{
+                                    fontWeight: 700,
+                                    color: colors.gold,
+                                    fontSize: '0.9rem',
+                                    margin: '0 0 2px',
+                                  }}
+                                >
+                                  {detalle.subtotal.toFixed(2)} Bs.
+                                </p>
+                                <p
+                                  style={{
+                                    fontSize: '0.75rem',
+                                    color: secondaryTextColor,
+                                    margin: 0,
+                                  }}
+                                >
+                                  {detalle.cantidad} x{' '}
+                                  {detalle.precioUnitario.toFixed(2)}
+                                </p>
+                              </div>
+                            </div>
                           </div>
                         ))}
                       </div>
                     ) : (
-                      <p style={{ color: secondaryTextColor }}>Sin productos</p>
+                      <p
+                        style={{
+                          color: secondaryTextColor,
+                          fontSize: '0.875rem',
+                        }}
+                      >
+                        Sin repuestos.
+                      </p>
                     )}
                   </div>
 
                   <div
                     style={{
-                      borderColor,
                       borderTop: `1px solid ${borderColor}`,
+                      marginTop: '1rem',
+                      paddingTop: '0.75rem',
+                      display: 'flex',
+                      flexDirection: 'column',
+                      gap: '0.4rem',
                     }}
-                    className="pt-4 mt-4"
                   >
-                    <div className="flex justify-between mb-2">
+                    <div
+                      style={{
+                        display: 'flex',
+                        justifyContent: 'space-between',
+                        fontSize: '0.875rem',
+                      }}
+                    >
                       <span style={{ color: secondaryTextColor }}>
-                        Subtotal:
+                        Subtotal
                       </span>
-                      <span>${selectedSalida.subtotal.toFixed(2)}</span>
+                      <span>{selectedSalida.subtotal.toFixed(2)} Bs.</span>
                     </div>
-                    <div className="flex justify-between mb-2">
-                      <span style={{ color: secondaryTextColor }}>
-                        Descuento Total:
-                      </span>
+                    <div
+                      style={{
+                        display: 'flex',
+                        justifyContent: 'space-between',
+                        fontWeight: 700,
+                        fontSize: '1rem',
+                        paddingTop: '0.4rem',
+                        borderTop: `1px solid ${borderColor}`,
+                        marginTop: '0.2rem',
+                      }}
+                    >
+                      <span>Total</span>
                       <span style={{ color: colors.gold }}>
-                        -${selectedSalida.descuentoTotal.toFixed(2)}
-                      </span>
-                    </div>
-                    <div className="flex justify-between text-base font-bold">
-                      <span style={{ color: secondaryTextColor }}>Total:</span>
-                      <span style={{ color: colors.gold }}>
-                        ${selectedSalida.total.toFixed(2)}
+                        {selectedSalida.total.toFixed(2)} Bs.
                       </span>
                     </div>
                   </div>
@@ -504,35 +865,41 @@ export const ListSalidaPage: React.FC = () => {
               )}
 
               {showDeleteConfirm && selectedSalida && (
-                <div style={{ color: textColor }} className="text-center">
-                  <p className="text-lg font-semibold mb-3">¿Estás seguro?</p>
-                  <p className="mb-4">
-                    Estás a punto de eliminar la salida{' '}
-                    <strong className="font-medium">
-                      #{selectedSalida.nroSalida}
-                    </strong>
-                    .
+                <div style={{ textAlign: 'center', padding: '1rem 0' }}>
+                  <p
+                    style={{
+                      fontSize: '1.1rem',
+                      fontWeight: 700,
+                      marginBottom: '0.75rem',
+                    }}
+                  >
+                    Estas seguro?
                   </p>
-                  <p className="text-sm mb-4">
-                    Esta acción eliminará de manera permanente la salida y sus
-                    detalles.
+                  <p style={{ marginBottom: '0.75rem', lineHeight: 1.6 }}>
+                    Estas a punto de eliminar la salida{' '}
+                    <strong>#{selectedSalida.id}</strong>. Esta accion es
+                    permanente.
                   </p>
-                  {deleteCountdown > 0 && (
+                  {deleteCountdown > 0 ? (
                     <p
-                      style={{ color: colors.gold }}
-                      className="text-2xl font-bold my-4"
+                      style={{
+                        color: colors.gold,
+                        fontSize: '2.5rem',
+                        fontWeight: 800,
+                        margin: '1rem 0',
+                      }}
                     >
                       {deleteCountdown}
                     </p>
-                  )}
-                  {canConfirmDelete && (
+                  ) : (
                     <p
                       style={{
                         color: theme === 'dark' ? '#4ADE80' : '#166534',
+                        fontSize: '0.875rem',
+                        margin: '1rem 0',
                       }}
-                      className="text-sm my-4"
                     >
-                      Puedes confirmar la eliminación.
+                      Puedes confirmar la eliminacion.
                     </p>
                   )}
                 </div>
@@ -540,62 +907,125 @@ export const ListSalidaPage: React.FC = () => {
             </div>
 
             <div
-              style={{ borderColor }}
-              className={`mt-6 pt-4 border-t flex ${showDeleteConfirm ? 'justify-between' : 'justify-end'} gap-3`}
+              style={{
+                marginTop: '1.25rem',
+                paddingTop: '1rem',
+                borderTop: `1px solid ${borderColor}`,
+                display: 'flex',
+                justifyContent: showDeleteConfirm
+                  ? 'space-between'
+                  : 'flex-end',
+                gap: '0.75rem',
+                flexWrap: 'wrap',
+              }}
             >
               {!showDeleteConfirm && (
                 <>
                   <button
-                    onClick={handleDeleteClick}
-                    style={{ color: deleteColor }}
+                    onClick={() => {
+                      navigate(`/salidas/registrar?id=${selectedSalida!.id}`);
+                      handleCloseModal();
+                    }}
+                    style={{
+                      background: 'none',
+                      border: `1px solid ${colors.gold}`,
+                      borderRadius: 6,
+                      color: colors.gold,
+                      padding: '0.4rem 0.9rem',
+                      cursor: 'pointer',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: 6,
+                      fontSize: '0.875rem',
+                      fontWeight: 600,
+                    }}
                     onMouseOver={(e) => {
-                      e.currentTarget.style.color = deleteHoverColor;
+                      e.currentTarget.style.background = colors.gold;
+                      e.currentTarget.style.color = colors.darkText;
                     }}
                     onMouseOut={(e) => {
+                      e.currentTarget.style.background = 'none';
+                      e.currentTarget.style.color = colors.gold;
+                    }}
+                  >
+                    <FaEdit /> Editar
+                  </button>
+
+                  <button
+                    onClick={handleDeleteClick}
+                    style={{
+                      background: 'none',
+                      border: `1px solid ${deleteColor}`,
+                      borderRadius: 6,
+                      color: deleteColor,
+                      padding: '0.4rem 0.9rem',
+                      cursor: 'pointer',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: 6,
+                      fontSize: '0.875rem',
+                      fontWeight: 600,
+                    }}
+                    onMouseOver={(e) => {
+                      e.currentTarget.style.background = deleteColor;
+                      e.currentTarget.style.color = '#fff';
+                    }}
+                    onMouseOut={(e) => {
+                      e.currentTarget.style.background = 'none';
                       e.currentTarget.style.color = deleteColor;
                     }}
-                    className="flex items-center gap-1.5 text-sm transition duration-150 ease-in-out"
                   >
                     <FaTrash /> Eliminar
                   </button>
+
                   <button
                     onClick={handleCloseModal}
                     style={{
+                      background: 'none',
+                      border: `1px solid ${borderColor}`,
+                      borderRadius: 6,
                       color: textColor,
-                      backgroundColor: 'transparent',
+                      padding: '0.4rem 0.9rem',
+                      cursor: 'pointer',
+                      fontSize: '0.875rem',
                     }}
                     onMouseOver={(e) => {
-                      e.currentTarget.style.backgroundColor =
-                        theme === 'dark' ? '#2A2A2A' : '#D6D6D6';
+                      e.currentTarget.style.background =
+                        theme === 'dark' ? '#2A2A2A' : '#E6E6E6';
                     }}
                     onMouseOut={(e) => {
-                      e.currentTarget.style.backgroundColor = 'transparent';
+                      e.currentTarget.style.background = 'none';
                     }}
-                    className="px-4 py-2 rounded text-sm transition"
                   >
                     Cerrar
                   </button>
                 </>
               )}
+
               {showDeleteConfirm && (
                 <>
                   <button
                     onClick={handleCloseModal}
                     style={{
+                      background: 'none',
+                      border: `1px solid ${borderColor}`,
+                      borderRadius: 6,
                       color: textColor,
-                      backgroundColor: 'transparent',
+                      padding: '0.4rem 0.9rem',
+                      cursor: 'pointer',
+                      fontSize: '0.875rem',
                     }}
                     onMouseOver={(e) => {
-                      e.currentTarget.style.backgroundColor =
-                        theme === 'dark' ? '#2A2A2A' : '#D6D6D6';
+                      e.currentTarget.style.background =
+                        theme === 'dark' ? '#2A2A2A' : '#E6E6E6';
                     }}
                     onMouseOut={(e) => {
-                      e.currentTarget.style.backgroundColor = 'transparent';
+                      e.currentTarget.style.background = 'none';
                     }}
-                    className="px-4 py-2 rounded text-sm transition"
                   >
                     Cancelar
                   </button>
+
                   <button
                     onClick={handleDelete}
                     disabled={!canConfirmDelete}
@@ -605,25 +1035,30 @@ export const ListSalidaPage: React.FC = () => {
                         : theme === 'dark'
                           ? '#8B3A3A'
                           : '#FFB0B0',
-                      color: colors.lightText,
+                      color: '#fff',
+                      border: 'none',
+                      borderRadius: 6,
+                      padding: '0.4rem 0.9rem',
                       cursor: canConfirmDelete ? 'pointer' : 'not-allowed',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: 6,
+                      fontSize: '0.875rem',
+                      fontWeight: 600,
                     }}
                     onMouseOver={(e) => {
-                      if (canConfirmDelete) {
+                      if (canConfirmDelete)
                         e.currentTarget.style.backgroundColor =
                           deleteHoverColor;
-                      }
                     }}
                     onMouseOut={(e) => {
-                      if (canConfirmDelete) {
+                      if (canConfirmDelete)
                         e.currentTarget.style.backgroundColor = deleteColor;
-                      }
                     }}
-                    className="flex items-center gap-1.5 px-4 py-2 rounded text-sm transition"
                   >
                     <FaTrash />{' '}
                     {canConfirmDelete
-                      ? 'Confirmar Eliminación'
+                      ? 'Confirmar Eliminacion'
                       : `Confirmar (${deleteCountdown})`}
                   </button>
                 </>
