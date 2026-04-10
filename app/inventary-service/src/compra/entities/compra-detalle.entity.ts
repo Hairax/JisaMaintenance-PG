@@ -6,6 +6,7 @@ import {
   JoinColumn,
 } from 'typeorm';
 import { Compra } from './compra.entity';
+import { Repuesto } from '../../repuesto/entities/repuesto.entity';
 
 @Entity()
 export class CompraDetalle {
@@ -21,16 +22,16 @@ export class CompraDetalle {
   @JoinColumn({ name: 'compraId' })
   compra: Compra;
 
-  // Tipo de producto: 'repuesto' o 'repuesto-maquina'
-  @Column({ type: 'enum', enum: ['repuesto', 'repuesto-maquina'] })
-  tipoProducto: string;
-
-  // ID del producto (opcional, para referencia)
+  // FK al repuesto vinculado (nullable para no romper registros existentes)
   @Column({ nullable: true })
-  productoId: number;
+  repuestoId: number;
 
-  // Datos del producto
-  @Column()
+  @ManyToOne(() => Repuesto, { nullable: true })
+  @JoinColumn({ name: 'repuestoId' })
+  repuesto: Repuesto;
+
+  // Código visible: composite ID (CC.Proc.Maq.Sub.Correlativo)
+  @Column({ nullable: true })
   codigo: string;
 
   @Column()

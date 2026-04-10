@@ -1,7 +1,14 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useTheme } from '../../../shared/contexts/ThemeContext';
-import { FaTimes, FaEye, FaTrash, FaPlus } from 'react-icons/fa';
+import {
+  FaTimes,
+  FaEye,
+  FaTrash,
+  FaPlus,
+  FaEdit,
+  FaSearch,
+} from 'react-icons/fa';
 
 const colors = {
   brown: '#9E5533',
@@ -12,6 +19,18 @@ const colors = {
   darkText: '#000000',
   lightText: '#FFFFFF',
 };
+
+interface CompraDetalle {
+  nombre: string;
+  codigo: string;
+  unidadMedida: string;
+  cantidad: number;
+  precioUnitario: number;
+  importe: number;
+  porcentajeDescuento: number;
+  descuentoMonto: number;
+  subtotal: number;
+}
 
 interface Compra {
   id: number;
@@ -26,7 +45,7 @@ interface Compra {
   descuentoTotal: number;
   total: number;
   createdAt: string;
-  detalles?: unknown[];
+  detalles?: CompraDetalle[];
 }
 
 export const ListCompraPage: React.FC = () => {
@@ -40,6 +59,7 @@ export const ListCompraPage: React.FC = () => {
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [deleteCountdown, setDeleteCountdown] = useState(3);
   const [canConfirmDelete, setCanConfirmDelete] = useState(false);
+  const [searchQ, setSearchQ] = useState('');
 
   // Cargar compras
   useEffect(() => {
@@ -53,12 +73,12 @@ export const ListCompraPage: React.FC = () => {
       if (!response.ok) throw new Error('Error al cargar compras');
       const data = await response.json();
       // Convertir valores numéricos que vienen como strings
-      const comprasConNumeros = data.map((compra: any) => ({
+      const comprasConNumeros = data.map((compra: Compra) => ({
         ...compra,
         subtotal: Number(compra.subtotal),
         descuentoTotal: Number(compra.descuentoTotal),
         total: Number(compra.total),
-        detalles: (compra.detalles || []).map((detalle: any) => ({
+        detalles: (compra.detalles || []).map((detalle: CompraDetalle) => ({
           ...detalle,
           cantidad: Number(detalle.cantidad),
           precioUnitario: Number(detalle.precioUnitario),
@@ -135,7 +155,7 @@ export const ListCompraPage: React.FC = () => {
   const bgColor = theme === 'dark' ? colors.darkBg : colors.lightBg;
   const theadBgColor = theme === 'dark' ? colors.brown : colors.gold;
   const theadTextColor = theme === 'dark' ? colors.lightText : colors.darkText;
-  const tbodyBgColor = theme === 'dark' ? '#232323' : '#FAFAFA';
+  void (theme === 'dark' ? '#232323' : '#FAFAFA');
   const hoverBgColor = theme === 'dark' ? '#2A2A2A' : '#F5F5F5';
   const inputBgColor = theme === 'dark' ? '#2A2A2A' : '#F5F5F5';
   const inputBorderColor = theme === 'dark' ? '#3A3A3A' : '#D6D6D6';
@@ -150,34 +170,102 @@ export const ListCompraPage: React.FC = () => {
     padding: '20px 0',
   };
 
+  const filteredCompras = compras.filter((c) => {
+    if (!searchQ.trim()) return true;
+    const q = searchQ.toLowerCase();
+    return (
+      String(c.id).includes(q) ||
+      (c.nroDocumento ?? '').toLowerCase().includes(q) ||
+      (c.nroFactura ?? '').toLowerCase().includes(q) ||
+      (c.nit ?? '').toLowerCase().includes(q) ||
+      (c.tipoDocumento ?? '').toLowerCase().includes(q) ||
+      new Date(c.fecha).toLocaleDateString('es-ES').includes(q) ||
+      (c.detalles?.some(
+        (d) =>
+          (d.nombre ?? '').toLowerCase().includes(q) ||
+          (d.codigo ?? '').toLowerCase().includes(q),
+      ) ??
+        false)
+    );
+  });
+
   if (error && !loading) {
-    return <div className="text-center text-red-500 mt-10">{error}</div>;
+    return (
+      <div style={{ textAlign: 'center', color: '#E53E3E', marginTop: '2rem' }}>
+        {error}
+      </div>
+    );
   }
 
   return (
-    <div style={pageStyle}>
+    <div style={{ ...pageStyle, padding: '1.5rem' }}>
+      {/* Page Header */}
       <div
         style={{
           display: 'flex',
           justifyContent: 'space-between',
-          alignItems: 'center',
-          marginBottom: 16,
+          alignItems: 'flex-start',
+          marginBottom: 20,
+          flexWrap: 'wrap',
+          gap: '0.75rem',
         }}
       >
-        <h2>Compras</h2>
+        <div>
+          <div
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: '0.75rem',
+              marginBottom: 4,
+            }}
+          >
+            <div
+              style={{
+                width: 4,
+                height: 28,
+                background: colors.gold,
+                borderRadius: 2,
+              }}
+            />
+            <h2
+              style={{
+                fontSize: '1.4rem',
+                fontWeight: 700,
+                margin: 0,
+                color: textColor,
+              }}
+            >
+              Compras
+            </h2>
+          </div>
+          <p
+            style={{
+              fontSize: '0.82rem',
+              color: secondaryTextColor,
+              margin: 0,
+              paddingLeft: 16,
+            }}
+          >
+            {loading
+              ? 'Cargando...'
+              : `${compras.length} registro${compras.length !== 1 ? 's' : ''}`}
+          </p>
+        </div>
         <button
           onClick={() => navigate('/compras/crear')}
           style={{
             background: colors.gold,
             color: colors.darkText,
             border: 'none',
-            borderRadius: 4,
-            padding: '8px 16px',
+            borderRadius: 6,
+            padding: '0.55rem 1.1rem',
             cursor: 'pointer',
-            fontWeight: 'bold',
+            fontWeight: 700,
             display: 'flex',
             alignItems: 'center',
-            gap: '8px',
+            gap: '0.5rem',
+            fontSize: '0.9rem',
+            whiteSpace: 'nowrap',
           }}
           onMouseOver={(e) => {
             e.currentTarget.style.background = '#E69D00';
@@ -186,265 +274,644 @@ export const ListCompraPage: React.FC = () => {
             e.currentTarget.style.background = colors.gold;
           }}
         >
-          <FaPlus /> Agregar Compra
+          <FaPlus /> Nueva Compra
         </button>
       </div>
 
-      <div className="w-full px-4 sm:px-6 lg:px-8 max-w-screen-xl mx-auto pb-24">
-        <div
-          style={{ backgroundColor: bgColor }}
-          className="shadow-md rounded-lg overflow-hidden"
+      {/* Search Bar */}
+      <div style={{ position: 'relative', marginBottom: '1.25rem' }}>
+        <FaSearch
+          style={{
+            position: 'absolute',
+            left: 12,
+            top: '50%',
+            transform: 'translateY(-50%)',
+            color: secondaryTextColor,
+            fontSize: '0.85rem',
+            pointerEvents: 'none',
+          }}
+        />
+        <input
+          type="text"
+          placeholder="Buscar por Nro. Doc., NIT, factura, repuesto, fecha..."
+          value={searchQ}
+          onChange={(e) => setSearchQ(e.target.value)}
+          style={{
+            width: '100%',
+            padding: '0.6rem 2.5rem 0.6rem 2.4rem',
+            border: `1px solid ${inputBorderColor}`,
+            borderRadius: 8,
+            backgroundColor: inputBgColor,
+            color: textColor,
+            fontSize: '0.9rem',
+            boxSizing: 'border-box',
+          }}
+        />
+        {searchQ && (
+          <button
+            onClick={() => setSearchQ('')}
+            style={{
+              position: 'absolute',
+              right: 10,
+              top: '50%',
+              transform: 'translateY(-50%)',
+              background: 'none',
+              border: 'none',
+              cursor: 'pointer',
+              color: secondaryTextColor,
+              display: 'flex',
+              alignItems: 'center',
+            }}
+          >
+            <FaTimes />
+          </button>
+        )}
+      </div>
+
+      {/* Results info */}
+      {searchQ && (
+        <p
+          style={{
+            fontSize: '0.8rem',
+            color: secondaryTextColor,
+            marginBottom: '0.75rem',
+          }}
         >
-          <div className="overflow-x-auto">
-            <table className="w-full text-sm md:text-base">
-              <thead
-                style={{
-                  backgroundColor: theadBgColor,
-                  color: theadTextColor,
-                }}
+          {filteredCompras.length} resultado
+          {filteredCompras.length !== 1 ? 's' : ''} para &ldquo;
+          <strong>{searchQ}</strong>&rdquo;
+        </p>
+      )}
+
+      {/* Table Card */}
+      <div
+        style={{
+          background: bgColor,
+          borderRadius: 10,
+          border: `1px solid ${borderColor}`,
+          overflow: 'hidden',
+          boxShadow:
+            theme === 'dark'
+              ? '0 2px 12px rgba(0,0,0,0.4)'
+              : '0 2px 12px rgba(0,0,0,0.08)',
+        }}
+      >
+        <div style={{ overflowX: 'auto' }}>
+          <table
+            style={{
+              width: '100%',
+              borderCollapse: 'collapse',
+              fontSize: '0.875rem',
+            }}
+          >
+            <thead>
+              <tr
+                style={{ backgroundColor: theadBgColor, color: theadTextColor }}
               >
-                <tr>
-                  <th className="p-3 text-left font-semibold">Nro Documento</th>
-                  <th className="p-3 text-left font-semibold">Proveedor</th>
-                  <th className="p-3 text-left font-semibold">Fecha</th>
-                  <th className="p-3 text-right font-semibold">Total</th>
-                  <th className="p-3 text-center font-semibold">Acciones</th>
-                </tr>
-              </thead>
-              <tbody
-                style={{
-                  backgroundColor: tbodyBgColor,
-                  color: textColor,
-                  borderColor: borderColor,
-                }}
-                className="divide-y"
-              >
-                {compras.map((compra) => (
-                  <tr
-                    key={compra.id}
-                    className="cursor-pointer transition duration-150 ease-in-out"
-                    onMouseOver={(e) => {
-                      e.currentTarget.style.backgroundColor = hoverBgColor;
-                    }}
-                    onMouseOut={(e) => {
-                      e.currentTarget.style.backgroundColor = tbodyBgColor;
+                <th
+                  style={{
+                    padding: '0.75rem 1rem',
+                    textAlign: 'left',
+                    fontWeight: 700,
+                    fontSize: '0.75rem',
+                    textTransform: 'uppercase',
+                    letterSpacing: '0.05em',
+                    whiteSpace: 'nowrap',
+                  }}
+                >
+                  Nro. Documento
+                </th>
+                <th
+                  style={{
+                    padding: '0.75rem 1rem',
+                    textAlign: 'left',
+                    fontWeight: 700,
+                    fontSize: '0.75rem',
+                    textTransform: 'uppercase',
+                    letterSpacing: '0.05em',
+                    whiteSpace: 'nowrap',
+                  }}
+                >
+                  Tipo
+                </th>
+                <th
+                  style={{
+                    padding: '0.75rem 1rem',
+                    textAlign: 'left',
+                    fontWeight: 700,
+                    fontSize: '0.75rem',
+                    textTransform: 'uppercase',
+                    letterSpacing: '0.05em',
+                    whiteSpace: 'nowrap',
+                  }}
+                >
+                  NIT Proveedor
+                </th>
+                <th
+                  style={{
+                    padding: '0.75rem 1rem',
+                    textAlign: 'left',
+                    fontWeight: 700,
+                    fontSize: '0.75rem',
+                    textTransform: 'uppercase',
+                    letterSpacing: '0.05em',
+                    whiteSpace: 'nowrap',
+                  }}
+                >
+                  Fecha
+                </th>
+                <th
+                  style={{
+                    padding: '0.75rem 1rem',
+                    textAlign: 'right',
+                    fontWeight: 700,
+                    fontSize: '0.75rem',
+                    textTransform: 'uppercase',
+                    letterSpacing: '0.05em',
+                    whiteSpace: 'nowrap',
+                  }}
+                >
+                  Total Bs.
+                </th>
+                <th
+                  style={{
+                    padding: '0.75rem 1rem',
+                    textAlign: 'center',
+                    fontWeight: 700,
+                    fontSize: '0.75rem',
+                    textTransform: 'uppercase',
+                    letterSpacing: '0.05em',
+                  }}
+                >
+                  Acciones
+                </th>
+              </tr>
+            </thead>
+            <tbody style={{ color: textColor }}>
+              {filteredCompras.map((compra) => (
+                <tr
+                  key={compra.id}
+                  style={{
+                    borderBottom: `1px solid ${borderColor}`,
+                    transition: 'background 0.15s',
+                  }}
+                  onMouseOver={(e) => {
+                    e.currentTarget.style.backgroundColor = hoverBgColor;
+                  }}
+                  onMouseOut={(e) => {
+                    e.currentTarget.style.backgroundColor = 'transparent';
+                  }}
+                >
+                  <td style={{ padding: '0.75rem 1rem' }}>
+                    <span style={{ fontWeight: 600 }}>
+                      {compra.nroDocumento}
+                    </span>
+                    {compra.nroFactura && (
+                      <span
+                        style={{
+                          display: 'block',
+                          fontSize: '0.75rem',
+                          color: secondaryTextColor,
+                        }}
+                      >
+                        Fact. {compra.nroFactura}
+                      </span>
+                    )}
+                  </td>
+                  <td style={{ padding: '0.75rem 1rem' }}>
+                    <span
+                      style={{
+                        display: 'inline-block',
+                        padding: '0.15rem 0.5rem',
+                        borderRadius: 4,
+                        fontSize: '0.75rem',
+                        fontWeight: 600,
+                        background:
+                          compra.tipoDocumento === 'Factura'
+                            ? theme === 'dark'
+                              ? '#1e3a5f'
+                              : '#e3f2fd'
+                            : theme === 'dark'
+                              ? '#2a2a1e'
+                              : '#f5f5e3',
+                        color:
+                          compra.tipoDocumento === 'Factura'
+                            ? '#2196F3'
+                            : secondaryTextColor,
+                      }}
+                    >
+                      {compra.tipoDocumento}
+                    </span>
+                  </td>
+                  <td
+                    style={{
+                      padding: '0.75rem 1rem',
+                      fontFamily: 'monospace',
+                      fontSize: '0.82rem',
                     }}
                   >
-                    <td className="p-3">{compra.nroDocumento}</td>
-                    <td className="p-3">{compra.nit}</td>
-                    <td className="p-3">
-                      {new Date(compra.fecha).toLocaleDateString()}
-                    </td>
-                    <td
-                      className="p-3 text-right font-semibold"
-                      style={{ color: colors.gold }}
+                    {compra.nit}
+                  </td>
+                  <td
+                    style={{
+                      padding: '0.75rem 1rem',
+                      whiteSpace: 'nowrap',
+                      color: secondaryTextColor,
+                    }}
+                  >
+                    {new Date(compra.fecha).toLocaleDateString('es-ES')}
+                  </td>
+                  <td
+                    style={{
+                      padding: '0.75rem 1rem',
+                      textAlign: 'right',
+                      fontWeight: 700,
+                      color: colors.gold,
+                      whiteSpace: 'nowrap',
+                    }}
+                  >
+                    {compra.total.toFixed(2)} Bs.
+                  </td>
+                  <td style={{ padding: '0.75rem 1rem', textAlign: 'center' }}>
+                    <button
+                      onClick={() => handleViewCompra(compra)}
+                      style={{
+                        background: 'none',
+                        border: `1px solid ${colors.gold}`,
+                        borderRadius: 6,
+                        color: colors.gold,
+                        padding: '0.3rem 0.65rem',
+                        cursor: 'pointer',
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        gap: 4,
+                        fontSize: '0.8rem',
+                        fontWeight: 600,
+                      }}
+                      onMouseOver={(e) => {
+                        e.currentTarget.style.background = colors.gold;
+                        e.currentTarget.style.color = colors.darkText;
+                      }}
+                      onMouseOut={(e) => {
+                        e.currentTarget.style.background = 'none';
+                        e.currentTarget.style.color = colors.gold;
+                      }}
+                      title="Ver detalles"
                     >
-                      ${compra.total.toFixed(2)}
-                    </td>
-                    <td className="p-3 text-center">
-                      <button
-                        onClick={() => handleViewCompra(compra)}
-                        style={{ color: colors.gold }}
-                        className="hover:opacity-80 transition"
-                        title="Ver detalles"
-                      >
-                        <FaEye className="h-4 w-4" />
-                      </button>
-                    </td>
-                  </tr>
-                ))}
-                {compras.length === 0 && !loading && (
-                  <tr>
-                    <td
-                      colSpan={5}
-                      style={{ color: secondaryTextColor }}
-                      className="p-4 text-center"
-                    >
-                      No se encontraron compras.
-                    </td>
-                  </tr>
-                )}
-              </tbody>
-            </table>
-          </div>
-          {loading && (
-            <div
-              className="p-4 text-center"
-              style={{ color: secondaryTextColor }}
-            >
-              Cargando...
-            </div>
-          )}
+                      <FaEye /> Ver
+                    </button>
+                  </td>
+                </tr>
+              ))}
+              {filteredCompras.length === 0 && !loading && (
+                <tr>
+                  <td
+                    colSpan={6}
+                    style={{
+                      padding: '2.5rem 1rem',
+                      textAlign: 'center',
+                      color: secondaryTextColor,
+                    }}
+                  >
+                    {searchQ
+                      ? `No se encontraron resultados para "${searchQ}".`
+                      : 'No hay compras registradas.'}
+                  </td>
+                </tr>
+              )}
+            </tbody>
+          </table>
         </div>
+        {loading && (
+          <div
+            style={{
+              padding: '2rem',
+              textAlign: 'center',
+              color: secondaryTextColor,
+            }}
+          >
+            Cargando...
+          </div>
+        )}
       </div>
 
       {/* Modal */}
       {modalOpen && (
         <div
-          style={{ backgroundColor: overlayBgColor }}
-          className="fixed inset-0 flex items-center justify-center z-50 p-4 transition-opacity duration-300"
+          style={{
+            position: 'fixed',
+            inset: 0,
+            background: overlayBgColor,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            zIndex: 50,
+            padding: '1rem',
+          }}
         >
           <div
             style={{
               backgroundColor: bgColor,
               color: textColor,
+              borderRadius: 12,
+              width: '100%',
+              maxWidth: 680,
+              padding: '1.5rem',
+              boxShadow: '0 20px 60px rgba(0,0,0,0.5)',
+              position: 'relative',
+              display: 'flex',
+              flexDirection: 'column',
+              maxHeight: '90vh',
+              border: `1px solid ${borderColor}`,
             }}
-            className="rounded-lg max-w-2xl w-full p-6 shadow-xl relative flex flex-col max-h-[90vh]"
           >
             {!showDeleteConfirm && (
               <button
-                style={{ color: secondaryTextColor }}
-                className="absolute top-3 right-4 hover:opacity-80 transition"
+                style={{
+                  position: 'absolute',
+                  top: 12,
+                  right: 14,
+                  background: 'none',
+                  border: 'none',
+                  cursor: 'pointer',
+                  color: secondaryTextColor,
+                  fontSize: '1rem',
+                  display: 'flex',
+                  alignItems: 'center',
+                }}
                 onClick={handleCloseModal}
                 aria-label="Cerrar modal"
               >
-                <FaTimes className="h-5 w-5" />
+                <FaTimes />
               </button>
             )}
 
-            <h2
-              style={{ color: textColor }}
-              className="text-xl font-semibold mb-4"
+            {/* Modal title */}
+            <div
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: '0.6rem',
+                marginBottom: '1.25rem',
+              }}
             >
-              Detalles de la Compra
-            </h2>
+              <div
+                style={{
+                  width: 4,
+                  height: 22,
+                  background: colors.gold,
+                  borderRadius: 2,
+                }}
+              />
+              <h2 style={{ fontSize: '1.1rem', fontWeight: 700, margin: 0 }}>
+                Detalles de la Compra
+              </h2>
+            </div>
 
-            <div className="flex-grow overflow-y-auto pr-2">
+            <div style={{ flexGrow: 1, overflowY: 'auto', paddingRight: 4 }}>
               {!showDeleteConfirm && selectedCompra && (
-                <div className="space-y-3 text-sm">
-                  <div className="grid grid-cols-2 gap-4">
-                    <div>
-                      <p
-                        style={{ color: secondaryTextColor }}
-                        className="font-semibold mb-1"
-                      >
-                        Nro Documento:
-                      </p>
-                      <p>{selectedCompra.nroDocumento}</p>
-                    </div>
-                    <div>
-                      <p
-                        style={{ color: secondaryTextColor }}
-                        className="font-semibold mb-1"
-                      >
-                        Tipo Documento:
-                      </p>
-                      <p>{selectedCompra.tipoDocumento}</p>
-                    </div>
-                    <div>
-                      <p
-                        style={{ color: secondaryTextColor }}
-                        className="font-semibold mb-1"
-                      >
-                        Nro Factura:
-                      </p>
-                      <p>{selectedCompra.nroFactura}</p>
-                    </div>
-                    <div>
-                      <p
-                        style={{ color: secondaryTextColor }}
-                        className="font-semibold mb-1"
-                      >
-                        NIT:
-                      </p>
-                      <p>{selectedCompra.nit}</p>
-                    </div>
-                    <div>
-                      <p
-                        style={{ color: secondaryTextColor }}
-                        className="font-semibold mb-1"
-                      >
-                        Fecha:
-                      </p>
-                      <p>
-                        {new Date(selectedCompra.fecha).toLocaleDateString()}
-                      </p>
-                    </div>
-                    <div>
-                      <p
-                        style={{ color: secondaryTextColor }}
-                        className="font-semibold mb-1"
-                      >
-                        Almacén:
-                      </p>
-                      <p>{selectedCompra.almacen}</p>
-                    </div>
-                  </div>
-
+                <div>
+                  {/* Info grid */}
                   <div
                     style={{
-                      borderColor,
-                      borderTop: `1px solid ${borderColor}`,
+                      display: 'grid',
+                      gridTemplateColumns:
+                        'repeat(auto-fit, minmax(160px, 1fr))',
+                      gap: '0.75rem',
+                      marginBottom: '1.25rem',
                     }}
-                    className="pt-4 mt-4"
+                  >
+                    {[
+                      {
+                        label: 'Nro. Documento',
+                        value: selectedCompra.nroDocumento,
+                      },
+                      {
+                        label: 'Tipo Documento',
+                        value: selectedCompra.tipoDocumento,
+                      },
+                      {
+                        label: 'Nro. Factura',
+                        value: selectedCompra.nroFactura,
+                      },
+                      { label: 'NIT', value: selectedCompra.nit },
+                      {
+                        label: 'Fecha',
+                        value: new Date(
+                          selectedCompra.fecha,
+                        ).toLocaleDateString('es-ES'),
+                      },
+                      {
+                        label: 'Almacén',
+                        value: selectedCompra.almacen || '—',
+                      },
+                    ].map(({ label, value }) => (
+                      <div
+                        key={label}
+                        style={{
+                          background: inputBgColor,
+                          borderRadius: 8,
+                          padding: '0.6rem 0.75rem',
+                          border: `1px solid ${inputBorderColor}`,
+                        }}
+                      >
+                        <p
+                          style={{
+                            fontSize: '0.7rem',
+                            fontWeight: 700,
+                            textTransform: 'uppercase',
+                            letterSpacing: '0.05em',
+                            color: secondaryTextColor,
+                            margin: '0 0 4px',
+                          }}
+                        >
+                          {label}
+                        </p>
+                        <p
+                          style={{
+                            fontSize: '0.9rem',
+                            fontWeight: 600,
+                            margin: 0,
+                          }}
+                        >
+                          {value}
+                        </p>
+                      </div>
+                    ))}
+                  </div>
+
+                  {/* Productos */}
+                  <div
+                    style={{
+                      borderTop: `1px solid ${borderColor}`,
+                      paddingTop: '1rem',
+                    }}
                   >
                     <p
-                      style={{ color: secondaryTextColor }}
-                      className="font-semibold mb-3"
+                      style={{
+                        fontSize: '0.72rem',
+                        fontWeight: 700,
+                        textTransform: 'uppercase',
+                        letterSpacing: '0.05em',
+                        color: secondaryTextColor,
+                        margin: '0 0 0.75rem',
+                      }}
                     >
-                      Productos Comprados:
+                      Productos Comprados (
+                      {selectedCompra.detalles?.length ?? 0})
                     </p>
                     {selectedCompra.detalles &&
                     selectedCompra.detalles.length > 0 ? (
-                      <div className="space-y-2">
+                      <div
+                        style={{
+                          display: 'flex',
+                          flexDirection: 'column',
+                          gap: '0.5rem',
+                        }}
+                      >
                         {selectedCompra.detalles.map((detalle, idx) => (
                           <div
                             key={idx}
                             style={{
                               backgroundColor: inputBgColor,
-                              borderColor: inputBorderColor,
+                              border: `1px solid ${inputBorderColor}`,
+                              borderRadius: 8,
+                              padding: '0.6rem 0.75rem',
                             }}
-                            className="p-3 border rounded text-xs"
                           >
-                            <p>
-                              <strong>{detalle.nombre}</strong> (
-                              {detalle.codigo})
-                            </p>
-                            <p>
-                              Cantidad: {detalle.cantidad}{' '}
-                              {detalle.unidadMedida} | Precio: $
-                              {detalle.precioUnitario.toFixed(2)} | Importe: $
-                              {detalle.importe.toFixed(2)}
-                            </p>
+                            <div
+                              style={{
+                                display: 'flex',
+                                justifyContent: 'space-between',
+                                alignItems: 'flex-start',
+                                gap: '0.5rem',
+                                flexWrap: 'wrap',
+                              }}
+                            >
+                              <div>
+                                <p
+                                  style={{
+                                    fontWeight: 700,
+                                    fontSize: '0.875rem',
+                                    margin: '0 0 2px',
+                                  }}
+                                >
+                                  {detalle.nombre}
+                                </p>
+                                <p
+                                  style={{
+                                    fontSize: '0.75rem',
+                                    color: secondaryTextColor,
+                                    margin: 0,
+                                    fontFamily: 'monospace',
+                                  }}
+                                >
+                                  {detalle.codigo} — {detalle.unidadMedida}
+                                </p>
+                              </div>
+                              <div
+                                style={{ textAlign: 'right', flexShrink: 0 }}
+                              >
+                                <p
+                                  style={{
+                                    fontWeight: 700,
+                                    color: colors.gold,
+                                    fontSize: '0.9rem',
+                                    margin: '0 0 2px',
+                                  }}
+                                >
+                                  {detalle.subtotal.toFixed(2)} Bs.
+                                </p>
+                                <p
+                                  style={{
+                                    fontSize: '0.75rem',
+                                    color: secondaryTextColor,
+                                    margin: 0,
+                                  }}
+                                >
+                                  {detalle.cantidad} &times;{' '}
+                                  {detalle.precioUnitario.toFixed(2)}
+                                </p>
+                              </div>
+                            </div>
                             {detalle.porcentajeDescuento > 0 && (
-                              <p style={{ color: colors.gold }}>
-                                Descuento: {detalle.porcentajeDescuento}% ($
-                                {detalle.descuentoMonto.toFixed(2)})
+                              <p
+                                style={{
+                                  fontSize: '0.75rem',
+                                  color: colors.gold,
+                                  margin: '4px 0 0',
+                                }}
+                              >
+                                Descuento: {detalle.porcentajeDescuento}% (−
+                                {detalle.descuentoMonto.toFixed(2)} Bs.)
                               </p>
                             )}
                           </div>
                         ))}
                       </div>
                     ) : (
-                      <p style={{ color: secondaryTextColor }}>Sin productos</p>
+                      <p
+                        style={{
+                          color: secondaryTextColor,
+                          fontSize: '0.875rem',
+                        }}
+                      >
+                        Sin productos.
+                      </p>
                     )}
                   </div>
 
+                  {/* Totals */}
                   <div
                     style={{
-                      borderColor,
                       borderTop: `1px solid ${borderColor}`,
+                      marginTop: '1rem',
+                      paddingTop: '0.75rem',
+                      display: 'flex',
+                      flexDirection: 'column',
+                      gap: '0.4rem',
                     }}
-                    className="pt-4 mt-4"
                   >
-                    <div className="flex justify-between mb-2">
+                    <div
+                      style={{
+                        display: 'flex',
+                        justifyContent: 'space-between',
+                        fontSize: '0.875rem',
+                      }}
+                    >
                       <span style={{ color: secondaryTextColor }}>
-                        Subtotal:
+                        Subtotal
                       </span>
-                      <span>${selectedCompra.subtotal.toFixed(2)}</span>
+                      <span>{selectedCompra.subtotal.toFixed(2)} Bs.</span>
                     </div>
-                    <div className="flex justify-between mb-2">
+                    <div
+                      style={{
+                        display: 'flex',
+                        justifyContent: 'space-between',
+                        fontSize: '0.875rem',
+                      }}
+                    >
                       <span style={{ color: secondaryTextColor }}>
-                        Descuento Total:
+                        Descuento
                       </span>
                       <span style={{ color: colors.gold }}>
-                        -${selectedCompra.descuentoTotal.toFixed(2)}
+                        −{selectedCompra.descuentoTotal.toFixed(2)} Bs.
                       </span>
                     </div>
-                    <div className="flex justify-between text-base font-bold">
-                      <span style={{ color: secondaryTextColor }}>Total:</span>
+                    <div
+                      style={{
+                        display: 'flex',
+                        justifyContent: 'space-between',
+                        fontWeight: 700,
+                        fontSize: '1rem',
+                        paddingTop: '0.4rem',
+                        borderTop: `1px solid ${borderColor}`,
+                        marginTop: '0.2rem',
+                      }}
+                    >
+                      <span>Total</span>
                       <span style={{ color: colors.gold }}>
-                        ${selectedCompra.total.toFixed(2)}
+                        {selectedCompra.total.toFixed(2)} Bs.
                       </span>
                     </div>
                   </div>
@@ -452,33 +919,39 @@ export const ListCompraPage: React.FC = () => {
               )}
 
               {showDeleteConfirm && selectedCompra && (
-                <div style={{ color: textColor }} className="text-center">
-                  <p className="text-lg font-semibold mb-3">¿Estás seguro?</p>
-                  <p className="mb-4">
+                <div style={{ textAlign: 'center', padding: '1rem 0' }}>
+                  <p
+                    style={{
+                      fontSize: '1.1rem',
+                      fontWeight: 700,
+                      marginBottom: '0.75rem',
+                    }}
+                  >
+                    ¿Estás seguro?
+                  </p>
+                  <p style={{ marginBottom: '0.75rem', lineHeight: 1.6 }}>
                     Estás a punto de eliminar la compra{' '}
-                    <strong className="font-medium">
-                      #{selectedCompra.nroDocumento}
-                    </strong>
-                    .
+                    <strong>#{selectedCompra.nroDocumento}</strong>. Esta acción
+                    es permanente.
                   </p>
-                  <p className="text-sm mb-4">
-                    Esta acción eliminará de manera permanente la compra y sus
-                    detalles.
-                  </p>
-                  {deleteCountdown > 0 && (
+                  {deleteCountdown > 0 ? (
                     <p
-                      style={{ color: colors.gold }}
-                      className="text-2xl font-bold my-4"
+                      style={{
+                        color: colors.gold,
+                        fontSize: '2.5rem',
+                        fontWeight: 800,
+                        margin: '1rem 0',
+                      }}
                     >
                       {deleteCountdown}
                     </p>
-                  )}
-                  {canConfirmDelete && (
+                  ) : (
                     <p
                       style={{
                         color: theme === 'dark' ? '#4ADE80' : '#166534',
+                        fontSize: '0.875rem',
+                        margin: '1rem 0',
                       }}
-                      className="text-sm my-4"
                     >
                       Puedes confirmar la eliminación.
                     </p>
@@ -487,39 +960,95 @@ export const ListCompraPage: React.FC = () => {
               )}
             </div>
 
+            {/* Modal footer */}
             <div
-              style={{ borderColor }}
-              className={`mt-6 pt-4 border-t flex ${showDeleteConfirm ? 'justify-between' : 'justify-end'} gap-3`}
+              style={{
+                marginTop: '1.25rem',
+                paddingTop: '1rem',
+                borderTop: `1px solid ${borderColor}`,
+                display: 'flex',
+                justifyContent: showDeleteConfirm
+                  ? 'space-between'
+                  : 'flex-end',
+                gap: '0.75rem',
+                flexWrap: 'wrap',
+              }}
             >
               {!showDeleteConfirm && (
                 <>
                   <button
-                    onClick={handleDeleteClick}
-                    style={{ color: deleteColor }}
+                    onClick={() => {
+                      navigate(`/compras/crear?id=${selectedCompra!.id}`);
+                      handleCloseModal();
+                    }}
+                    style={{
+                      background: 'none',
+                      border: `1px solid ${colors.gold}`,
+                      borderRadius: 6,
+                      color: colors.gold,
+                      padding: '0.4rem 0.9rem',
+                      cursor: 'pointer',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: 6,
+                      fontSize: '0.875rem',
+                      fontWeight: 600,
+                    }}
                     onMouseOver={(e) => {
-                      e.currentTarget.style.color = deleteHoverColor;
+                      e.currentTarget.style.background = colors.gold;
+                      e.currentTarget.style.color = colors.darkText;
                     }}
                     onMouseOut={(e) => {
+                      e.currentTarget.style.background = 'none';
+                      e.currentTarget.style.color = colors.gold;
+                    }}
+                  >
+                    <FaEdit /> Editar
+                  </button>
+                  <button
+                    onClick={handleDeleteClick}
+                    style={{
+                      background: 'none',
+                      border: `1px solid ${deleteColor}`,
+                      borderRadius: 6,
+                      color: deleteColor,
+                      padding: '0.4rem 0.9rem',
+                      cursor: 'pointer',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: 6,
+                      fontSize: '0.875rem',
+                      fontWeight: 600,
+                    }}
+                    onMouseOver={(e) => {
+                      e.currentTarget.style.background = deleteColor;
+                      e.currentTarget.style.color = '#fff';
+                    }}
+                    onMouseOut={(e) => {
+                      e.currentTarget.style.background = 'none';
                       e.currentTarget.style.color = deleteColor;
                     }}
-                    className="flex items-center gap-1.5 text-sm transition duration-150 ease-in-out"
                   >
                     <FaTrash /> Eliminar
                   </button>
                   <button
                     onClick={handleCloseModal}
                     style={{
+                      background: 'none',
+                      border: `1px solid ${borderColor}`,
+                      borderRadius: 6,
                       color: textColor,
-                      backgroundColor: 'transparent',
+                      padding: '0.4rem 0.9rem',
+                      cursor: 'pointer',
+                      fontSize: '0.875rem',
                     }}
                     onMouseOver={(e) => {
-                      e.currentTarget.style.backgroundColor =
-                        theme === 'dark' ? '#2A2A2A' : '#D6D6D6';
+                      e.currentTarget.style.background =
+                        theme === 'dark' ? '#2A2A2A' : '#E6E6E6';
                     }}
                     onMouseOut={(e) => {
-                      e.currentTarget.style.backgroundColor = 'transparent';
+                      e.currentTarget.style.background = 'none';
                     }}
-                    className="px-4 py-2 rounded text-sm transition"
                   >
                     Cerrar
                   </button>
@@ -530,17 +1059,21 @@ export const ListCompraPage: React.FC = () => {
                   <button
                     onClick={handleCloseModal}
                     style={{
+                      background: 'none',
+                      border: `1px solid ${borderColor}`,
+                      borderRadius: 6,
                       color: textColor,
-                      backgroundColor: 'transparent',
+                      padding: '0.4rem 0.9rem',
+                      cursor: 'pointer',
+                      fontSize: '0.875rem',
                     }}
                     onMouseOver={(e) => {
-                      e.currentTarget.style.backgroundColor =
-                        theme === 'dark' ? '#2A2A2A' : '#D6D6D6';
+                      e.currentTarget.style.background =
+                        theme === 'dark' ? '#2A2A2A' : '#E6E6E6';
                     }}
                     onMouseOut={(e) => {
-                      e.currentTarget.style.backgroundColor = 'transparent';
+                      e.currentTarget.style.background = 'none';
                     }}
-                    className="px-4 py-2 rounded text-sm transition"
                   >
                     Cancelar
                   </button>
@@ -553,21 +1086,26 @@ export const ListCompraPage: React.FC = () => {
                         : theme === 'dark'
                           ? '#8B3A3A'
                           : '#FFB0B0',
-                      color: colors.lightText,
+                      color: '#fff',
+                      border: 'none',
+                      borderRadius: 6,
+                      padding: '0.4rem 0.9rem',
                       cursor: canConfirmDelete ? 'pointer' : 'not-allowed',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: 6,
+                      fontSize: '0.875rem',
+                      fontWeight: 600,
                     }}
                     onMouseOver={(e) => {
-                      if (canConfirmDelete) {
+                      if (canConfirmDelete)
                         e.currentTarget.style.backgroundColor =
                           deleteHoverColor;
-                      }
                     }}
                     onMouseOut={(e) => {
-                      if (canConfirmDelete) {
+                      if (canConfirmDelete)
                         e.currentTarget.style.backgroundColor = deleteColor;
-                      }
                     }}
-                    className="flex items-center gap-1.5 px-4 py-2 rounded text-sm transition"
                   >
                     <FaTrash />{' '}
                     {canConfirmDelete

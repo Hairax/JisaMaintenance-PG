@@ -30,7 +30,7 @@ export class CompraController {
   @MessagePattern('compra.update')
   update(
     @Payload() data: { id: number; dto: UpdateCompraDto },
-  ): Promise<Compra> {
+  ): Promise<ResponseCompraDto> {
     return this.compraService.update(data.id, data.dto);
   }
 

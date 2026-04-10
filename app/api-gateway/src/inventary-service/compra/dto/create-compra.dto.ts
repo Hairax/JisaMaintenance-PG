@@ -1,15 +1,13 @@
 import { IsString, IsNumber, IsOptional, IsArray } from 'class-validator';
 
 export class ProductoCompraDto {
-  @IsString()
-  tipoProducto: 'repuesto' | 'repuesto-maquina';
-
   @IsNumber()
   @IsOptional()
-  productoId?: number;
+  repuestoId?: number;
 
   @IsString()
-  codigo: string;
+  @IsOptional()
+  codigo?: string;
 
   @IsString()
   nombre: string;

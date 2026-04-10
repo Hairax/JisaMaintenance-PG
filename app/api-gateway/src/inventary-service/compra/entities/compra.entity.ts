@@ -21,8 +21,7 @@ export class Compra {
 export class CompraDetalle {
   id: number;
   compraId: number;
-  tipoProducto: string;
-  productoId: number;
+  repuestoId?: number;
   codigo: string;
   nombre: string;
   unidadMedida: string;

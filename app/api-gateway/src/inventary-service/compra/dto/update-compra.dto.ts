@@ -1,32 +1,49 @@
-import { IsString, IsNumber, IsOptional } from 'class-validator';
+import { IsString, IsNumber, IsOptional, IsArray } from 'class-validator';
 import { ProductoCompraDto } from './create-compra.dto';
 
 export class UpdateCompraDto {
   @IsString()
-  tipoProducto: 'repuesto' | 'repuesto-maquina';
+  @IsOptional()
+  nroDocumento?: string;
+
+  @IsString()
+  @IsOptional()
+  tipoDocumento?: string;
+
+  @IsString()
+  @IsOptional()
+  nroFactura?: string;
+
+  @IsString()
+  @IsOptional()
+  nit?: string;
 
   @IsNumber()
   @IsOptional()
-  productoId?: number;
+  proveedorId?: number;
 
   @IsString()
-  codigo: string;
+  @IsOptional()
+  detalle?: string;
 
   @IsString()
-  nombre: string;
+  @IsOptional()
+  almacen?: string;
 
-  @IsString()
-  unidadMedida: string;
-
-  @IsNumber()
-  cantidad: number;
-
-  @IsNumber()
-  precioUnitario: number;
+  @IsOptional()
+  fecha?: Date;
 
   @IsNumber()
   @IsOptional()
-  porcentajeDescuento?: number;
+  tipoCambio?: number;
+
+  @IsString()
+  @IsOptional()
+  nroAutorizacion?: string;
+
+  @IsArray()
+  @IsOptional()
+  detalles?: ProductoCompraDto[];
 }
 
 export class CreateCompraDto {

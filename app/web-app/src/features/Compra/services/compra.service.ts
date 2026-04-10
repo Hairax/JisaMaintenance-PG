@@ -20,25 +20,6 @@ export const compraService = {
     }
   },
 
-  // Obtener todos los repuestos-maquina
-  async getRepuestosMaquina() {
-    try {
-      console.log(
-        '🔧 Obteniendo repuestos-máquina desde:',
-        `${API_BASE_URL}/repuesto-maquina`,
-      );
-      const response = await fetch(`${API_BASE_URL}/repuesto-maquina`);
-      if (!response.ok) throw new Error(`HTTP ${response.status}`);
-      const data = await response.json();
-      console.log('✅ Repuestos-máquina obtenidos:', data);
-      // Asegurar que es un array
-      return Array.isArray(data) ? data : data.data || data.repuestos || [];
-    } catch (error) {
-      console.error('❌ Error al obtener repuestos-máquina:', error);
-      return [];
-    }
-  },
-
   // Obtener todos los proveedores
   async getProveedores() {
     try {
@@ -58,8 +39,26 @@ export const compraService = {
     }
   },
 
+  // Obtener compra por ID
+  async getCompraById(id: number) {
+    const response = await fetch(`${API_BASE_URL}/compras/${id}`);
+    if (!response.ok) throw new Error(`HTTP ${response.status}`);
+    return response.json();
+  },
+
+  // Actualizar compra
+  async updateCompra(id: number, data: unknown) {
+    const response = await fetch(`${API_BASE_URL}/compras/${id}`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(data),
+    });
+    if (!response.ok) throw new Error(`HTTP ${response.status}`);
+    return response.json();
+  },
+
   // Crear compra
-  async createCompra(data) {
+  async createCompra(data: unknown) {
     try {
       console.log('💾 Guardando compra...', data);
       const response = await fetch(`${API_BASE_URL}/compras`, {

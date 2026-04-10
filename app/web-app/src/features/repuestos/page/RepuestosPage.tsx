@@ -556,7 +556,7 @@ export default function RepuestosPage() {
               <option value="">-- Seleccionar --</option>
               {costCenters.map((c) => (
                 <option key={c.id} value={String(c.id)}>
-                  {c.name}
+                  {c.name} - {c.id}
                 </option>
               ))}
             </select>
@@ -575,7 +575,7 @@ export default function RepuestosPage() {
               <option value="">-- Seleccionar --</option>
               {filteredProcesses.map((p) => (
                 <option key={p.id} value={String(p.id)}>
-                  {p.name}
+                  {p.name} - {p.id}
                 </option>
               ))}
             </select>
@@ -594,7 +594,7 @@ export default function RepuestosPage() {
               <option value="">-- Seleccionar --</option>
               {filteredMaquinas.map((m) => (
                 <option key={m.id} value={String(m.id)}>
-                  {m.name}
+                  {m.name} - {m.id}
                 </option>
               ))}
             </select>
@@ -613,7 +613,7 @@ export default function RepuestosPage() {
               <option value="">-- Seleccionar --</option>
               {filteredSubUnidades.map((s) => (
                 <option key={s.id} value={String(s.id)}>
-                  {s.descripcion}
+                  {s.descripcion} - {s.id}
                 </option>
               ))}
             </select>
