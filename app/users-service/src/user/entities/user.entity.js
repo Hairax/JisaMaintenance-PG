@@ -1,100 +1,148 @@
-"use strict";
-var __decorate = (this && this.__decorate) || function (decorators, target, key, desc) {
-    var c = arguments.length, r = c < 3 ? target : desc === null ? desc = Object.getOwnPropertyDescriptor(target, key) : desc, d;
-    if (typeof Reflect === "object" && typeof Reflect.decorate === "function") r = Reflect.decorate(decorators, target, key, desc);
-    else for (var i = decorators.length - 1; i >= 0; i--) if (d = decorators[i]) r = (c < 3 ? d(r) : c > 3 ? d(target, key, r) : d(target, key)) || r;
+'use strict';
+var __decorate =
+  (this && this.__decorate) ||
+  function (decorators, target, key, desc) {
+    var c = arguments.length,
+      r =
+        c < 3
+          ? target
+          : desc === null
+            ? (desc = Object.getOwnPropertyDescriptor(target, key))
+            : desc,
+      d;
+    if (typeof Reflect === 'object' && typeof Reflect.decorate === 'function')
+      r = Reflect.decorate(decorators, target, key, desc);
+    else
+      for (var i = decorators.length - 1; i >= 0; i--)
+        if ((d = decorators[i]))
+          r = (c < 3 ? d(r) : c > 3 ? d(target, key, r) : d(target, key)) || r;
     return c > 3 && r && Object.defineProperty(target, key, r), r;
-};
-var __metadata = (this && this.__metadata) || function (k, v) {
-    if (typeof Reflect === "object" && typeof Reflect.metadata === "function") return Reflect.metadata(k, v);
-};
-Object.defineProperty(exports, "__esModule", { value: true });
+  };
+var __metadata =
+  (this && this.__metadata) ||
+  function (k, v) {
+    if (typeof Reflect === 'object' && typeof Reflect.metadata === 'function')
+      return Reflect.metadata(k, v);
+  };
+Object.defineProperty(exports, '__esModule', { value: true });
 exports.User = void 0;
-const typeorm_1 = require("typeorm");
+const typeorm_1 = require('typeorm');
 var UserRole;
 (function (UserRole) {
-    UserRole["EXTERNO"] = "externo";
-    UserRole["ADMIN"] = "admin";
-    UserRole["SUPERVISOR"] = "supervisor";
-    UserRole["TECNICO"] = "tecnico";
+  UserRole['EXTERNO'] = 'externo';
+  UserRole['ADMIN'] = 'admin';
+  UserRole['SUPERVISOR'] = 'supervisor';
+  UserRole['TECNICO'] = 'tecnico';
+  UserRole['JEFEMANTENIMIENTO'] = 'jefe-mantenimiento';
+  UserRole['ECARGADOALMACEN'] = 'encargado-almacen';
+  UserRole['USUARIOCONTABLE'] = 'usuario-contable';
 })(UserRole || (UserRole = {}));
 let User = class User {
-    id;
-    name;
-    lastName;
-    email;
-    password;
-    cargo;
-    createdAt;
-    updatedAt;
-    phone;
-    celphone;
-    hora$;
-    minutos$;
-    userName;
-    status;
+  id;
+  name;
+  lastName;
+  email;
+  password;
+  cargo;
+  createdAt;
+  updatedAt;
+  phone;
+  celphone;
+  hora$;
+  minutos$;
+  userName;
+  status;
 };
 exports.User = User;
-__decorate([
-    (0, typeorm_1.PrimaryGeneratedColumn)(),
-    __metadata("design:type", Number)
-], User.prototype, "id", void 0);
-__decorate([
-    (0, typeorm_1.Column)(),
-    __metadata("design:type", String)
-], User.prototype, "name", void 0);
-__decorate([
-    (0, typeorm_1.Column)(),
-    __metadata("design:type", String)
-], User.prototype, "lastName", void 0);
-__decorate([
-    (0, typeorm_1.Column)(),
-    __metadata("design:type", String)
-], User.prototype, "email", void 0);
-__decorate([
-    (0, typeorm_1.Column)(),
-    __metadata("design:type", String)
-], User.prototype, "password", void 0);
-__decorate([
+__decorate(
+  [(0, typeorm_1.PrimaryGeneratedColumn)(), __metadata('design:type', Number)],
+  User.prototype,
+  'id',
+  void 0,
+);
+__decorate(
+  [(0, typeorm_1.Column)(), __metadata('design:type', String)],
+  User.prototype,
+  'name',
+  void 0,
+);
+__decorate(
+  [(0, typeorm_1.Column)(), __metadata('design:type', String)],
+  User.prototype,
+  'lastName',
+  void 0,
+);
+__decorate(
+  [(0, typeorm_1.Column)(), __metadata('design:type', String)],
+  User.prototype,
+  'email',
+  void 0,
+);
+__decorate(
+  [(0, typeorm_1.Column)(), __metadata('design:type', String)],
+  User.prototype,
+  'password',
+  void 0,
+);
+__decorate(
+  [
     (0, typeorm_1.Column)({
-        type: 'enum',
-        enum: UserRole,
+      type: 'enum',
+      enum: UserRole,
     }),
-    __metadata("design:type", String)
-], User.prototype, "cargo", void 0);
-__decorate([
-    (0, typeorm_1.Column)(),
-    __metadata("design:type", Date)
-], User.prototype, "createdAt", void 0);
-__decorate([
-    (0, typeorm_1.Column)(),
-    __metadata("design:type", Date)
-], User.prototype, "updatedAt", void 0);
-__decorate([
-    (0, typeorm_1.Column)(),
-    __metadata("design:type", String)
-], User.prototype, "phone", void 0);
-__decorate([
-    (0, typeorm_1.Column)(),
-    __metadata("design:type", String)
-], User.prototype, "celphone", void 0);
-__decorate([
-    (0, typeorm_1.Column)(),
-    __metadata("design:type", Number)
-], User.prototype, "hora$", void 0);
-__decorate([
-    (0, typeorm_1.Column)(),
-    __metadata("design:type", Number)
-], User.prototype, "minutos$", void 0);
-__decorate([
-    (0, typeorm_1.Column)(),
-    __metadata("design:type", String)
-], User.prototype, "userName", void 0);
-__decorate([
-    (0, typeorm_1.Column)(),
-    __metadata("design:type", Boolean)
-], User.prototype, "status", void 0);
-exports.User = User = __decorate([
-    (0, typeorm_1.Entity)()
-], User);
+    __metadata('design:type', String),
+  ],
+  User.prototype,
+  'cargo',
+  void 0,
+);
+__decorate(
+  [(0, typeorm_1.Column)(), __metadata('design:type', Date)],
+  User.prototype,
+  'createdAt',
+  void 0,
+);
+__decorate(
+  [(0, typeorm_1.Column)(), __metadata('design:type', Date)],
+  User.prototype,
+  'updatedAt',
+  void 0,
+);
+__decorate(
+  [(0, typeorm_1.Column)(), __metadata('design:type', String)],
+  User.prototype,
+  'phone',
+  void 0,
+);
+__decorate(
+  [(0, typeorm_1.Column)(), __metadata('design:type', String)],
+  User.prototype,
+  'celphone',
+  void 0,
+);
+__decorate(
+  [(0, typeorm_1.Column)(), __metadata('design:type', Number)],
+  User.prototype,
+  'hora$',
+  void 0,
+);
+__decorate(
+  [(0, typeorm_1.Column)(), __metadata('design:type', Number)],
+  User.prototype,
+  'minutos$',
+  void 0,
+);
+__decorate(
+  [(0, typeorm_1.Column)(), __metadata('design:type', String)],
+  User.prototype,
+  'userName',
+  void 0,
+);
+__decorate(
+  [(0, typeorm_1.Column)(), __metadata('design:type', Boolean)],
+  User.prototype,
+  'status',
+  void 0,
+);
+exports.User = User = __decorate([(0, typeorm_1.Entity)()], User);
 //# sourceMappingURL=user.entity.js.map

@@ -35,6 +35,7 @@ import CompraInventarioPage from '../features/Compra/page/compraPage';
 import { ListCompraPage } from '../features/Compra/page/listCompraPage';
 import SalidaPage from '../features/Salida/page/salidaPage';
 import { ListSalidaPage } from '../features/Salida/page/listSalidaPage';
+import RepuestosPage from '../features/repuestos/page/RepuestosPage';
 
 export const AppRoutes = () => {
   return (
@@ -74,6 +75,7 @@ export const AppRoutes = () => {
         <Route path="/compras/crear" element={<CompraInventarioPage />} />
         <Route path="/salidas" element={<ListSalidaPage />} />
         <Route path="/salidas/registrar" element={<SalidaPage />} />
+        <Route path="/repuestos" element={<RepuestosPage />} />
 
         {/* Ruta para reportes contables */}
         <Route path="/reportes/kardex" element={<KardexValoradoPage />} />

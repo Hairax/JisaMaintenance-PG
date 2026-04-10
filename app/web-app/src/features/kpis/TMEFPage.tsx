@@ -1,12 +1,153 @@
-// Componente RankingTMEF
-function RankingTMEF({ activos }: { activos: any[] }) {
-  const [from, setFrom] = React.useState('');
-  const [to, setTo] = React.useState('');
-  const [sortAsc, setSortAsc] = React.useState(false);
+// src/features/kpis/TMEFPage.tsx
+import { useCallback, useEffect, useMemo, useState } from 'react';
+import * as XLSX from 'xlsx';
+import {
+  BarChart,
+  Bar,
+  XAxis,
+  YAxis,
+  Tooltip,
+  ResponsiveContainer,
+  CartesianGrid,
+  ScatterChart,
+  Scatter,
+  ZAxis,
+} from 'recharts';
+
+const API = 'http://localhost:3000';
+
+// ── Types ─────────────────────────────────────────────────────────────────────
+
+interface Maquina {
+  id: number;
+  name: string;
+  tipoDeMaquina: string;
+}
+
+interface OT {
+  id: number;
+  maquina_id: number;
+  maquina?: { id: number; name?: string };
+  estado: string;
+  fechaHora: string;
+  fechaCreacion: string;
+  descripcionTarea: string;
+  tipoOT?: { id: number; nombre?: string };
+  tipoEjecucion?: string;
+}
+
+interface OTFalla {
+  id: number;
+  fechaInicio: string; // "YYYY-MM-DD"
+  tipoFalla: string;
+}
+
+interface ActivoConOTs {
+  id: number;
+  nombre: string;
+  ots: OTFalla[]; // only corrective OTs
+}
+
+interface TMEFRow {
+  activo: string;
+  tmef: number | null;
+  fallas: number;
+  ultimaFalla: string | null;
+  tiposFalla: string[];
+  fallasDetalle: OTFalla[];
+}
+
+interface HeatmapPoint {
+  activo: string;
+  fecha: number;
+  tipoFalla: string;
+  intensidad: number;
+}
+
+interface RankingRow {
+  id: number;
+  nombre: string;
+  tmef: number | null;
+  fallas: number;
+}
+
+// ── Helpers ───────────────────────────────────────────────────────────────────
+
+function isCorrectivo(ot: OT): boolean {
+  const nombre = (ot.tipoOT?.nombre ?? '').toLowerCase();
+  const ejecucion = (ot.tipoEjecucion ?? '').toLowerCase();
+  return nombre.includes('correctiv') || ejecucion.includes('correctiv');
+}
+
+function computeTMEFForActivo(
+  ots: OTFalla[],
+  from: string,
+  to: string,
+  activoNombre: string,
+): TMEFRow {
+  const filtered = ots.filter((ot) => {
+    const f = ot.fechaInicio;
+    return (!from || f >= from) && (!to || f <= to);
+  });
+
+  const tiposFallaCount: Record<string, number> = {};
+  for (const ot of filtered) {
+    tiposFallaCount[ot.tipoFalla] = (tiposFallaCount[ot.tipoFalla] ?? 0) + 1;
+  }
+  const tiposFalla = Object.entries(tiposFallaCount).map(
+    ([tipo, count]) => `${tipo} (${count})`,
+  );
+  const ultimaFalla =
+    filtered.length > 0
+      ? [...filtered].sort((a, b) =>
+          b.fechaInicio.localeCompare(a.fechaInicio),
+        )[0].fechaInicio
+      : null;
+
+  if (filtered.length < 2) {
+    return {
+      activo: activoNombre,
+      tmef: null,
+      fallas: filtered.length,
+      ultimaFalla,
+      tiposFalla,
+      fallasDetalle: filtered,
+    };
+  }
+
+  const fechas = filtered
+    .map((ot) => new Date(ot.fechaInicio))
+    .sort((a, b) => a.getTime() - b.getTime());
+
+  let totalIntervalo = 0;
+  for (let i = 1; i < fechas.length; i++) {
+    totalIntervalo +=
+      (fechas[i].getTime() - fechas[i - 1].getTime()) / (1000 * 60 * 60 * 24);
+  }
+
+  return {
+    activo: activoNombre,
+    tmef: totalIntervalo / (fechas.length - 1),
+    fallas: filtered.length,
+    ultimaFalla,
+    tiposFalla,
+    fallasDetalle: filtered,
+  };
+}
+
+// ── RankingTMEF sub-component ─────────────────────────────────────────────────
+
+interface RankingTMEFProps {
+  activos: ActivoConOTs[];
+}
+
+function RankingTMEF({ activos }: RankingTMEFProps) {
+  const [from, setFrom] = useState('');
+  const [to, setTo] = useState('');
+  const [sortAsc, setSortAsc] = useState(false);
 
   // Exportar ranking a Excel
-  const exportToExcel = async () => {
-    const XLSX = await import('xlsx');
+  const exportToExcel = () => {
     const data = sorted.map((row, i) => ({
       '#': i + 1,
       Activo: row.nombre,
@@ -22,66 +163,30 @@ function RankingTMEF({ activos }: { activos: any[] }) {
     );
   };
 
-  // Calcular TMEF para cada activo en el rango
-  const ranking = React.useMemo(() => {
+  const ranking = useMemo<RankingRow[]>(() => {
     return activos.map((activo) => {
-      const otsValidas = activo.ordenesTrabajo.filter((ot) => {
-        if (
-          ot.tipo !== 'correctivo' ||
-          ot.estado !== 'cerrada' ||
-          !ot.tipoFalla
-        )
-          return false;
-        const fecha = new Date(ot.fechaInicio);
-        const afterStart = !from || fecha >= new Date(from);
-        const beforeEnd = !to || fecha <= new Date(to);
-        return afterStart && beforeEnd;
-      });
-      if (otsValidas.length < 2) {
-        return {
-          nombre: activo.nombre,
-          tmef: null,
-          fallas: otsValidas.length,
-        };
-      }
-      const fechas = otsValidas
-        .map((ot) => new Date(ot.fechaInicio))
-        .sort((a, b) => a.getTime() - b.getTime());
-      let totalIntervalo = 0;
-      for (let i = 1; i < fechas.length; i++) {
-        const diffDias =
-          (fechas[i].getTime() - fechas[i - 1].getTime()) /
-          (1000 * 60 * 60 * 24);
-        totalIntervalo += diffDias;
-      }
-      const tmef = totalIntervalo / (fechas.length - 1);
+      const row = computeTMEFForActivo(activo.ots, from, to, activo.nombre);
       return {
+        id: activo.id,
         nombre: activo.nombre,
-        tmef,
-        fallas: otsValidas.length,
+        tmef: row.tmef,
+        fallas: row.fallas,
       };
     });
   }, [activos, from, to]);
 
-  // Ordenar
-  const sorted = React.useMemo(() => {
-    return [...ranking].sort((a, b) =>
-      sortAsc
-        ? (a.tmef ?? -1) - (b.tmef ?? -1)
-        : (b.tmef ?? -1) - (a.tmef ?? -1),
-    );
-  }, [ranking, sortAsc]);
+  const sorted = useMemo(
+    () =>
+      [...ranking].sort((a, b) =>
+        sortAsc
+          ? (a.tmef ?? -1) - (b.tmef ?? -1)
+          : (b.tmef ?? -1) - (a.tmef ?? -1),
+      ),
+    [ranking, sortAsc],
+  );
 
   return (
     <div className="mt-10 bg-white p-4 rounded-xl shadow">
-      <div className="flex justify-end mb-2">
-        <button
-          className="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded font-semibold shadow"
-          onClick={exportToExcel}
-        >
-          Exportar Ranking a Excel
-        </button>
-      </div>
       <div className="flex flex-col md:flex-row md:items-center gap-4 mb-4">
         <span className="font-semibold text-gray-700">
           Ranking TMEF por Activo
@@ -102,6 +207,12 @@ function RankingTMEF({ activos }: { activos: any[] }) {
             className="border rounded px-2 py-1"
           />
         </div>
+        <button
+          className="ml-auto bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded font-semibold shadow"
+          onClick={exportToExcel}
+        >
+          Exportar a Excel
+        </button>
       </div>
       <div className="overflow-x-auto">
         <table className="w-full border-collapse">
@@ -124,7 +235,7 @@ function RankingTMEF({ activos }: { activos: any[] }) {
           <tbody>
             {sorted.map((row, i) => (
               <tr
-                key={row.nombre}
+                key={row.id}
                 className="hover:bg-gray-50 transition-colors text-gray-800"
               >
                 <td className="border p-2">{i + 1}</td>
@@ -135,121 +246,145 @@ function RankingTMEF({ activos }: { activos: any[] }) {
                 </td>
               </tr>
             ))}
+            {sorted.length === 0 && (
+              <tr>
+                <td
+                  colSpan={4}
+                  className="border p-4 text-center text-gray-400"
+                >
+                  Sin datos para el rango seleccionado.
+                </td>
+              </tr>
+            )}
           </tbody>
         </table>
       </div>
     </div>
   );
 }
-{
-  /* Ranking TMEF */
-}
-// TMEFPage.tsx
-import React, { useState, useMemo } from 'react';
-import { activos } from './mockDataTMEF';
-import {
-  BarChart,
-  Bar,
-  XAxis,
-  YAxis,
-  Tooltip,
-  ResponsiveContainer,
-  CartesianGrid,
-  ScatterChart,
-  Scatter,
-  ZAxis,
-} from 'recharts';
+
+// ── Main component ────────────────────────────────────────────────────────────
 
 export default function TMEFPage() {
+  const [maquinas, setMaquinas] = useState<Maquina[]>([]);
+  const [activosConOTs, setActivosConOTs] = useState<ActivoConOTs[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
   const [fechaInicio, setFechaInicio] = useState('');
   const [fechaFin, setFechaFin] = useState('');
   const [activoSeleccionado, setActivoSeleccionado] = useState('');
 
-  const tmefData = useMemo(() => {
-    return activos
-      .filter(
-        (a) => !activoSeleccionado || a.id.toString() === activoSeleccionado,
-      )
-      .map((activo) => {
-        const otsValidas = activo.ordenesTrabajo.filter((ot) => {
-          if (
-            ot.tipo !== 'correctivo' ||
-            ot.estado !== 'cerrada' ||
-            !ot.tipoFalla
-          )
-            return false;
+  const cargarDatos = useCallback(async () => {
+    setLoading(true);
+    setError(null);
+    try {
+      const [resMaq, resOTs] = await Promise.all([
+        fetch(`${API}/maquinas`),
+        fetch(`${API}/ots`),
+      ]);
+      const [rawMaquinas, rawOTs] = (await Promise.all([
+        resMaq.ok ? resMaq.json() : Promise.resolve([]),
+        resOTs.ok ? resOTs.json() : Promise.resolve([]),
+      ])) as [Maquina[], OT[]];
 
-          const fecha = new Date(ot.fechaInicio);
-          const afterStart = !fechaInicio || fecha >= new Date(fechaInicio);
-          const beforeEnd = !fechaFin || fecha <= new Date(fechaFin);
+      const maqList = Array.isArray(rawMaquinas) ? rawMaquinas : [];
+      const otList = Array.isArray(rawOTs) ? rawOTs : [];
 
-          return afterStart && beforeEnd;
-        });
-
-        if (otsValidas.length < 2) {
-          return {
-            activo: activo.nombre,
-            tmef: null,
-            fallas: otsValidas.length,
-            ultimaFalla: otsValidas.at(-1)?.fechaInicio || null,
-            tiposFalla: [],
-            fallasDetalle: otsValidas,
-          };
-        }
-
-        const fechas = otsValidas
-          .map((ot) => new Date(ot.fechaInicio))
-          .sort((a, b) => a.getTime() - b.getTime());
-
-        let totalIntervalo = 0;
-        for (let i = 1; i < fechas.length; i++) {
-          const diffDias =
-            (fechas[i].getTime() - fechas[i - 1].getTime()) /
-            (1000 * 60 * 60 * 24);
-          totalIntervalo += diffDias;
-        }
-
-        const tmef = totalIntervalo / (fechas.length - 1);
-
-        const tiposFallaCount = otsValidas.reduce((acc, ot) => {
-          acc[ot.tipoFalla] = (acc[ot.tipoFalla] || 0) + 1;
-          return acc;
-        }, {});
-
-        return {
-          activo: activo.nombre,
-          tmef,
-          fallas: otsValidas.length,
-          ultimaFalla: otsValidas.at(-1)?.fechaInicio || null,
-          tiposFalla: Object.entries(tiposFallaCount).map(
-            ([tipo, count]) => `${tipo} (${count})`,
-          ),
-          fallasDetalle: otsValidas,
-        };
+      const rows: ActivoConOTs[] = maqList.map((maq) => {
+        const maqOTs = otList.filter(
+          (ot) =>
+            Number(ot.maquina_id) === maq.id ||
+            Number(ot.maquina?.id) === maq.id,
+        );
+        const ots: OTFalla[] = maqOTs
+          .filter((ot) => isCorrectivo(ot))
+          .map((ot) => ({
+            id: ot.id,
+            fechaInicio: (ot.fechaHora ?? ot.fechaCreacion ?? '').slice(0, 10),
+            tipoFalla: ot.tipoOT?.nombre ?? ot.descripcionTarea ?? '—',
+          }));
+        return { id: maq.id, nombre: maq.name, ots };
       });
-  }, [fechaInicio, fechaFin, activoSeleccionado]);
 
-  // Datos para Heatmap
-  const heatmapData = useMemo(() => {
-    let data: any[] = [];
-    tmefData.forEach((item) => {
-      item.fallasDetalle.forEach((ot) => {
+      setMaquinas(maqList);
+      setActivosConOTs(rows);
+    } catch (err) {
+      console.error(err);
+      setError('Error al cargar datos. Verifique la conexión con el servidor.');
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    cargarDatos();
+  }, [cargarDatos]);
+
+  const activosFiltrados = useMemo(
+    () =>
+      activosConOTs.filter(
+        (a) => !activoSeleccionado || a.id.toString() === activoSeleccionado,
+      ),
+    [activosConOTs, activoSeleccionado],
+  );
+
+  const tmefData = useMemo<TMEFRow[]>(
+    () =>
+      activosFiltrados.map((activo) =>
+        computeTMEFForActivo(activo.ots, fechaInicio, fechaFin, activo.nombre),
+      ),
+    [activosFiltrados, fechaInicio, fechaFin],
+  );
+
+  const heatmapData = useMemo<HeatmapPoint[]>(() => {
+    const data: HeatmapPoint[] = [];
+    for (const item of tmefData) {
+      for (const ot of item.fallasDetalle) {
         data.push({
           activo: item.activo,
           fecha: new Date(ot.fechaInicio).getTime(),
           tipoFalla: ot.tipoFalla,
           intensidad: 1,
         });
-      });
-    });
+      }
+    }
     return data;
   }, [tmefData]);
 
+  if (loading)
+    return (
+      <div className="p-8 text-center text-gray-400">
+        Cargando datos de TMEF...
+      </div>
+    );
+
+  if (error)
+    return (
+      <div className="p-8 text-center">
+        <p className="text-red-600 mb-3">{error}</p>
+        <button
+          onClick={cargarDatos}
+          className="bg-yellow-500 text-white px-4 py-2 rounded hover:bg-yellow-600"
+        >
+          Reintentar
+        </button>
+      </div>
+    );
+
   return (
     <div className="p-8 bg-gray-50 min-h-screen">
-      <h1 className="text-3xl font-bold text-gray-800 mb-6">
-        KPI: Tiempo Medio Entre Fallas (TMEF)
-      </h1>
+      <div className="flex items-center justify-between flex-wrap gap-3 mb-6">
+        <h1 className="text-3xl font-bold text-gray-800">
+          KPI: Tiempo Medio Entre Fallas (TMEF)
+        </h1>
+        <button
+          onClick={cargarDatos}
+          className="bg-blue-700 text-white px-4 py-1.5 rounded hover:bg-blue-800 text-sm"
+        >
+          Actualizar
+        </button>
+      </div>
 
       {/* Filtros */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-8 bg-white p-4 rounded-xl shadow">
@@ -263,9 +398,9 @@ export default function TMEFPage() {
             className="w-full border rounded px-2 py-1"
           >
             <option value="">Todos</option>
-            {activos.map((a) => (
-              <option key={a.id} value={a.id}>
-                {a.nombre}
+            {maquinas.map((m) => (
+              <option key={m.id} value={m.id.toString()}>
+                {m.name}
               </option>
             ))}
           </select>
@@ -294,6 +429,55 @@ export default function TMEFPage() {
             className="w-full border rounded px-2 py-1"
           />
         </div>
+
+        <div className="flex items-end">
+          {(fechaInicio || fechaFin || activoSeleccionado) && (
+            <button
+              onClick={() => {
+                setFechaInicio('');
+                setFechaFin('');
+                setActivoSeleccionado('');
+              }}
+              className="text-sm text-gray-500 underline"
+            >
+              Limpiar filtros
+            </button>
+          )}
+        </div>
+      </div>
+
+      {/* Summary cards */}
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
+        {[
+          { label: 'Activos analizados', value: tmefData.length },
+          {
+            label: 'Total fallas correctivas',
+            value: tmefData.reduce((s, r) => s + r.fallas, 0),
+          },
+          {
+            label: 'TMEF promedio (días)',
+            value: (() => {
+              const calculables = tmefData.filter((r) => r.tmef !== null);
+              if (calculables.length === 0) return '—';
+              const avg =
+                calculables.reduce((s, r) => s + (r.tmef as number), 0) /
+                calculables.length;
+              return avg.toFixed(1);
+            })(),
+          },
+          {
+            label: 'Sin datos suficientes',
+            value: tmefData.filter((r) => r.tmef === null).length,
+          },
+        ].map((c) => (
+          <div
+            key={c.label}
+            className="bg-white rounded-xl shadow p-4 text-center"
+          >
+            <div className="text-xl font-bold text-gray-700">{c.value}</div>
+            <div className="text-xs text-gray-400 mt-1">{c.label}</div>
+          </div>
+        ))}
       </div>
 
       {/* Tabla */}
@@ -324,67 +508,87 @@ export default function TMEFPage() {
                     ? new Date(item.ultimaFalla).toLocaleDateString()
                     : '-'}
                 </td>
-                <td className="border p-2">
+                <td className="border p-2 text-sm">
                   {item.tiposFalla.length > 0
                     ? item.tiposFalla.join(', ')
                     : '-'}
                 </td>
               </tr>
             ))}
+            {tmefData.length === 0 && (
+              <tr>
+                <td
+                  colSpan={5}
+                  className="border p-4 text-center text-gray-400"
+                >
+                  Sin datos para los filtros seleccionados.
+                </td>
+              </tr>
+            )}
           </tbody>
         </table>
       </div>
 
-      {/* Gráfico Barras */}
+      {/* Gráfico de barras */}
       <div className="mt-8 bg-white p-4 rounded-xl shadow">
         <h2 className="text-lg font-semibold text-gray-700 mb-4">
-          Gráfico TMEF por Activo
+          Gráfico TMEF por Activo (días)
         </h2>
         <ResponsiveContainer width="100%" height={300}>
           <BarChart data={tmefData}>
             <CartesianGrid strokeDasharray="3 3" />
             <XAxis dataKey="activo" />
             <YAxis />
-            <Tooltip />
+            <Tooltip
+              formatter={(v: number) =>
+                v !== null ? v.toFixed(2) : 'No calculable'
+              }
+            />
             <Bar dataKey="tmef" fill="#3b82f6" />
           </BarChart>
         </ResponsiveContainer>
       </div>
 
-      {/* Heatmap */}
+      {/* Heatmap de fallas */}
       <div className="mt-8 bg-white p-4 rounded-xl shadow">
         <h2 className="text-lg font-semibold text-gray-700 mb-4">
-          Historial de Fallas (Heatmap)
+          Historial de Fallas Correctivas
         </h2>
-        <ResponsiveContainer width="100%" height={300}>
-          <ScatterChart>
-            <CartesianGrid strokeDasharray="3 3" />
-            <XAxis
-              type="number"
-              dataKey="fecha"
-              domain={['auto', 'auto']}
-              tickFormatter={(unixTime) =>
-                new Date(unixTime).toLocaleDateString()
-              }
-              name="Fecha"
-            />
-            <YAxis type="category" dataKey="tipoFalla" name="Tipo de Falla" />
-            <ZAxis type="number" dataKey="intensidad" range={[50, 200]} />
-            <Tooltip
-              cursor={{ strokeDasharray: '3 3' }}
-              formatter={(value, name, props) => {
-                if (name === 'fecha') {
-                  return new Date(value as number).toLocaleDateString();
+        {heatmapData.length === 0 ? (
+          <p className="text-gray-400 text-sm">
+            Sin fallas correctivas en el período.
+          </p>
+        ) : (
+          <ResponsiveContainer width="100%" height={300}>
+            <ScatterChart>
+              <CartesianGrid strokeDasharray="3 3" />
+              <XAxis
+                type="number"
+                dataKey="fecha"
+                domain={['auto', 'auto']}
+                tickFormatter={(unixTime: number) =>
+                  new Date(unixTime).toLocaleDateString()
                 }
-                return value;
-              }}
-            />
-            <Scatter data={heatmapData} fill="#ef4444" />
-          </ScatterChart>
-        </ResponsiveContainer>
+                name="Fecha"
+              />
+              <YAxis type="category" dataKey="tipoFalla" name="Tipo de Falla" />
+              <ZAxis type="number" dataKey="intensidad" range={[50, 200]} />
+              <Tooltip
+                cursor={{ strokeDasharray: '3 3' }}
+                formatter={(value: number | string, name: string) => {
+                  if (name === 'fecha') {
+                    return new Date(value as number).toLocaleDateString();
+                  }
+                  return value;
+                }}
+              />
+              <Scatter data={heatmapData} fill="#ef4444" />
+            </ScatterChart>
+          </ResponsiveContainer>
+        )}
       </div>
 
-      <RankingTMEF activos={activos} />
+      <RankingTMEF activos={activosConOTs} />
     </div>
   );
 }

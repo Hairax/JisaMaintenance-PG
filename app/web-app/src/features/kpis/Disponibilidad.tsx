@@ -1,5 +1,5 @@
-// src/pages/KPI_DISP.tsx
-import React, { useMemo, useState, useEffect } from 'react';
+// src/features/kpis/Disponibilidad.tsx
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import * as XLSX from 'xlsx';
 import {
   LineChart,
@@ -11,40 +11,82 @@ import {
   ResponsiveContainer,
 } from 'recharts';
 import DateRangePicker from './components/DateRangePicker';
-import {
-  maquinas,
-  ordenes,
-  informeDetalles,
-  Maquina,
-  InformeDetalleTrabajo,
-} from './mockData';
 
-/**
- * Helpers de fecha/hora (sin librerías)
- */
-function toDateYMD(s: string) {
-  // s like "2025-08-04" or "2025-08-04T10:00:00"
-  return new Date(s);
+const API = 'http://localhost:3000';
+
+// ── Types ─────────────────────────────────────────────────────────────────────
+
+interface Maquina {
+  id: number;
+  name: string;
+  tipoDeMaquina: string;
+  fechaDeMontaje: string;
+  createdAt: string;
 }
 
-function parseTimeToMinutes(timeHHMM: string) {
-  const [h, m] = timeHHMM.split(':').map(Number);
-  return h * 60 + (m || 0);
+interface OT {
+  id: number;
+  maquina_id: number;
+  maquina?: { id: number };
 }
 
-function minutesBetweenDates(
-  dateYMD: string,
-  startHHMM: string,
-  endHHMM: string,
-) {
-  // asumimos mismo día
-  const startMin = parseTimeToMinutes(startHHMM);
-  const endMin = parseTimeToMinutes(endHHMM);
-  const diff = endMin - startMin;
+// Raw informe detalle as returned by the API
+interface RawDetalle {
+  id: number;
+  otId: number;
+  horaInicio: string;
+  observaciones?: string;
+  createdAt: string;
+  [key: string]: unknown; // horaFinalización has an accent
+}
+
+interface RawInforme {
+  id: number;
+  userId: number;
+  detalles: RawDetalle[];
+  createdAt: string;
+}
+
+// Normalized work detail (accent-free, easy to compute with)
+interface WorkDetail {
+  id: number;
+  otId: number;
+  fecha: string; // "YYYY-MM-DD" from createdAt
+  horaInicio: string; // "HH:MM"
+  horaFin: string; // "HH:MM" (from horaFinalización)
+  observaciones?: string;
+}
+
+// ── Helpers ───────────────────────────────────────────────────────────────────
+
+const getToday = () => new Date().toISOString().slice(0, 10);
+
+// Extracts "HH:MM" from either a time string ("HH:MM:SS") or a datetime string ("YYYY-MM-DDTHH:MM:SS")
+function extractHHMM(val: string): string {
+  if (!val) return '00:00';
+  const t = val.includes('T') ? val.split('T')[1] : val;
+  return t.slice(0, 5);
+}
+
+function parseTimeToMinutes(hhmm: string): number {
+  const [h, m] = hhmm.split(':').map(Number);
+  return (h || 0) * 60 + (m || 0);
+}
+
+function minutesBetween(inicio: string, fin: string): number {
+  // Full datetime strings: compute precise duration
+  if (inicio.includes('T') && fin.includes('T')) {
+    const diff = (new Date(fin).getTime() - new Date(inicio).getTime()) / 60000;
+    return diff > 0 ? diff : 0;
+  }
+  // Legacy: time-only strings "HH:MM" or "HH:MM:SS"
+  const diff =
+    parseTimeToMinutes(extractHHMM(fin)) -
+    parseTimeToMinutes(extractHHMM(inicio));
   return diff > 0 ? diff : 0;
 }
 
-function formatPercent(v: number) {
+function formatPercent(v: number): string {
   return `${v.toFixed(1)}%`;
 }
 
@@ -52,14 +94,7 @@ function formatPercent(v: number) {
  * Componente Gauge (simple, elegante)
  */
 function Gauge({ value }: { value: number }) {
-  // value entre 0-100
-  const angle = (value / 100) * 180; // semicircle
   const radius = 90;
-  const cx = 100;
-  const cy = 100;
-  const startAngle = 180;
-  const endAngle = 180 - angle;
-  // stroke-dash trick
   const circumference = Math.PI * radius;
   const dash = (value / 100) * circumference;
   return (
@@ -117,67 +152,62 @@ function Gauge({ value }: { value: number }) {
   );
 }
 
-/**
- * Calcula DIS P para un activo en un rango de fechas
- * - totalHorasPeriodo = (to - from + 1 day) * 24
- * - downtime = suma de minutos de informeDetalles para órdenes de la máquina dentro del rango
- */
+// ── Computation ───────────────────────────────────────────────────────────────
+
 function computeDispForAsset(
   maquina: Maquina,
   fromISO: string,
   toISO: string,
-  allDetalles: InformeDetalleTrabajo[],
-  allOrdenes: any[],
-) {
+  allDetails: WorkDetail[],
+  allOTs: OT[],
+): {
+  totalHours: number;
+  downtimeHours: number;
+  dispo: number;
+  details: WorkDetail[];
+} {
   const fromDate = new Date(fromISO + 'T00:00:00');
   const toDate = new Date(toISO + 'T23:59:59');
   const msInHour = 1000 * 60 * 60;
-  const totalHours =
-    Math.max((toDate.getTime() - fromDate.getTime()) / msInHour, 0.0) || 0;
+  const totalHours = Math.max(
+    (toDate.getTime() - fromDate.getTime()) / msInHour,
+    0,
+  );
 
-  // Obtener ordenes de esta maquina
-  const ordenIdsForMaquina = allOrdenes
-    .filter((o: any) => o.maquina_id === maquina.id)
-    .map((o: any) => o.id);
+  const otIdsForMachine = allOTs
+    .filter(
+      (o) =>
+        Number(o.maquina_id) === maquina.id ||
+        Number(o.maquina?.id) === maquina.id,
+    )
+    .map((o) => o.id);
 
-  // Filtrar detalles dentro del rango y de las órdenes de la máquina
-  const detalles = allDetalles.filter((d) => {
-    const fecha = new Date(d.fechaTrabajo + 'T00:00:00');
+  const matchingDetails = allDetails.filter((d) => {
+    const fecha = new Date(d.fecha + 'T00:00:00');
     return (
-      fecha >= fromDate &&
-      fecha <= toDate &&
-      ordenIdsForMaquina.includes(d.ordenTrabajo_id)
+      fecha >= fromDate && fecha <= toDate && otIdsForMachine.includes(d.otId)
     );
   });
 
-  // sumar minutos
-  const totalMinutesDown = detalles.reduce((acc, d) => {
-    return acc + minutesBetweenDates(d.fechaTrabajo, d.horaInicio, d.horaFin);
-  }, 0);
-
+  // Downtime = sum of worked hours in OTs (horaFin - horaInicio per detalle)
+  const totalMinutesDown = matchingDetails.reduce(
+    (acc, d) => acc + minutesBetween(d.horaInicio, d.horaFin),
+    0,
+  );
   const downtimeHours = totalMinutesDown / 60;
-
   const dispo =
     totalHours > 0 ? ((totalHours - downtimeHours) / totalHours) * 100 : 0;
 
-  return {
-    totalHours,
-    downtimeHours,
-    dispo,
-    detalles,
-  };
+  return { totalHours, downtimeHours, dispo, details: matchingDetails };
 }
 
-/**
- * Construye tendencia diaria de DISP en rango (cada día de from..to)
- */
 function buildDailyTrend(
   maquina: Maquina,
   fromISO: string,
   toISO: string,
-  allDetalles: InformeDetalleTrabajo[],
-  allOrdenes: any[],
-) {
+  allDetails: WorkDetail[],
+  allOTs: OT[],
+): { date: string; disp: number }[] {
   const from = new Date(fromISO + 'T00:00:00');
   const to = new Date(toISO + 'T00:00:00');
   const days: { date: string; disp: number }[] = [];
@@ -187,8 +217,8 @@ function buildDailyTrend(
       maquina,
       dayStr,
       dayStr,
-      allDetalles,
-      allOrdenes,
+      allDetails,
+      allOTs,
     );
     days.push({ date: dayStr, disp: Number(res.dispo.toFixed(2)) });
   }
@@ -196,85 +226,155 @@ function buildDailyTrend(
 }
 
 export default function KPI_DISP_Page() {
-  // mock inicial: puedes reemplazar con fetch a tu backend y setear estos estados
-  const [machines] = useState(maquinas);
-  const [ordenesAll] = useState(ordenes);
-  const [detallesAll] = useState(informeDetalles);
+  const [machines, setMachines] = useState<Maquina[]>([]);
+  const [allOTs, setAllOTs] = useState<OT[]>([]);
+  const [allDetails, setAllDetails] = useState<WorkDetail[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
-  // seleccionado
-  const [selectedMachineId, setSelectedMachineId] = useState<number>(
-    machines[0]?.id ?? 0,
-  );
-
-  // establecer rango por defecto: desde fechaCreacion de la máquina seleccionada hasta hoy
-  const selectedMachine = machines.find((m) => m.id === selectedMachineId)!;
-  const today = new Date();
-  const defaultFrom = selectedMachine
-    ? selectedMachine.fechaCreacion
-    : new Date().toISOString().slice(0, 10);
-  const [from, setFrom] = useState(defaultFrom);
-  const [to, setTo] = useState(today.toISOString().slice(0, 10));
-
-  // actualizar defaultFrom cuando cambie la máquina seleccionada
-  useEffect(() => {
-    if (selectedMachine) {
-      const newFrom = selectedMachine.fechaCreacion;
-      setFrom(newFrom);
-      // keep 'to' as today
-      setTo(new Date().toISOString().slice(0, 10));
-    }
-  }, [selectedMachineId]); // eslint-disable-line
-
-  // Permitir personalizar el tiempo disponible
+  const [selectedMachineId, setSelectedMachineId] = useState<number>(0);
+  const [from, setFrom] = useState(getToday);
+  const [to, setTo] = useState(getToday);
   const [customTotalHours, setCustomTotalHours] = useState<string | null>(null);
 
-  // cálculos memoizados
+  const cargarDatos = useCallback(async () => {
+    setLoading(true);
+    setError(null);
+    try {
+      const [resMaq, resOTs, resInf] = await Promise.all([
+        fetch(`${API}/maquinas`),
+        fetch(`${API}/ots`),
+        fetch(`${API}/informes`),
+      ]);
+      const [rawMaquinas, rawOTs, rawInformes] = (await Promise.all([
+        resMaq.ok ? resMaq.json() : Promise.resolve([]),
+        resOTs.ok ? resOTs.json() : Promise.resolve([]),
+        resInf.ok ? resInf.json() : Promise.resolve([]),
+      ])) as [Maquina[], OT[], RawInforme[]];
+
+      const maqList = Array.isArray(rawMaquinas) ? rawMaquinas : [];
+      const otList = Array.isArray(rawOTs) ? rawOTs : [];
+
+      // Flatten and normalize informe detalles into WorkDetail[]
+      const details: WorkDetail[] = [];
+      for (const inf of Array.isArray(rawInformes) ? rawInformes : []) {
+        for (const det of Array.isArray(inf.detalles) ? inf.detalles : []) {
+          details.push({
+            id: det.id,
+            otId: det.otId,
+            fecha: (det.createdAt ?? '').slice(0, 10),
+            horaInicio: extractHHMM(det.horaInicio ?? ''),
+            horaFin: extractHHMM((det['horaFinalización'] as string) ?? ''),
+            observaciones: det.observaciones,
+          });
+        }
+      }
+
+      setMachines(maqList);
+      setAllOTs(otList);
+      setAllDetails(details);
+
+      if (maqList.length > 0) {
+        const first = maqList[0];
+        setSelectedMachineId(first.id);
+        const defaultFrom = (
+          first.fechaDeMontaje ??
+          first.createdAt ??
+          getToday()
+        ).slice(0, 10);
+        setFrom(defaultFrom);
+        setTo(getToday());
+      }
+    } catch (err) {
+      console.error(err);
+      setError('Error al cargar datos. Verifique la conexión con el servidor.');
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    cargarDatos();
+  }, [cargarDatos]);
+
+  const selectedMachine = machines.find((m) => m.id === selectedMachineId);
+
+  // Sync date range when machine selection changes
+  useEffect(() => {
+    if (selectedMachine) {
+      const newFrom = (
+        selectedMachine.fechaDeMontaje ??
+        selectedMachine.createdAt ??
+        getToday()
+      ).slice(0, 10);
+      setFrom(newFrom);
+      setTo(getToday());
+      setCustomTotalHours(null);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selectedMachineId]);
+
   const dispResult = useMemo(() => {
-    const m = machines.find((x) => x.id === selectedMachineId)!;
-    if (!m)
+    if (!selectedMachine)
       return {
         totalHours: 0,
         downtimeHours: 0,
         dispo: 0,
-        detalles: [] as InformeDetalleTrabajo[],
+        details: [] as WorkDetail[],
       };
-    const base = computeDispForAsset(m, from, to, detallesAll, ordenesAll);
-    // Si hay un valor personalizado, usarlo
+    const base = computeDispForAsset(
+      selectedMachine,
+      from,
+      to,
+      allDetails,
+      allOTs,
+    );
     let totalHours = base.totalHours;
     if (customTotalHours !== null && customTotalHours !== '') {
       const parsed = parseFloat(customTotalHours.replace(/,/g, '.'));
-      if (!isNaN(parsed) && parsed > 0) {
-        totalHours = parsed;
-      }
+      if (!isNaN(parsed) && parsed > 0) totalHours = parsed;
     }
     const dispo =
       totalHours > 0
         ? ((totalHours - base.downtimeHours) / totalHours) * 100
         : 0;
-    return {
-      ...base,
-      totalHours,
-      dispo,
-    };
-  }, [
-    selectedMachineId,
-    from,
-    to,
-    machines,
-    detallesAll,
-    ordenesAll,
-    customTotalHours,
-  ]);
+    return { ...base, totalHours, dispo };
+  }, [selectedMachine, from, to, allDetails, allOTs, customTotalHours]);
 
   const dailyTrend = useMemo(() => {
-    const m = machines.find((x) => x.id === selectedMachineId)!;
-    if (!m) return [];
-    return buildDailyTrend(m, from, to, detallesAll, ordenesAll);
-  }, [selectedMachineId, from, to, machines, detallesAll, ordenesAll]);
+    if (!selectedMachine) return [];
+    return buildDailyTrend(selectedMachine, from, to, allDetails, allOTs);
+  }, [selectedMachine, from, to, allDetails, allOTs]);
 
-  // formato bonito
   const prettyNumber = (n: number) =>
     n.toLocaleString(undefined, { maximumFractionDigits: 2 });
+
+  if (loading)
+    return (
+      <div style={{ padding: 40, textAlign: 'center', color: '#888' }}>
+        Cargando datos de disponibilidad...
+      </div>
+    );
+
+  if (error)
+    return (
+      <div style={{ padding: 40, textAlign: 'center' }}>
+        <p style={{ color: '#dc2626', marginBottom: 12 }}>{error}</p>
+        <button
+          onClick={cargarDatos}
+          style={{
+            background: '#f59e0b',
+            color: '#fff',
+            border: 'none',
+            borderRadius: 6,
+            padding: '8px 16px',
+            cursor: 'pointer',
+          }}
+        >
+          Reintentar
+        </button>
+      </div>
+    );
 
   return (
     <div style={pageStyles.wrapper}>
@@ -297,7 +397,7 @@ export default function KPI_DISP_Page() {
             >
               {machines.map((m) => (
                 <option key={m.id} value={m.id}>
-                  {m.descripcion}
+                  {m.name}
                 </option>
               ))}
             </select>
@@ -412,10 +512,7 @@ export default function KPI_DISP_Page() {
                 <div style={cardStyles.statBox}>
                   <div style={cardStyles.statLabel}>Órdenes afectadas</div>
                   <div style={cardStyles.statValue}>
-                    {
-                      new Set(dispResult.detalles.map((d) => d.ordenTrabajo_id))
-                        .size
-                    }
+                    {new Set(dispResult.details.map((d) => d.otId)).size}
                   </div>
                 </div>
                 <div style={cardStyles.statBox}>
@@ -442,7 +539,7 @@ export default function KPI_DISP_Page() {
                 <XAxis dataKey="date" tickFormatter={(d) => d.slice(5)} />
                 <YAxis domain={[0, 100]} />
                 <Tooltip
-                  formatter={(value: any) => `${Number(value).toFixed(2)} %`}
+                  formatter={(value: number) => `${Number(value).toFixed(2)} %`}
                 />
                 <Line
                   type="monotone"
@@ -483,7 +580,7 @@ export default function KPI_DISP_Page() {
               </tr>
             </thead>
             <tbody>
-              {dispResult.detalles.length === 0 && (
+              {dispResult.details.length === 0 && (
                 <tr>
                   <td
                     colSpan={6}
@@ -493,21 +590,17 @@ export default function KPI_DISP_Page() {
                   </td>
                 </tr>
               )}
-              {dispResult.detalles.map((d: any) => {
-                const mins = minutesBetweenDates(
-                  d.fechaTrabajo,
-                  d.horaInicio,
-                  d.horaFin,
-                );
+              {dispResult.details.map((d) => {
+                const mins = minutesBetween(d.horaInicio, d.horaFin);
                 const hrs = mins / 60;
                 return (
                   <tr key={d.id}>
-                    <td style={tableStyles.td}>{d.fechaTrabajo}</td>
-                    <td style={tableStyles.td}>{d.ordenTrabajo_id}</td>
+                    <td style={tableStyles.td}>{d.fecha}</td>
+                    <td style={tableStyles.td}>{d.otId}</td>
                     <td style={tableStyles.td}>{d.horaInicio}</td>
                     <td style={tableStyles.td}>{d.horaFin}</td>
                     <td style={tableStyles.td}>{hrs.toFixed(2)}</td>
-                    <td style={tableStyles.td}>{d.descripcionLabor ?? '-'}</td>
+                    <td style={tableStyles.td}>{d.observaciones ?? '-'}</td>
                   </tr>
                 );
               })}
@@ -524,8 +617,8 @@ export default function KPI_DISP_Page() {
             machines={machines}
             from={from}
             to={to}
-            detallesAll={detallesAll}
-            ordenesAll={ordenesAll}
+            allDetails={allDetails}
+            allOTs={allOTs}
           />
         </div>
       </section>
@@ -533,67 +626,68 @@ export default function KPI_DISP_Page() {
   );
 }
 
-// Tabla de ranking de DISP por activo
-// (no agregar import duplicado de React ni hooks)
+// ── RankingTable sub-component ────────────────────────────────────────────────
 
 type RankingTableProps = {
-  machines: any[];
+  machines: Maquina[];
   from: string;
   to: string;
-  detallesAll: any[];
-  ordenesAll: any[];
+  allDetails: WorkDetail[];
+  allOTs: OT[];
 };
 
-function RankingTable(props: RankingTableProps) {
-  const { machines, from, to, detallesAll, ordenesAll } = props;
-  const [sortAsc, setSortAsc] = React.useState(false);
-  // Estado local de rango para el ranking
-  const [localFrom, setLocalFrom] = React.useState(from);
-  const [localTo, setLocalTo] = React.useState(to);
+function RankingTable({
+  machines,
+  from,
+  to,
+  allDetails,
+  allOTs,
+}: RankingTableProps) {
+  const [sortAsc, setSortAsc] = useState(false);
+  const [localFrom, setLocalFrom] = useState(from);
+  const [localTo, setLocalTo] = useState(to);
 
-  // Si cambian los props de from/to, sincronizar el rango local solo si el usuario no lo ha cambiado manualmente
-  React.useEffect(() => {
+  useEffect(() => {
     setLocalFrom(from);
     setLocalTo(to);
   }, [from, to]);
 
-  // Calcular DISP para cada máquina en el rango local
-  const ranking = React.useMemo(() => {
+  const ranking = useMemo(() => {
     return machines.map((m) => {
       const res = computeDispForAsset(
         m,
         localFrom,
         localTo,
-        detallesAll,
-        ordenesAll,
+        allDetails,
+        allOTs,
       );
       return {
         id: m.id,
-        descripcion: m.descripcion,
+        nombre: m.name,
         dispo: Number(res.dispo.toFixed(2)),
         downtime: Number(res.downtimeHours.toFixed(2)),
         total: Number(res.totalHours.toFixed(2)),
       };
     });
-  }, [machines, localFrom, localTo, detallesAll, ordenesAll]);
+  }, [machines, localFrom, localTo, allDetails, allOTs]);
 
-  // Ordenar
-  const sorted = React.useMemo(() => {
-    return [...ranking].sort((a, b) =>
-      sortAsc ? a.dispo - b.dispo : b.dispo - a.dispo,
-    );
-  }, [ranking, sortAsc]);
+  const sorted = useMemo(
+    () =>
+      [...ranking].sort((a, b) =>
+        sortAsc ? a.dispo - b.dispo : b.dispo - a.dispo,
+      ),
+    [ranking, sortAsc],
+  );
 
-  // Exportar ranking a Excel
   const exportarExcel = () => {
-    const datosParaExportar = sorted.map((row, i) => ({
+    const data = sorted.map((row, i) => ({
       '#': i + 1,
-      Activo: row.descripcion,
+      Activo: row.nombre,
       'Downtime (hrs)': row.downtime,
       'Total (hrs)': row.total,
       'DISP (%)': row.dispo,
     }));
-    const hoja = XLSX.utils.json_to_sheet(datosParaExportar);
+    const hoja = XLSX.utils.json_to_sheet(data);
     const libro = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(libro, hoja, 'Ranking DISP');
     XLSX.writeFile(libro, 'ranking_disponibilidad.xlsx');
@@ -673,7 +767,7 @@ function RankingTable(props: RankingTableProps) {
               style={{ background: i % 2 === 0 ? '#fff' : '#f8fafc' }}
             >
               <td style={tableStyles.td}>{i + 1}</td>
-              <td style={tableStyles.td}>{row.descripcion}</td>
+              <td style={tableStyles.td}>{row.nombre}</td>
               <td style={tableStyles.td}>{row.downtime}</td>
               <td style={tableStyles.td}>{row.total}</td>
               <td style={tableStyles.td}>{row.dispo}</td>

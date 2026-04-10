@@ -3,6 +3,17 @@ import { User } from '../../../shared/types/user.types';
 import { UserFormData, ModalMode } from '../types/user.types';
 import { FaTimes, FaEdit, FaTrash, FaSave, FaPlus } from 'react-icons/fa';
 
+// Roles disponibles
+const CARGO_OPTIONS: { value: string; label: string }[] = [
+  { value: 'externo', label: 'Externo' },
+  { value: 'admin', label: 'Administrador' },
+  { value: 'supervisor', label: 'Supervisor' },
+  { value: 'tecnico', label: 'Técnico' },
+  { value: 'jefe-mantenimiento', label: 'Jefe de Mantenimiento' },
+  { value: 'encargado-almacen', label: 'Encargado de Almacén' },
+  { value: 'usuario-contable', label: 'Usuario Contable' },
+];
+
 // Paleta de colores
 const colors = {
   brown: '#9E5533',
@@ -149,7 +160,34 @@ export const UserModal: React.FC<UserModalProps> = ({
               {renderFormField('Teléfono', 'phone')}
               {renderFormField('Celular', 'celphone')}
               {renderFormField('Nombre de Usuario', 'userName')}
-              {renderFormField('Cargo', 'cargo')}
+              <div>
+                <label
+                  htmlFor="cargo"
+                  style={{ color: secondaryTextColor }}
+                  className="block text-sm font-medium mb-1"
+                >
+                  Cargo
+                </label>
+                <select
+                  name="cargo"
+                  id="cargo"
+                  value={formData.cargo || ''}
+                  onChange={onInputChange}
+                  style={{
+                    backgroundColor: inputBgColor,
+                    borderColor: inputBorderColor,
+                    color: textColor,
+                  }}
+                  className="w-full px-3 py-2 rounded border focus:outline-none focus:ring-1"
+                >
+                  <option value="">-- Seleccionar cargo --</option>
+                  {CARGO_OPTIONS.map((opt) => (
+                    <option key={opt.value} value={opt.value}>
+                      {opt.label}
+                    </option>
+                  ))}
+                </select>
+              </div>
               {renderFormField('Hora', 'hora$', 'number')}
               {renderFormField('Minutos', 'minutos$', 'number')}
               {mode === 'edit' && (

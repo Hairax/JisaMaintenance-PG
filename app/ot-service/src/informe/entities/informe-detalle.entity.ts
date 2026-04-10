@@ -29,10 +29,10 @@ export class InformeDetalle {
   @Column({ type: 'text', nullable: true })
   observaciones?: string;
 
-  @Column({ type: 'time' })
+  @Column({ type: 'datetime', nullable: true })
   horaInicio: string;
 
-  @Column({ type: 'time' })
+  @Column({ type: 'datetime', nullable: true })
   horaFinalización: string;
 
   @CreateDateColumn()

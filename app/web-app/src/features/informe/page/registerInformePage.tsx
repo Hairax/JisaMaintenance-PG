@@ -1,7 +1,9 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useTheme } from '../../../shared/contexts/ThemeContext';
 import { informeService } from '../services/informe.service';
-import { FaPlus, FaTrash, FaSave } from 'react-icons/fa';
+import { FaPlus, FaTrash, FaSave, FaChevronDown } from 'react-icons/fa';
+
+const API = 'http://localhost:3000';
 
 const colors = {
   brown: '#9E5533',
@@ -13,10 +15,178 @@ const colors = {
   lightText: '#FFFFFF',
 };
 
+// ── SearchableSelect ──────────────────────────────────────────────────────────
+
+interface ComboOption {
+  value: string;
+  label: string;
+}
+
+interface SearchableSelectProps {
+  options: ComboOption[];
+  value: string;
+  onChange: (value: string) => void;
+  placeholder?: string;
+  disabled?: boolean;
+  inputBg: string;
+  inputBorder: string;
+  textColor: string;
+}
+
+function SearchableSelect({
+  options,
+  value,
+  onChange,
+  placeholder = 'Buscar...',
+  disabled = false,
+  inputBg,
+  inputBorder,
+  textColor,
+}: SearchableSelectProps) {
+  const [query, setQuery] = useState('');
+  const [open, setOpen] = useState(false);
+  const ref = useRef<HTMLDivElement>(null);
+
+  const selectedLabel = options.find((o) => o.value === value)?.label ?? '';
+
+  // Close on outside click
+  useEffect(() => {
+    const handler = (e: MouseEvent) => {
+      if (ref.current && !ref.current.contains(e.target as Node)) {
+        setOpen(false);
+        setQuery('');
+      }
+    };
+    document.addEventListener('mousedown', handler);
+    return () => document.removeEventListener('mousedown', handler);
+  }, []);
+
+  const filtered = options.filter(
+    (o) =>
+      o.label.toLowerCase().includes(query.toLowerCase()) ||
+      o.value.includes(query),
+  );
+
+  const handleSelect = (opt: ComboOption) => {
+    onChange(opt.value);
+    setOpen(false);
+    setQuery('');
+  };
+
+  const displayValue = open ? query : selectedLabel;
+
+  return (
+    <div ref={ref} style={{ position: 'relative', width: '100%' }}>
+      <div style={{ position: 'relative' }}>
+        <input
+          type="text"
+          value={displayValue}
+          onChange={(e) => {
+            setQuery(e.target.value);
+            setOpen(true);
+            if (!e.target.value) onChange('');
+          }}
+          onFocus={() => setOpen(true)}
+          placeholder={placeholder}
+          disabled={disabled}
+          style={{
+            width: '100%',
+            padding: '10px 36px 10px 10px',
+            backgroundColor: inputBg,
+            color: textColor,
+            border: `1px solid ${inputBorder}`,
+            borderRadius: '4px',
+            boxSizing: 'border-box',
+          }}
+        />
+        <FaChevronDown
+          style={{
+            position: 'absolute',
+            right: 10,
+            top: '50%',
+            transform: `translateY(-50%) rotate(${open ? '180deg' : '0deg'})`,
+            color: textColor,
+            opacity: 0.5,
+            pointerEvents: 'none',
+            transition: 'transform 0.2s',
+          }}
+        />
+      </div>
+      {open && (
+        <div
+          style={{
+            position: 'absolute',
+            top: '100%',
+            left: 0,
+            right: 0,
+            backgroundColor: inputBg,
+            border: `1px solid ${inputBorder}`,
+            borderRadius: '4px',
+            maxHeight: '220px',
+            overflowY: 'auto',
+            zIndex: 1000,
+            boxShadow: '0 4px 12px rgba(0,0,0,0.15)',
+          }}
+        >
+          {filtered.length === 0 ? (
+            <div
+              style={{
+                padding: '10px',
+                color: textColor,
+                opacity: 0.5,
+                fontSize: '13px',
+              }}
+            >
+              Sin resultados
+            </div>
+          ) : (
+            filtered.map((opt) => (
+              <div
+                key={opt.value}
+                onMouseDown={() => handleSelect(opt)}
+                style={{
+                  padding: '9px 12px',
+                  cursor: 'pointer',
+                  color: textColor,
+                  backgroundColor:
+                    opt.value === value ? colors.gold + '33' : 'transparent',
+                  fontSize: '13px',
+                }}
+                onMouseEnter={(e) => {
+                  (e.currentTarget as HTMLDivElement).style.backgroundColor =
+                    colors.gold + '44';
+                }}
+                onMouseLeave={(e) => {
+                  (e.currentTarget as HTMLDivElement).style.backgroundColor =
+                    opt.value === value ? colors.gold + '33' : 'transparent';
+                }}
+              >
+                {opt.label}
+              </div>
+            ))
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ── Page ──────────────────────────────────────────────────────────────────────
+
+interface UserOption {
+  id: number;
+  name: string;
+  lastName: string;
+}
+
+interface OTOption {
+  id: number;
+  descripcionTarea: string;
+}
+
 export default function RegisterInformePage() {
   const { theme } = useTheme();
 
-  // Colores dinámicos según tema
   const textColor = theme === 'dark' ? colors.lightText : colors.darkText;
   const secondaryTextColor = theme === 'dark' ? colors.beige : colors.brown;
   const bgColor = theme === 'dark' ? colors.darkBg : colors.lightBg;
@@ -27,10 +197,7 @@ export default function RegisterInformePage() {
   const addButtonBg = colors.gold;
   const addButtonHover = '#E69D00';
 
-  // Estado del informe
   const [userId, setUserId] = useState('');
-
-  // Detalles del informe
   const [detalles, setDetalles] = useState<
     Array<{
       otId: string;
@@ -38,42 +205,44 @@ export default function RegisterInformePage() {
       horaInicio: string;
       horaFinalización: string;
     }>
-  >([
-    {
-      otId: '',
-      observaciones: '',
-      horaInicio: '',
-      horaFinalización: '',
-    },
-  ]);
+  >([{ otId: '', observaciones: '', horaInicio: '', horaFinalización: '' }]);
 
-  const [ots, setOts] = useState<any[]>([]);
+  const [userOptions, setUserOptions] = useState<ComboOption[]>([]);
+  const [otOptions, setOtOptions] = useState<ComboOption[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
 
-  // Cargar datos del servidor al montar
   useEffect(() => {
     const loadData = async () => {
-      setLoading(true);
       try {
-        // TODO: Aquí necesitas crear estos métodos en el servicio
-        // const [usrs, ots_] = await Promise.all([
-        //   informeService.getUsers(),
-        //   informeService.getOts(),
-        // ]);
-        // setUsuarios(Array.isArray(usrs) ? usrs : []);
-        // setOts(Array.isArray(ots_) ? ots_ : []);
+        const [resUsers, resOTs] = await Promise.all([
+          fetch(`${API}/users`),
+          fetch(`${API}/ots`),
+        ]);
+        const [users, ots] = (await Promise.all([
+          resUsers.ok ? resUsers.json() : Promise.resolve([]),
+          resOTs.ok ? resOTs.json() : Promise.resolve([]),
+        ])) as [UserOption[], OTOption[]];
+
+        setUserOptions(
+          (Array.isArray(users) ? users : []).map((u) => ({
+            value: String(u.id),
+            label: `${u.id} - ${u.name} ${u.lastName}`.trim(),
+          })),
+        );
+        setOtOptions(
+          (Array.isArray(ots) ? ots : []).map((o) => ({
+            value: String(o.id),
+            label: `${o.id} - ${o.descripcionTarea ?? ''}`,
+          })),
+        );
       } catch (err) {
-        setError('Error al cargar datos del servidor');
-        console.error(err);
-      } finally {
-        setLoading(false);
+        console.error('Error al cargar datos:', err);
       }
     };
     loadData();
   }, []);
 
-  // Manejar cambios en los detalles
   const handleChangeDetalle = (
     index: number,
     field: keyof (typeof detalles)[0],
@@ -84,36 +253,25 @@ export default function RegisterInformePage() {
     setDetalles(newDetalles);
   };
 
-  // Agregar nuevo detalle
   const addDetalle = () => {
     setDetalles([
       ...detalles,
-      {
-        otId: '',
-        observaciones: '',
-        horaInicio: '',
-        horaFinalización: '',
-      },
+      { otId: '', observaciones: '', horaInicio: '', horaFinalización: '' },
     ]);
   };
 
-  // Remover detalle
   const removeDetalle = (index: number) => {
     setDetalles(detalles.filter((_, i) => i !== index));
   };
 
-  // Guardar informe
   const handleGuardarInforme = async () => {
     if (!userId || detalles.length === 0) {
       setError('Por favor completa los campos requeridos');
       return;
     }
-
-    // Validar que todos los detalles tengan los campos requeridos
     const detallesValidos = detalles.every(
       (d) => d.otId && d.horaInicio && d.horaFinalización,
     );
-
     if (!detallesValidos) {
       setError(
         'Por favor completa todos los campos en los detalles del informe',
@@ -123,7 +281,7 @@ export default function RegisterInformePage() {
 
     try {
       setLoading(true);
-
+      setError('');
       const informeData = {
         userId: Number(userId),
         detalles: detalles.map((d) => ({
@@ -133,27 +291,36 @@ export default function RegisterInformePage() {
           horaFinalización: d.horaFinalización,
         })),
       };
-
       const result = await informeService.createInforme(informeData);
       alert(`Informe registrado exitosamente! ID: ${result.id}`);
-
-      // Limpiar formulario
       setUserId('');
       setDetalles([
-        {
-          otId: '',
-          observaciones: '',
-          horaInicio: '',
-          horaFinalización: '',
-        },
+        { otId: '', observaciones: '', horaInicio: '', horaFinalización: '' },
       ]);
     } catch (err: unknown) {
-      const error = err as Error;
-      setError(error.message || 'Error al guardar informe');
+      const e = err as Error;
+      setError(e.message || 'Error al guardar informe');
       console.error(err);
     } finally {
       setLoading(false);
     }
+  };
+
+  const labelStyle: React.CSSProperties = {
+    display: 'block',
+    marginBottom: '5px',
+    fontWeight: 'bold',
+    color: secondaryTextColor,
+  };
+
+  const inputStyle: React.CSSProperties = {
+    width: '100%',
+    padding: '10px',
+    backgroundColor: bgColor,
+    color: textColor,
+    border: `1px solid ${inputBorderColor}`,
+    borderRadius: '4px',
+    boxSizing: 'border-box',
   };
 
   return (
@@ -200,29 +367,16 @@ export default function RegisterInformePage() {
 
           {/* Usuario */}
           <div style={{ marginBottom: '15px' }}>
-            <label
-              style={{
-                display: 'block',
-                marginBottom: '5px',
-                fontWeight: 'bold',
-              }}
-            >
-              Usuario ID *
-            </label>
-            <input
-              type="number"
+            <label style={labelStyle}>Usuario *</label>
+            <SearchableSelect
+              options={userOptions}
               value={userId}
-              onChange={(e) => setUserId(e.target.value)}
+              onChange={setUserId}
+              placeholder="Buscar por ID o nombre..."
               disabled={loading}
-              placeholder="Ingrese el ID del usuario"
-              style={{
-                width: '100%',
-                padding: '10px',
-                backgroundColor: bgColor,
-                color: textColor,
-                border: `1px solid ${inputBorderColor}`,
-                borderRadius: '4px',
-              }}
+              inputBg={bgColor}
+              inputBorder={inputBorderColor}
+              textColor={textColor}
             />
           </div>
         </div>
@@ -264,12 +418,13 @@ export default function RegisterInformePage() {
                 fontSize: '14px',
               }}
               onMouseEnter={(e) => {
-                const target = e.currentTarget as HTMLButtonElement;
-                if (!loading) target.style.backgroundColor = addButtonHover;
+                if (!loading)
+                  (e.currentTarget as HTMLButtonElement).style.backgroundColor =
+                    addButtonHover;
               }}
               onMouseLeave={(e) => {
-                const target = e.currentTarget as HTMLButtonElement;
-                target.style.backgroundColor = addButtonBg;
+                (e.currentTarget as HTMLButtonElement).style.backgroundColor =
+                  addButtonBg;
               }}
             >
               <FaPlus /> Agregar Detalle
@@ -295,78 +450,40 @@ export default function RegisterInformePage() {
                   marginBottom: '15px',
                 }}
               >
-                {/* OT ID */}
-                <div>
-                  <label
-                    style={{
-                      display: 'block',
-                      marginBottom: '5px',
-                      fontWeight: 'bold',
-                    }}
-                  >
-                    Orden de Trabajo ID *
-                  </label>
-                  <input
-                    type="number"
+                {/* OT SearchableSelect */}
+                <div style={{ gridColumn: '1 / -1' }}>
+                  <label style={labelStyle}>Orden de Trabajo *</label>
+                  <SearchableSelect
+                    options={otOptions}
                     value={detalle.otId}
-                    onChange={(e) =>
-                      handleChangeDetalle(index, 'otId', e.target.value)
-                    }
+                    onChange={(v) => handleChangeDetalle(index, 'otId', v)}
+                    placeholder="Buscar por ID o descripción..."
                     disabled={loading}
-                    placeholder="Ingrese ID de OT"
-                    style={{
-                      width: '100%',
-                      padding: '10px',
-                      backgroundColor: inputBgColor,
-                      color: textColor,
-                      border: `1px solid ${inputBorderColor}`,
-                      borderRadius: '4px',
-                    }}
+                    inputBg={inputBgColor}
+                    inputBorder={inputBorderColor}
+                    textColor={textColor}
                   />
                 </div>
 
-                {/* Hora Inicio */}
+                {/* Fecha y Hora Inicio */}
                 <div>
-                  <label
-                    style={{
-                      display: 'block',
-                      marginBottom: '5px',
-                      fontWeight: 'bold',
-                    }}
-                  >
-                    Hora Inicio *
-                  </label>
+                  <label style={labelStyle}>Fecha y Hora Inicio *</label>
                   <input
-                    type="time"
+                    type="datetime-local"
                     value={detalle.horaInicio}
                     onChange={(e) =>
                       handleChangeDetalle(index, 'horaInicio', e.target.value)
                     }
                     disabled={loading}
-                    style={{
-                      width: '100%',
-                      padding: '10px',
-                      backgroundColor: inputBgColor,
-                      color: textColor,
-                      border: `1px solid ${inputBorderColor}`,
-                      borderRadius: '4px',
-                    }}
+                    style={inputStyle}
                   />
                 </div>
 
-                {/* Hora Finalización */}
+                {/* Fecha y Hora Finalización */}
                 <div>
-                  <label
-                    style={{
-                      display: 'block',
-                      marginBottom: '5px',
-                      fontWeight: 'bold',
-                    }}
-                  >
-                    Hora Finalización *
-                  </label>
+                  <label style={labelStyle}>Fecha y Hora Finalización *</label>
                   <input
-                    type="time"
+                    type="datetime-local"
                     value={detalle.horaFinalización}
                     onChange={(e) =>
                       handleChangeDetalle(
@@ -376,28 +493,13 @@ export default function RegisterInformePage() {
                       )
                     }
                     disabled={loading}
-                    style={{
-                      width: '100%',
-                      padding: '10px',
-                      backgroundColor: inputBgColor,
-                      color: textColor,
-                      border: `1px solid ${inputBorderColor}`,
-                      borderRadius: '4px',
-                    }}
+                    style={inputStyle}
                   />
                 </div>
 
                 {/* Observaciones */}
                 <div style={{ gridColumn: '1 / -1' }}>
-                  <label
-                    style={{
-                      display: 'block',
-                      marginBottom: '5px',
-                      fontWeight: 'bold',
-                    }}
-                  >
-                    Observaciones
-                  </label>
+                  <label style={labelStyle}>Observaciones</label>
                   <textarea
                     value={detalle.observaciones}
                     onChange={(e) =>
@@ -409,12 +511,7 @@ export default function RegisterInformePage() {
                     }
                     disabled={loading}
                     style={{
-                      width: '100%',
-                      padding: '10px',
-                      backgroundColor: inputBgColor,
-                      color: textColor,
-                      border: `1px solid ${inputBorderColor}`,
-                      borderRadius: '4px',
+                      ...inputStyle,
                       minHeight: '80px',
                       fontFamily: 'inherit',
                     }}
@@ -422,7 +519,6 @@ export default function RegisterInformePage() {
                 </div>
               </div>
 
-              {/* Botón Remover */}
               {detalles.length > 1 && (
                 <button
                   onClick={() => removeDetalle(index)}
