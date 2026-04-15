@@ -56,6 +56,41 @@ interface Repuesto {
   subUnidad_id: number;
 }
 
+interface MovimientoDetalle {
+  repuestoId?: number;
+  productoId?: number;
+  codigo?: string;
+  nombre?: string;
+  cantidad: number;
+  precioUnitario?: number;
+  subtotal?: number;
+}
+
+interface CompraDoc {
+  id: number;
+  nroDocumento?: string;
+  fecha: string;
+  detalles?: MovimientoDetalle[];
+}
+
+interface SalidaDoc {
+  id: number;
+  nroSalida?: string;
+  fecha: string;
+  detalles?: MovimientoDetalle[];
+}
+
+interface MovimientoRepuesto {
+  tipo: 'COMPRA' | 'SALIDA';
+  fecha: string;
+  referencia: string;
+  codigo: string;
+  nombre: string;
+  cantidad: number;
+  precioUnitario: number;
+  subtotal: number;
+}
+
 const EMPTY_FORM = {
   nombre: '',
   descripcion: '',
@@ -91,6 +126,8 @@ export default function RepuestosPage() {
   const [maquinas, setMaquinas] = useState<Maquina[]>([]);
   const [subUnidades, setSubUnidades] = useState<SubUnidad[]>([]);
   const [repuestos, setRepuestos] = useState<Repuesto[]>([]);
+  const [comprasHist, setComprasHist] = useState<CompraDoc[]>([]);
+  const [salidasHist, setSalidasHist] = useState<SalidaDoc[]>([]);
 
   // ── Cascading selections ─────────────────────────────────────────────────────
   const [ccId, setCcId] = useState('');
@@ -120,12 +157,14 @@ export default function RepuestosPage() {
   const loadAll = async () => {
     setLoading(true);
     try {
-      const [cc, proc, maq, sub, rep] = await Promise.all([
+      const [cc, proc, maq, sub, rep, compras, salidas] = await Promise.all([
         fetch(`${API}/cost-centers`).then((r) => (r.ok ? r.json() : [])),
         fetch(`${API}/process`).then((r) => (r.ok ? r.json() : [])),
         fetch(`${API}/maquinas`).then((r) => (r.ok ? r.json() : [])),
         fetch(`${API}/subunidades`).then((r) => (r.ok ? r.json() : [])),
         fetch(`${API}/repuestos`).then((r) => (r.ok ? r.json() : [])),
+        fetch(`${API}/compras`).then((r) => (r.ok ? r.json() : [])),
+        fetch(`${API}/salidas`).then((r) => (r.ok ? r.json() : [])),
       ]);
       console.log(rep);
       setCostCenters(Array.isArray(cc) ? cc : []);
@@ -133,6 +172,8 @@ export default function RepuestosPage() {
       setMaquinas(Array.isArray(maq) ? maq : []);
       setSubUnidades(Array.isArray(sub) ? sub : []);
       setRepuestos(Array.isArray(rep) ? rep : []);
+      setComprasHist(Array.isArray(compras) ? compras : []);
+      setSalidasHist(Array.isArray(salidas) ? salidas : []);
     } catch {
       setError('Error al cargar datos');
     } finally {
@@ -371,6 +412,55 @@ export default function RepuestosPage() {
     fontSize: 13,
     fontWeight: 600,
   };
+
+  const getMovimientosRepuesto = useCallback(
+    (repuestoId: number): MovimientoRepuesto[] => {
+      const movimientosCompra: MovimientoRepuesto[] = comprasHist.flatMap((c) =>
+        (c.detalles ?? [])
+          .filter((d) => Number(d.repuestoId ?? d.productoId) === repuestoId)
+          .map((d) => ({
+            tipo: 'COMPRA' as const,
+            fecha: c.fecha,
+            referencia: c.nroDocumento || `Compra #${c.id}`,
+            codigo: d.codigo || '',
+            nombre: d.nombre || '',
+            cantidad: Number(d.cantidad) || 0,
+            precioUnitario: Number(d.precioUnitario) || 0,
+            subtotal:
+              Number(d.subtotal) ||
+              (Number(d.cantidad) || 0) * (Number(d.precioUnitario) || 0),
+          })),
+      );
+
+      const movimientosSalida: MovimientoRepuesto[] = salidasHist.flatMap((s) =>
+        (s.detalles ?? [])
+          .filter((d) => Number(d.repuestoId ?? d.productoId) === repuestoId)
+          .map((d) => ({
+            tipo: 'SALIDA' as const,
+            fecha: s.fecha,
+            referencia: s.nroSalida || `Salida #${s.id}`,
+            codigo: d.codigo || '',
+            nombre: d.nombre || '',
+            cantidad: Number(d.cantidad) || 0,
+            precioUnitario: Number(d.precioUnitario) || 0,
+            subtotal:
+              Number(d.subtotal) ||
+              (Number(d.cantidad) || 0) * (Number(d.precioUnitario) || 0),
+          })),
+      );
+
+      return [...movimientosCompra, ...movimientosSalida].sort((a, b) => {
+        const ta = new Date(a.fecha).getTime();
+        const tb = new Date(b.fecha).getTime();
+        return tb - ta;
+      });
+    },
+    [comprasHist, salidasHist],
+  );
+
+  const movimientosRepuesto = viewRepuesto
+    ? getMovimientosRepuesto(viewRepuesto.id)
+    : [];
 
   // ═══════════════════════════════════════════════════════════════════════════
   return (
@@ -1276,7 +1366,7 @@ export default function RepuestosPage() {
               padding: 24,
               borderRadius: 8,
               width: '100%',
-              maxWidth: 680,
+              maxWidth: 1120,
               border: `1px solid ${inputBorder}`,
             }}
             onClick={(e) => e.stopPropagation()}
@@ -1322,12 +1412,11 @@ export default function RepuestosPage() {
               </button>
             </div>
 
-            {/* Two-column detail grid */}
             <div
               style={{
                 display: 'grid',
-                gridTemplateColumns: '1fr 1fr',
-                gap: '6px 24px',
+                gridTemplateColumns: 'repeat(3, minmax(0, 1fr))',
+                gap: '8px 16px',
               }}
             >
               {(
@@ -1354,8 +1443,10 @@ export default function RepuestosPage() {
                 <div
                   key={label}
                   style={{
-                    padding: '6px 0',
+                    padding: '8px 10px',
                     borderBottom: `1px solid ${inputBorder}`,
+                    backgroundColor: inputBg,
+                    borderRadius: 4,
                   }}
                 >
                   <div
@@ -1422,6 +1513,190 @@ export default function RepuestosPage() {
                 <div style={{ fontSize: 13 }}>{viewRepuesto.descripcion}</div>
               </div>
             )}
+
+            {/* Historial de movimientos */}
+            <div
+              style={{
+                marginTop: 14,
+                padding: '10px 12px',
+                backgroundColor: inputBg,
+                borderRadius: 6,
+                border: `1px solid ${inputBorder}`,
+              }}
+            >
+              <div
+                style={{
+                  display: 'flex',
+                  justifyContent: 'space-between',
+                  alignItems: 'center',
+                  marginBottom: 8,
+                  gap: 10,
+                  flexWrap: 'wrap',
+                }}
+              >
+                <div
+                  style={{
+                    fontSize: 12,
+                    color: secondary,
+                    fontWeight: 700,
+                    textTransform: 'uppercase',
+                    letterSpacing: 0.5,
+                  }}
+                >
+                  Historial de movimientos (Compras y Salidas)
+                </div>
+                <div style={{ fontSize: 12, color: secondary }}>
+                  Total de movimientos:{' '}
+                  <strong>{movimientosRepuesto.length}</strong>
+                </div>
+              </div>
+
+              <div
+                style={{ overflowX: 'auto', maxHeight: 280, overflowY: 'auto' }}
+              >
+                <table
+                  style={{
+                    width: '100%',
+                    borderCollapse: 'collapse',
+                    fontSize: 12,
+                  }}
+                >
+                  <thead>
+                    <tr
+                      style={{
+                        backgroundColor: theadBg,
+                        color: isDark ? '#FFF' : colors.darkText,
+                        position: 'sticky',
+                        top: 0,
+                      }}
+                    >
+                      {[
+                        'Fecha',
+                        'Tipo',
+                        'Referencia',
+                        'Cantidad',
+                        'Costo U$',
+                        'Subtotal',
+                      ].map((h) => (
+                        <th
+                          key={h}
+                          style={{
+                            padding: '7px 8px',
+                            textAlign:
+                              h === 'Cantidad' ||
+                              h === 'Costo U$' ||
+                              h === 'Subtotal'
+                                ? 'right'
+                                : 'left',
+                            whiteSpace: 'nowrap',
+                          }}
+                        >
+                          {h}
+                        </th>
+                      ))}
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {movimientosRepuesto.length === 0 ? (
+                      <tr>
+                        <td
+                          colSpan={6}
+                          style={{
+                            textAlign: 'center',
+                            padding: 14,
+                            color: isDark ? '#888' : '#666',
+                          }}
+                        >
+                          Este repuesto aún no tiene movimientos registrados.
+                        </td>
+                      </tr>
+                    ) : (
+                      movimientosRepuesto.map((m, idx) => (
+                        <tr
+                          key={`${m.tipo}-${m.referencia}-${idx}`}
+                          style={{
+                            backgroundColor:
+                              m.tipo === 'SALIDA'
+                                ? isDark
+                                  ? 'rgba(229,62,62,0.12)'
+                                  : 'rgba(229,62,62,0.08)'
+                                : isDark
+                                  ? 'rgba(34,197,94,0.12)'
+                                  : 'rgba(34,197,94,0.08)',
+                          }}
+                        >
+                          <td
+                            style={{
+                              padding: '6px 8px',
+                              borderBottom: `1px solid ${inputBorder}`,
+                            }}
+                          >
+                            {m.fecha
+                              ? new Date(m.fecha).toLocaleDateString('es-ES')
+                              : '—'}
+                          </td>
+                          <td
+                            style={{
+                              padding: '6px 8px',
+                              borderBottom: `1px solid ${inputBorder}`,
+                            }}
+                          >
+                            <span
+                              style={{
+                                fontWeight: 700,
+                                color:
+                                  m.tipo === 'SALIDA' ? '#E53E3E' : '#22C55E',
+                              }}
+                            >
+                              {m.tipo}
+                            </span>
+                          </td>
+                          <td
+                            style={{
+                              padding: '6px 8px',
+                              borderBottom: `1px solid ${inputBorder}`,
+                            }}
+                          >
+                            {m.referencia}
+                          </td>
+                          <td
+                            style={{
+                              padding: '6px 8px',
+                              borderBottom: `1px solid ${inputBorder}`,
+                              textAlign: 'right',
+                              fontWeight: 700,
+                              color:
+                                m.tipo === 'SALIDA' ? '#E53E3E' : '#22C55E',
+                            }}
+                          >
+                            {m.tipo === 'SALIDA' ? '-' : '+'}
+                            {m.cantidad}
+                          </td>
+                          <td
+                            style={{
+                              padding: '6px 8px',
+                              borderBottom: `1px solid ${inputBorder}`,
+                              textAlign: 'right',
+                            }}
+                          >
+                            {Number(m.precioUnitario).toFixed(4)}
+                          </td>
+                          <td
+                            style={{
+                              padding: '6px 8px',
+                              borderBottom: `1px solid ${inputBorder}`,
+                              textAlign: 'right',
+                            }}
+                          >
+                            {Number(m.subtotal).toFixed(2)}
+                          </td>
+                        </tr>
+                      ))
+                    )}
+                  </tbody>
+                </table>
+              </div>
+            </div>
 
             <div
               style={{
