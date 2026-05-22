@@ -1,10 +1,16 @@
-import { IsString, IsNotEmpty } from 'class-validator';
+import { IsString, IsNotEmpty, IsNumber, IsOptional } from 'class-validator';
+
 export class UpdateProcessDto {
+  @IsOptional()
   @IsString()
   @IsNotEmpty()
   name?: string;
 
-  @IsString()
-  @IsNotEmpty()
+  @IsOptional()
+  @IsNumber()
   centroCosto_id?: number;
+
+  @IsOptional()
+  @IsNumber()
+  correlativo?: number;
 }

@@ -19,6 +19,9 @@ export class Process {
   @Column()
   name: string;
 
+  @Column({ nullable: true, type: 'int' })
+  correlativo?: number;
+
   @Column()
   createdAt: Date;
 

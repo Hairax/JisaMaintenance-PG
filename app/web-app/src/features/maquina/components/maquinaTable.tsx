@@ -1,5 +1,6 @@
 import React from 'react';
 import { Maquina } from '../types/maquina.types';
+import { ProcessOption, SelectOption } from '../hooks/useMaquina'; // Asegúrate de importar SelectOption
 import { FaPlus } from 'react-icons/fa';
 
 const colors = {
@@ -14,6 +15,9 @@ const colors = {
 
 interface MaquinaTableProps {
   maquinas: Maquina[];
+  procesos: ProcessOption[];
+  centrosCosto: SelectOption[]; // Agregamos la lista de centros de costo
+  proveedores: SelectOption[]; // Agregamos la lista de proveedores
   theme: string;
   loading: boolean;
   error: string | null;
@@ -23,6 +27,9 @@ interface MaquinaTableProps {
 
 export const MaquinaTable: React.FC<MaquinaTableProps> = ({
   maquinas,
+  procesos,
+  centrosCosto,
+  proveedores,
   theme,
   loading,
   error,
@@ -38,6 +45,37 @@ export const MaquinaTable: React.FC<MaquinaTableProps> = ({
   const tbodyBgColor = theme === 'dark' ? colors.darkBg : colors.lightBg;
   const buttonBgColor = colors.gold;
   const buttonHoverColor = '#E69D00';
+
+  // Función para construir el código de la máquina
+  const buildMachineCode = (machine: Maquina) => {
+    const centroCosto = machine.centroCosto_id;
+    const procesoId = machine.proceso_id;
+    const correlativo = machine.correlativo;
+
+    if (!centroCosto || !procesoId || !correlativo) return undefined;
+
+    const proceso = procesos.find((process) => process.id === procesoId);
+    const procesoCorrelativo = proceso?.correlativo;
+
+    if (procesoCorrelativo === undefined || procesoCorrelativo === null)
+      return undefined;
+
+    return `${centroCosto}.${String(procesoCorrelativo).padStart(2, '0')}.${String(
+      correlativo,
+    ).padStart(2, '0')}`;
+  };
+
+  // Función para formatear el Centro de Costo como "ID - Nombre"
+  const formatCentroCosto = (id: number) => {
+    const centro = centrosCosto.find((cc) => cc.id === id);
+    return centro ? `${id} - ${centro.name}` : `ID: ${id}`;
+  };
+
+  // Función para formatear el Proveedor como "ID - Nombre"
+  const formatProveedor = (id: number) => {
+    const proveedor = proveedores.find((p) => p.id === id);
+    return proveedor ? `${id} - ${proveedor.name}` : `ID: ${id}`;
+  };
 
   if (loading && maquinas.length === 0) {
     return (
@@ -88,7 +126,7 @@ export const MaquinaTable: React.FC<MaquinaTableProps> = ({
               }}
             >
               <tr>
-                <th className="p-3 text-left font-semibold">ID</th>
+                <th className="p-3 text-left font-semibold">Codigo</th>
                 <th className="p-3 text-left font-semibold">Nombre</th>
                 <th className="p-3 text-left font-semibold">Fabricante</th>
                 <th className="p-3 text-left font-semibold">Tipo</th>
@@ -117,13 +155,20 @@ export const MaquinaTable: React.FC<MaquinaTableProps> = ({
                     e.currentTarget.style.backgroundColor = tbodyBgColor;
                   }}
                 >
-                  <td className="p-3">{maquina.id}</td>
+                  <td className="p-3 font-medium">
+                    {buildMachineCode(maquina) || `ID: ${maquina.id}`}
+                  </td>
                   <td className="p-3">{maquina.name}</td>
                   <td className="p-3">{maquina.fabricante}</td>
                   <td className="p-3">{maquina.tipoDeMaquina}</td>
                   <td className="p-3">{maquina.numeroDeSerie}</td>
-                  <td className="p-3">{maquina.centroCosto_id}</td>
-                  <td className="p-3">{maquina.proveedor_id}</td>
+                  {/* Cambiados para mostrar "ID - Nombre" */}
+                  <td className="p-3">
+                    {formatCentroCosto(maquina.centroCosto_id)}
+                  </td>
+                  <td className="p-3">
+                    {formatProveedor(maquina.proveedor_id)}
+                  </td>
                 </tr>
               ))}
               {maquinas.length === 0 && !loading && (

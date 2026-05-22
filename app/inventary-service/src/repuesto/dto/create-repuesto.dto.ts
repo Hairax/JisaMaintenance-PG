@@ -8,6 +8,13 @@ import {
 } from 'class-validator';
 
 export class CreateRepuestoDto {
+  @IsEnum(['NORMAL', 'LIBRE'])
+  tipo: string;
+
+  @IsString()
+  @IsOptional()
+  codigoPersonalizado?: string;
+
   @IsString()
   nombre: string;
 
@@ -15,9 +22,13 @@ export class CreateRepuestoDto {
   @IsOptional()
   descripcion?: string;
 
-  @IsEnum(['PZA', 'KG', 'LT', 'MT', 'GL', 'UN', 'JGO'])
+  @IsString()
   @IsOptional()
   uMedida?: string;
+
+  @IsString()
+  @IsOptional()
+  almacen?: string;
 
   @IsString()
   @IsOptional()

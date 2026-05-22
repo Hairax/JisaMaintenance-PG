@@ -8,6 +8,14 @@ import {
 } from 'class-validator';
 
 export class UpdateRepuestoDto {
+  @IsEnum(['NORMAL', 'LIBRE'])
+  @IsOptional()
+  tipo?: string;
+
+  @IsString()
+  @IsOptional()
+  codigoPersonalizado?: string;
+
   @IsString()
   @IsOptional()
   nombre?: string;

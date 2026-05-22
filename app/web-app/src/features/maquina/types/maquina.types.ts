@@ -11,6 +11,7 @@ export interface Maquina {
   centroCosto_id: number;
   proceso_id: number;
   proveedor_id: number;
+  correlativo?: number;
   createdAt: string;
   updatedAt: string;
 }

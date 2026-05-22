@@ -7,10 +7,13 @@ import { FaPlus, FaTrash, FaSave } from 'react-icons/fa';
 interface Proveedor {
   id: number;
   nombre: string;
+  ruc: string;
 }
 
 interface Repuesto {
   id: number;
+  tipo: 'NORMAL' | 'LIBRE';
+  codigoPersonalizado: string;
   nombre: string;
   uMedida: string;
   costoUnitario: number;
@@ -55,6 +58,10 @@ interface Producto {
   unidadMedida: string;
   cantidad: number;
   precioUnitario: number;
+  stockActual: number;
+  porcentajeImpuesto: number;
+  tipoDescuento: 'PORCENTAJE' | 'MONTO';
+  descuentoValor: number;
   porcentajeDescuento: number;
   descuentoMonto: number;
 }
@@ -73,7 +80,25 @@ function padId(n: number, digits: number) {
   return String(n).padStart(digits, '0');
 }
 
+function formatDateForInput(value?: string | Date): string {
+  if (!value) return '';
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return '';
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  const day = String(date.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
+}
+
+function formatLocalDateToIso(dateString: string): string {
+  if (!dateString) return '';
+  return new Date(`${dateString}T00:00:00`).toISOString();
+}
+
 function getCompositeId(r: Repuesto): string {
+  if (r.tipo === 'LIBRE') {
+    return r.codigoPersonalizado || String(r.id);
+  }
   return [
     r.centroCosto_id ? String(r.centroCosto_id) : '',
     r.proceso_id ? String(r.proceso_id) : '',
@@ -92,6 +117,10 @@ const EMPTY_PRODUCTO: Producto = {
   unidadMedida: '',
   cantidad: 0,
   precioUnitario: 0,
+  stockActual: 0,
+  porcentajeImpuesto: 13,
+  tipoDescuento: 'PORCENTAJE',
+  descuentoValor: 0,
   porcentajeDescuento: 0,
   descuentoMonto: 0,
 };
@@ -135,20 +164,29 @@ export default function CompraInventarioPage() {
   const [fecha, setFecha] = useState('');
   const [tipoCambio, setTipoCambio] = useState('');
   const [nroAutorizacion, setNroAutorizacion] = useState('');
-  const [productos, setProductos] = useState<Producto[]>([
-    { ...EMPTY_PRODUCTO },
-  ]);
+  const [productos, setProductos] = useState<Producto[]>([]);
   const [proveedores, setProveedores] = useState<Proveedor[]>([]);
   const [repuestos, setRepuestos] = useState<Repuesto[]>([]);
   const [costCenters, setCostCenters] = useState<CostCenter[]>([]);
   const [processes, setProcesses] = useState<Process[]>([]);
   const [maquinas, setMaquinas] = useState<Maquina[]>([]);
   const [subUnidades, setSubUnidades] = useState<SubUnidad[]>([]);
-  const [rowFilters, setRowFilters] = useState<RowFilter[]>([
-    { ...EMPTY_FILTER },
-  ]);
+  const [searchFilter, setSearchFilter] = useState<RowFilter>({
+    ...EMPTY_FILTER,
+  });
+  const [selectedSearchRepuesto, setSelectedSearchRepuesto] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  const [showStockModal, setShowStockModal] = useState(false);
+  const [stockResults, setStockResults] = useState<
+    {
+      codigo: string;
+      nombre: string;
+      stockAnterior: number;
+      cantidadNueva: number;
+      stockNuevo: number;
+    }[]
+  >([]);
 
   useEffect(() => {
     const loadData = async () => {
@@ -205,7 +243,7 @@ export default function CompraInventarioPage() {
             | string
             | undefined;
           if (compraFecha) {
-            setFecha(new Date(compraFecha).toISOString().split('T')[0]);
+            setFecha(formatDateForInput(compraFecha));
           }
           setTipoCambio(
             String((compra as Record<string, unknown>).tipoCambio || ''),
@@ -229,12 +267,15 @@ export default function CompraInventarioPage() {
                   unidadMedida: (d.unidadMedida as string) || '',
                   cantidad: Number(d.cantidad),
                   precioUnitario: Number(d.precioUnitario),
+                  stockActual: r?.cantidad || 0,
+                  porcentajeImpuesto: Number(d.porcentajeImpuesto) || 13,
+                  tipoDescuento: 'PORCENTAJE' as 'PORCENTAJE' | 'MONTO',
+                  descuentoValor: pct,
                   porcentajeDescuento: pct,
                   descuentoMonto: (imp * pct) / 100,
                 };
               }),
             );
-            setRowFilters(compraDetalles.map(() => ({ ...EMPTY_FILTER })));
           }
         }
       } catch (err) {
@@ -285,20 +326,44 @@ export default function CompraInventarioPage() {
         porcentajeDescuento: pct,
         descuentoMonto: importe > 0 ? (importe * pct) / 100 : 0,
       };
-    } else if (field === 'descuentoMonto') {
-      const bs = Number(value);
+    } else if (field === 'descuentoValor' || field === 'tipoDescuento') {
       const importe =
         Number(next[index].cantidad) * Number(next[index].precioUnitario);
-      next[index] = {
-        ...next[index],
-        descuentoMonto: bs,
-        porcentajeDescuento: importe > 0 ? (bs / importe) * 100 : 0,
-      };
+      const valor =
+        field === 'descuentoValor' ? Number(value) : next[index].descuentoValor;
+      const tipo =
+        field === 'tipoDescuento'
+          ? (value as 'PORCENTAJE' | 'MONTO')
+          : next[index].tipoDescuento;
+      if (tipo === 'PORCENTAJE') {
+        const pct = valor;
+        next[index] = {
+          ...next[index],
+          tipoDescuento: tipo,
+          descuentoValor: valor,
+          porcentajeDescuento: pct,
+          descuentoMonto: importe > 0 ? (importe * pct) / 100 : 0,
+        };
+      } else {
+        const bs = valor;
+        next[index] = {
+          ...next[index],
+          tipoDescuento: tipo,
+          descuentoValor: valor,
+          descuentoMonto: bs,
+          porcentajeDescuento: importe > 0 ? (bs / importe) * 100 : 0,
+        };
+      }
     } else if (field === 'cantidad' || field === 'precioUnitario') {
       const newRow = { ...next[index], [field]: Number(value) };
       const importe = Number(newRow.cantidad) * Number(newRow.precioUnitario);
-      newRow.descuentoMonto =
-        importe > 0 ? (importe * newRow.porcentajeDescuento) / 100 : 0;
+      if (newRow.tipoDescuento === 'PORCENTAJE') {
+        newRow.descuentoMonto =
+          importe > 0 ? (importe * newRow.porcentajeDescuento) / 100 : 0;
+      } else {
+        newRow.porcentajeDescuento =
+          importe > 0 ? (newRow.descuentoMonto / importe) * 100 : 0;
+      }
       next[index] = newRow;
     } else {
       next[index] = { ...next[index], [field]: value };
@@ -308,34 +373,9 @@ export default function CompraInventarioPage() {
 
   const addProducto = () => {
     setProductos([...productos, { ...EMPTY_PRODUCTO }]);
-    setRowFilters([...rowFilters, { ...EMPTY_FILTER }]);
   };
   const removeProducto = (index: number) => {
     setProductos(productos.filter((_, i) => i !== index));
-    setRowFilters(rowFilters.filter((_, i) => i !== index));
-  };
-
-  const handleRowFilter = (
-    index: number,
-    field: keyof RowFilter,
-    value: string,
-  ) => {
-    const next = [...rowFilters];
-    const updated = { ...next[index], [field]: value };
-    if (field === 'ccId') {
-      updated.procId = '';
-      updated.maqId = '';
-      updated.subId = '';
-    }
-    if (field === 'procId') {
-      updated.maqId = '';
-      updated.subId = '';
-    }
-    if (field === 'maqId') {
-      updated.subId = '';
-    }
-    next[index] = updated;
-    setRowFilters(next);
   };
 
   const getFilteredRepuestos = (filter: RowFilter) =>
@@ -353,6 +393,54 @@ export default function CompraInventarioPage() {
       }
       return true;
     });
+
+  const handleSearchFilterChange = (field: keyof RowFilter, value: string) => {
+    const updated = { ...searchFilter, [field]: value };
+    if (field === 'ccId') {
+      updated.procId = '';
+      updated.maqId = '';
+      updated.subId = '';
+    }
+    if (field === 'procId') {
+      updated.maqId = '';
+      updated.subId = '';
+    }
+    if (field === 'maqId') {
+      updated.subId = '';
+    }
+    setSearchFilter(updated);
+  };
+
+  const addRepuestoFromSearch = (value: string) => {
+    if (!value) return;
+    const rep = repuestos.find((r) => String(r.id) === value);
+    if (!rep) return;
+    if (productos.some((p) => p.repuestoId === String(rep.id))) {
+      setError('Este repuesto ya fue agregado a la compra');
+      return;
+    }
+    setError('');
+    setProductos([
+      ...productos,
+      {
+        ...EMPTY_PRODUCTO,
+        repuestoId: String(rep.id),
+        codigo: getCompositeId(rep),
+        nombre: rep.nombre,
+        unidadMedida: rep.uMedida || 'unid',
+        precioUnitario: rep.costoUnitario || 0,
+        stockActual: rep.cantidad || 0,
+        porcentajeImpuesto: 13,
+      },
+    ]);
+    setSelectedSearchRepuesto('');
+  };
+
+  const handleProveedorChange = (value: string) => {
+    setProveedorId(value);
+    const proveedor = proveedores.find((p) => String(p.id) === value);
+    setNit(proveedor?.ruc ?? '');
+  };
 
   const calcularTotales = () => {
     let subtotal = 0;
@@ -382,6 +470,16 @@ export default function CompraInventarioPage() {
     }
     try {
       setLoading(true);
+      // Calculate stock results for modal
+      const stockResults = productos.map((p) => ({
+        codigo: p.codigo,
+        nombre: p.nombre,
+        stockAnterior: p.stockActual || 0,
+        cantidadNueva: Number(p.cantidad),
+        stockNuevo: (p.stockActual || 0) + Number(p.cantidad),
+      }));
+      setStockResults(stockResults);
+
       const detalles = productos.map((p) => ({
         repuestoId: Number(p.repuestoId) || null,
         codigo: p.codigo,
@@ -390,6 +488,7 @@ export default function CompraInventarioPage() {
         cantidad: Number(p.cantidad),
         precioUnitario: Number(p.precioUnitario),
         porcentajeDescuento: Number(p.porcentajeDescuento) || 0,
+        porcentajeImpuesto: Number(p.porcentajeImpuesto) || 13,
       }));
       const compraData = {
         nroDocumento,
@@ -399,7 +498,7 @@ export default function CompraInventarioPage() {
         proveedorId: Number(proveedorId),
         detalle,
         almacen,
-        fecha: new Date(fecha).toISOString(),
+        fecha: formatLocalDateToIso(fecha),
         tipoCambio: Number(tipoCambio) || 0,
         nroAutorizacion: nroAutorizacion || null,
         detalles,
@@ -411,7 +510,7 @@ export default function CompraInventarioPage() {
         const result = await compraService.createCompra(compraData);
         alert(`Compra guardada exitosamente! ID: ${result.id}`);
       }
-      setNroDocumento('');
+      setShowStockModal(true);
       setTipoDocumento('Factura');
       setNroFactura('');
       setNit('');
@@ -596,7 +695,7 @@ export default function CompraInventarioPage() {
             <select
               style={inputStyle}
               value={proveedorId}
-              onChange={(e) => setProveedorId(e.target.value)}
+              onChange={(e) => handleProveedorChange(e.target.value)}
             >
               <option value="">Seleccione Proveedor</option>
               {proveedores.map((p) => (
@@ -724,6 +823,154 @@ export default function CompraInventarioPage() {
             Productos Comprados ({productos.length})
           </h3>
         </div>
+        <div
+          style={{
+            padding: '1rem',
+            display: 'grid',
+            gap: '1rem',
+            borderBottom: `1px solid ${inputBorderColor}`,
+            background: theme === 'dark' ? '#181818' : '#fff8e6',
+          }}
+        >
+          <div
+            style={{
+              display: 'grid',
+              gridTemplateColumns: '1.8fr 1fr',
+              gap: '0.75rem',
+              alignItems: 'end',
+            }}
+          >
+            <div
+              style={{
+                display: 'grid',
+                gridTemplateColumns: 'repeat(5, minmax(120px, 1fr))',
+                gap: '0.75rem',
+              }}
+            >
+              <input
+                type="text"
+                placeholder="Buscar producto por código o nombre"
+                style={{ ...inputStyle, fontSize: '0.88rem' }}
+                value={searchFilter.search}
+                onChange={(e) =>
+                  handleSearchFilterChange('search', e.target.value)
+                }
+              />
+              <select
+                style={{ ...inputStyle, fontSize: '0.88rem' }}
+                value={searchFilter.ccId}
+                onChange={(e) =>
+                  handleSearchFilterChange('ccId', e.target.value)
+                }
+              >
+                <option value="">C.Costo</option>
+                {costCenters.map((c) => (
+                  <option key={c.id} value={String(c.id)}>
+                    {c.name}
+                  </option>
+                ))}
+              </select>
+              <select
+                style={{ ...inputStyle, fontSize: '0.88rem' }}
+                value={searchFilter.procId}
+                disabled={!searchFilter.ccId}
+                onChange={(e) =>
+                  handleSearchFilterChange('procId', e.target.value)
+                }
+              >
+                <option value="">Proceso</option>
+                {processes
+                  .filter((pr) =>
+                    searchFilter.ccId
+                      ? String(pr.centroCosto) === searchFilter.ccId
+                      : true,
+                  )
+                  .map((pr) => (
+                    <option key={pr.id} value={String(pr.id)}>
+                      {pr.name}
+                    </option>
+                  ))}
+              </select>
+              <select
+                style={{ ...inputStyle, fontSize: '0.88rem' }}
+                value={searchFilter.maqId}
+                disabled={!searchFilter.procId}
+                onChange={(e) =>
+                  handleSearchFilterChange('maqId', e.target.value)
+                }
+              >
+                <option value="">Máquina</option>
+                {maquinas
+                  .filter((m) =>
+                    searchFilter.procId
+                      ? String(m.proceso_id) === searchFilter.procId
+                      : true,
+                  )
+                  .map((m) => (
+                    <option key={m.id} value={String(m.id)}>
+                      {m.name}
+                    </option>
+                  ))}
+              </select>
+              <select
+                style={{ ...inputStyle, fontSize: '0.88rem' }}
+                value={searchFilter.subId}
+                disabled={!searchFilter.maqId}
+                onChange={(e) =>
+                  handleSearchFilterChange('subId', e.target.value)
+                }
+              >
+                <option value="">SubUnidad</option>
+                {subUnidades
+                  .filter((s) =>
+                    searchFilter.maqId
+                      ? String(s.maquina_id) === searchFilter.maqId
+                      : true,
+                  )
+                  .map((s) => (
+                    <option key={s.id} value={String(s.id)}>
+                      {s.descripcion}
+                    </option>
+                  ))}
+              </select>
+            </div>
+            <div
+              style={{ display: 'flex', gap: '0.75rem', alignItems: 'center' }}
+            >
+              <select
+                style={{ ...inputStyle, width: '100%', fontSize: '0.95rem' }}
+                value={selectedSearchRepuesto}
+                onChange={(e) => {
+                  setSelectedSearchRepuesto(e.target.value);
+                  addRepuestoFromSearch(e.target.value);
+                }}
+              >
+                <option value="">Seleccionar producto</option>
+                {getFilteredRepuestos(searchFilter).map((r) => (
+                  <option key={r.id} value={r.id}>
+                    {getCompositeId(r)} — {r.nombre}
+                  </option>
+                ))}
+              </select>
+              <button
+                type="button"
+                onClick={() => addRepuestoFromSearch(selectedSearchRepuesto)}
+                style={{
+                  background: buttonBgColor,
+                  color: '#fff',
+                  border: 'none',
+                  borderRadius: 6,
+                  padding: '0.75rem 1rem',
+                  cursor: 'pointer',
+                  fontWeight: 700,
+                  fontSize: '0.9rem',
+                }}
+              >
+                <FaPlus /> Agregar
+              </button>
+            </div>
+          </div>
+        </div>
         <div style={{ overflowX: 'auto' }}>
           <table
             style={{
@@ -756,27 +1003,14 @@ export default function CompraInventarioPage() {
                 <th
                   style={{
                     padding: '0.6rem 0.5rem',
-                    textAlign: 'left',
+                    textAlign: 'center',
                     fontWeight: 700,
                     fontSize: '0.72rem',
                     textTransform: 'uppercase',
                     letterSpacing: '0.04em',
                   }}
                 >
-                  Cód.
-                </th>
-                <th
-                  style={{
-                    padding: '0.6rem 0.5rem',
-                    minWidth: 130,
-                    textAlign: 'left',
-                    fontWeight: 700,
-                    fontSize: '0.72rem',
-                    textTransform: 'uppercase',
-                    letterSpacing: '0.04em',
-                  }}
-                >
-                  Nombre
+                  U.M.
                 </th>
                 <th
                   style={{
@@ -788,7 +1022,7 @@ export default function CompraInventarioPage() {
                     letterSpacing: '0.04em',
                   }}
                 >
-                  U.M.
+                  Stock
                 </th>
                 <th
                   style={{
@@ -834,10 +1068,10 @@ export default function CompraInventarioPage() {
                     fontSize: '0.72rem',
                     textTransform: 'uppercase',
                     letterSpacing: '0.04em',
-                    minWidth: 130,
+                    minWidth: 110,
                   }}
                 >
-                  Descuento
+                  Desc.
                 </th>
                 <th
                   style={{
@@ -855,316 +1089,233 @@ export default function CompraInventarioPage() {
               </tr>
             </thead>
             <tbody style={{ color: textColor }}>
-              {productos.map((p, i) => {
-                const importe = Number(p.cantidad) * Number(p.precioUnitario);
-                const descBs = Number(p.descuentoMonto);
-                const rowSubtotal = importe - descBs;
-                const rowBg =
-                  i % 2 === 0
-                    ? tbodyBgColor
-                    : theme === 'dark'
-                      ? '#1a1a1a'
-                      : '#FAFAFA';
-                return (
-                  <tr
-                    key={i}
+              {productos.length === 0 ? (
+                <tr>
+                  <td
+                    colSpan={9}
                     style={{
-                      backgroundColor: rowBg,
-                      borderBottom: `1px solid ${inputBorderColor}`,
+                      padding: '1rem',
+                      textAlign: 'center',
+                      color: secondaryTextColor,
                     }}
                   >
-                    <td style={{ padding: '0.5rem', minWidth: 300 }}>
-                      {(() => {
-                        const rf = rowFilters[i] ?? { ...EMPTY_FILTER };
-                        const filtProc = rf.ccId
-                          ? processes.filter(
-                              (pr) => String(pr.centroCosto) === rf.ccId,
-                            )
-                          : processes;
-                        const filtMaq = rf.procId
-                          ? maquinas.filter(
-                              (m) => String(m.proceso_id) === rf.procId,
-                            )
-                          : [];
-                        const filtSub = rf.maqId
-                          ? subUnidades.filter(
-                              (s) => String(s.maquina_id) === rf.maqId,
-                            )
-                          : [];
-                        const filtRep = getFilteredRepuestos(rf);
-                        return (
-                          <div
-                            style={{
-                              display: 'flex',
-                              flexDirection: 'column',
-                              gap: 4,
-                            }}
-                          >
-                            <input
-                              type="text"
-                              placeholder="Buscar por código o nombre..."
-                              style={{ ...inputStyle, fontSize: '0.75rem' }}
-                              value={rf.search}
-                              onChange={(e) =>
-                                handleRowFilter(i, 'search', e.target.value)
-                              }
-                            />
-                            <div
-                              style={{
-                                display: 'grid',
-                                gridTemplateColumns: '1fr 1fr',
-                                gap: 4,
-                              }}
-                            >
-                              <select
-                                style={{ ...inputStyle, fontSize: '0.75rem' }}
-                                value={rf.ccId}
-                                onChange={(e) =>
-                                  handleRowFilter(i, 'ccId', e.target.value)
-                                }
-                              >
-                                <option value="">C.Costo</option>
-                                {costCenters.map((c) => (
-                                  <option key={c.id} value={String(c.id)}>
-                                    {c.name}
-                                  </option>
-                                ))}
-                              </select>
-                              <select
-                                style={{ ...inputStyle, fontSize: '0.75rem' }}
-                                value={rf.procId}
-                                disabled={!rf.ccId}
-                                onChange={(e) =>
-                                  handleRowFilter(i, 'procId', e.target.value)
-                                }
-                              >
-                                <option value="">Proceso</option>
-                                {filtProc.map((pr) => (
-                                  <option key={pr.id} value={String(pr.id)}>
-                                    {pr.name}
-                                  </option>
-                                ))}
-                              </select>
-                              <select
-                                style={{ ...inputStyle, fontSize: '0.75rem' }}
-                                value={rf.maqId}
-                                disabled={!rf.procId}
-                                onChange={(e) =>
-                                  handleRowFilter(i, 'maqId', e.target.value)
-                                }
-                              >
-                                <option value="">Máquina</option>
-                                {filtMaq.map((m) => (
-                                  <option key={m.id} value={String(m.id)}>
-                                    {m.name}
-                                  </option>
-                                ))}
-                              </select>
-                              <select
-                                style={{ ...inputStyle, fontSize: '0.75rem' }}
-                                value={rf.subId}
-                                disabled={!rf.maqId}
-                                onChange={(e) =>
-                                  handleRowFilter(i, 'subId', e.target.value)
-                                }
-                              >
-                                <option value="">SubUnidad</option>
-                                {filtSub.map((s) => (
-                                  <option key={s.id} value={String(s.id)}>
-                                    {s.descripcion}
-                                  </option>
-                                ))}
-                              </select>
-                            </div>
-                            <select
-                              style={inputStyle}
-                              value={p.repuestoId}
-                              onChange={(e) =>
-                                handleChangeProducto(
-                                  i,
-                                  'repuestoId',
-                                  e.target.value,
-                                )
-                              }
-                            >
-                              <option value="">Seleccionar repuesto</option>
-                              {filtRep.map((r) => (
-                                <option key={r.id} value={r.id}>
-                                  {getCompositeId(r)} — {r.nombre}
-                                </option>
-                              ))}
-                            </select>
-                          </div>
-                        );
-                      })()}
-                    </td>
-                    <td style={{ padding: '0.5rem' }}>
-                      <input
-                        style={{
-                          ...inputStyle,
-                          fontFamily: 'monospace',
-                          fontSize: '0.75rem',
-                          width: 90,
-                        }}
-                        value={p.codigo}
-                        readOnly
-                      />
-                    </td>
-                    <td style={{ padding: '0.5rem' }}>
-                      <input style={inputStyle} value={p.nombre} readOnly />
-                    </td>
-                    <td style={{ padding: '0.5rem', textAlign: 'center' }}>
-                      <input
-                        style={{
-                          ...inputStyle,
-                          width: 55,
-                          textAlign: 'center',
-                        }}
-                        value={p.unidadMedida}
-                        readOnly
-                      />
-                    </td>
-                    <td style={{ padding: '0.5rem', textAlign: 'center' }}>
-                      <input
-                        type="number"
-                        style={{
-                          ...inputStyle,
-                          width: 70,
-                          textAlign: 'center',
-                        }}
-                        value={p.cantidad}
-                        onChange={(e) =>
-                          handleChangeProducto(
-                            i,
-                            'cantidad',
-                            Number(e.target.value),
-                          )
-                        }
-                      />
-                    </td>
-                    <td style={{ padding: '0.5rem', textAlign: 'right' }}>
-                      <input
-                        type="number"
-                        step="0.01"
-                        style={{ ...inputStyle, width: 80, textAlign: 'right' }}
-                        value={p.precioUnitario}
-                        onChange={(e) =>
-                          handleChangeProducto(
-                            i,
-                            'precioUnitario',
-                            Number(e.target.value),
-                          )
-                        }
-                      />
-                    </td>
-                    <td
+                    Selecciona productos desde el buscador superior para agregar
+                    a la compra.
+                  </td>
+                </tr>
+              ) : (
+                productos.map((p, i) => {
+                  const importe = Number(p.cantidad) * Number(p.precioUnitario);
+                  const descBs = Number(p.descuentoMonto);
+                  const rowSubtotal = importe - descBs;
+                  const rowBg =
+                    i % 2 === 0
+                      ? tbodyBgColor
+                      : theme === 'dark'
+                        ? '#1a1a1a'
+                        : '#FAFAFA';
+                  return (
+                    <tr
+                      key={i}
                       style={{
-                        padding: '0.5rem',
-                        textAlign: 'right',
-                        fontWeight: 500,
+                        backgroundColor: rowBg,
+                        borderBottom: `1px solid ${inputBorderColor}`,
                       }}
                     >
-                      {importe.toFixed(2)}
-                    </td>
-                    <td style={{ padding: '0.5rem' }}>
-                      <div
+                      <td
                         style={{
-                          display: 'flex',
-                          flexDirection: 'column',
-                          gap: 4,
+                          padding: '0.5rem',
+                          minWidth: 320,
+                          maxWidth: 420,
                         }}
                       >
                         <div
                           style={{
                             display: 'flex',
-                            alignItems: 'center',
-                            gap: 3,
+                            flexDirection: 'column',
+                            gap: 6,
                           }}
                         >
-                          <input
-                            type="number"
-                            style={{ ...inputStyle, width: 55 }}
-                            value={p.porcentajeDescuento}
-                            onChange={(e) =>
-                              handleChangeProducto(
-                                i,
-                                'porcentajeDescuento',
-                                Number(e.target.value),
-                              )
-                            }
-                          />
                           <span
                             style={{
-                              fontSize: '0.75rem',
-                              color: secondaryTextColor,
+                              fontSize: '0.95rem',
                               fontWeight: 700,
+                              color: textColor,
+                              lineHeight: 1.3,
                             }}
                           >
-                            %
+                            {p.nombre || 'Repuesto seleccionado'}
+                          </span>
+                          <span
+                            style={{
+                              fontSize: '0.78rem',
+                              color: secondaryTextColor,
+                            }}
+                          >
+                            {p.codigo}
                           </span>
                         </div>
+                      </td>
+                      <td style={{ padding: '0.5rem', textAlign: 'center' }}>
+                        <input
+                          style={{
+                            ...inputStyle,
+                            width: 55,
+                            textAlign: 'center',
+                          }}
+                          value={p.unidadMedida}
+                          readOnly
+                        />
+                      </td>
+                      <td
+                        style={{
+                          padding: '0.5rem',
+                          textAlign: 'center',
+                          fontWeight: 600,
+                          color: successColor,
+                        }}
+                      >
+                        {p.stockActual || 0}
+                      </td>
+                      <td style={{ padding: '0.5rem', textAlign: 'center' }}>
+                        <input
+                          type="number"
+                          style={{
+                            ...inputStyle,
+                            width: 70,
+                            textAlign: 'center',
+                          }}
+                          value={p.cantidad}
+                          onChange={(e) =>
+                            handleChangeProducto(
+                              i,
+                              'cantidad',
+                              Number(e.target.value),
+                            )
+                          }
+                        />
+                      </td>
+                      <td style={{ padding: '0.5rem', textAlign: 'right' }}>
+                        <input
+                          type="number"
+                          step="0.01"
+                          style={{
+                            ...inputStyle,
+                            width: 80,
+                            textAlign: 'right',
+                          }}
+                          value={p.precioUnitario}
+                          onChange={(e) =>
+                            handleChangeProducto(
+                              i,
+                              'precioUnitario',
+                              Number(e.target.value),
+                            )
+                          }
+                        />
+                      </td>
+                      <td
+                        style={{
+                          padding: '0.5rem',
+                          textAlign: 'right',
+                          fontWeight: 500,
+                        }}
+                      >
+                        {importe.toFixed(2)}
+                      </td>
+                      <td style={{ padding: '0.5rem', textAlign: 'center' }}>
                         <div
                           style={{
                             display: 'flex',
+                            flexDirection: 'column',
                             alignItems: 'center',
-                            gap: 3,
+                            gap: 4,
                           }}
                         >
-                          <input
-                            type="number"
-                            step="0.01"
-                            style={{ ...inputStyle, width: 55 }}
-                            value={p.descuentoMonto}
-                            onChange={(e) =>
-                              handleChangeProducto(
-                                i,
-                                'descuentoMonto',
-                                Number(e.target.value),
-                              )
-                            }
-                          />
-                          <span
+                          <div
+                            style={{
+                              display: 'flex',
+                              alignItems: 'center',
+                              gap: 6,
+                            }}
+                          >
+                            <select
+                              value={p.tipoDescuento}
+                              onChange={(e) =>
+                                handleChangeProducto(
+                                  i,
+                                  'tipoDescuento',
+                                  e.target.value,
+                                )
+                              }
+                              style={{
+                                ...inputStyle,
+                                width: 80,
+                                fontSize: '0.75rem',
+                              }}
+                            >
+                              <option value="PORCENTAJE">%</option>
+                              <option value="MONTO">Bs</option>
+                            </select>
+                            <input
+                              type="number"
+                              style={{
+                                ...inputStyle,
+                                width: 60,
+                                textAlign: 'center',
+                              }}
+                              value={p.descuentoValor}
+                              onChange={(e) =>
+                                handleChangeProducto(
+                                  i,
+                                  'descuentoValor',
+                                  Number(e.target.value),
+                                )
+                              }
+                            />
+                          </div>
+                          <div
                             style={{
                               fontSize: '0.75rem',
                               color: secondaryTextColor,
-                              fontWeight: 700,
                             }}
                           >
-                            Bs
-                          </span>
+                            -{Number(p.descuentoMonto || 0).toFixed(2)} Bs (
+                            {Number(p.porcentajeDescuento || 0).toFixed(2)}%)
+                          </div>
                         </div>
-                      </div>
-                    </td>
-                    <td
-                      style={{
-                        padding: '0.5rem',
-                        textAlign: 'right',
-                        fontWeight: 600,
-                      }}
-                    >
-                      {rowSubtotal.toFixed(2)}
-                    </td>
-                    <td style={{ padding: '0.5rem', textAlign: 'center' }}>
-                      {productos.length > 1 && (
-                        <button
-                          onClick={() => removeProducto(i)}
-                          style={{
-                            background: errorColor,
-                            color: '#fff',
-                            border: 'none',
-                            borderRadius: 6,
-                            padding: '0.3rem 0.5rem',
-                            cursor: 'pointer',
-                          }}
-                          title="Eliminar fila"
-                        >
-                          <FaTrash />
-                        </button>
-                      )}
-                    </td>
-                  </tr>
-                );
-              })}
+                      </td>
+                      <td
+                        style={{
+                          padding: '0.5rem',
+                          textAlign: 'right',
+                          fontWeight: 600,
+                        }}
+                      >
+                        {rowSubtotal.toFixed(2)}
+                      </td>
+                      <td style={{ padding: '0.5rem', textAlign: 'center' }}>
+                        {productos.length > 1 && (
+                          <button
+                            onClick={() => removeProducto(i)}
+                            style={{
+                              background: errorColor,
+                              color: '#fff',
+                              border: 'none',
+                              borderRadius: 6,
+                              padding: '0.3rem 0.5rem',
+                              cursor: 'pointer',
+                            }}
+                            title="Eliminar fila"
+                          >
+                            <FaTrash />
+                          </button>
+                        )}
+                      </td>
+                    </tr>
+                  );
+                })
+              )}
             </tbody>
           </table>
         </div>
@@ -1180,30 +1331,6 @@ export default function CompraInventarioPage() {
             alignItems: 'center',
           }}
         >
-          <button
-            onClick={addProducto}
-            style={{
-              background: addButtonBg,
-              color: colors.darkText,
-              border: 'none',
-              borderRadius: 6,
-              padding: '0.5rem 1rem',
-              cursor: 'pointer',
-              fontWeight: 700,
-              display: 'flex',
-              alignItems: 'center',
-              gap: '0.5rem',
-              fontSize: '0.9rem',
-            }}
-            onMouseOver={(e) => {
-              e.currentTarget.style.background = addButtonHover;
-            }}
-            onMouseOut={(e) => {
-              e.currentTarget.style.background = addButtonBg;
-            }}
-          >
-            <FaPlus /> Agregar Producto
-          </button>
           <button
             onClick={handleGuardarCompra}
             disabled={loading}
@@ -1339,6 +1466,172 @@ export default function CompraInventarioPage() {
           </div>
         </div>
       </div>
+
+      {/* Stock Modal */}
+      {showStockModal && (
+        <div
+          style={{
+            position: 'fixed',
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0,
+            backgroundColor: 'rgba(0,0,0,0.6)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            zIndex: 1000,
+          }}
+          onClick={() => {
+            setShowStockModal(false);
+            window.location.href = '/compra/list';
+          }}
+        >
+          <div
+            style={{
+              background: theme === 'dark' ? '#1e293b' : '#ffffff',
+              borderRadius: 12,
+              padding: '1.5rem',
+              maxWidth: 600,
+              width: '90%',
+              maxHeight: '80vh',
+              overflow: 'auto',
+              boxShadow: '0 20px 50px rgba(0,0,0,0.3)',
+            }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <h3
+              style={{
+                fontSize: '1.25rem',
+                fontWeight: 700,
+                marginBottom: '1rem',
+                color: colors.gold,
+              }}
+            >
+              Stock Actualizado
+            </h3>
+            <p style={{ marginBottom: '1rem', color: textColor }}>
+              Los siguientes repuestos han sido actualizados:
+            </p>
+            <table
+              style={{
+                width: '100%',
+                borderCollapse: 'collapse',
+                fontSize: '0.85rem',
+              }}
+            >
+              <thead>
+                <tr style={{ borderBottom: '2px solid #e2e8f0' }}>
+                  <th
+                    style={{
+                      textAlign: 'left',
+                      padding: '0.5rem',
+                      color: secondaryTextColor,
+                    }}
+                  >
+                    Código
+                  </th>
+                  <th
+                    style={{
+                      textAlign: 'left',
+                      padding: '0.5rem',
+                      color: secondaryTextColor,
+                    }}
+                  >
+                    Nombre
+                  </th>
+                  <th
+                    style={{
+                      textAlign: 'right',
+                      padding: '0.5rem',
+                      color: secondaryTextColor,
+                    }}
+                  >
+                    Stock Anterior
+                  </th>
+                  <th
+                    style={{
+                      textAlign: 'right',
+                      padding: '0.5rem',
+                      color: secondaryTextColor,
+                    }}
+                  >
+                    Cant. Nueva
+                  </th>
+                  <th
+                    style={{
+                      textAlign: 'right',
+                      padding: '0.5rem',
+                      color: secondaryTextColor,
+                    }}
+                  >
+                    Stock Nuevo
+                  </th>
+                </tr>
+              </thead>
+              <tbody>
+                {stockResults.map((r, i) => (
+                  <tr key={i} style={{ borderBottom: '1px solid #e2e8f0' }}>
+                    <td style={{ padding: '0.5rem', color: textColor }}>
+                      {r.codigo}
+                    </td>
+                    <td style={{ padding: '0.5rem', color: textColor }}>
+                      {r.nombre}
+                    </td>
+                    <td
+                      style={{
+                        padding: '0.5rem',
+                        textAlign: 'right',
+                        color: textColor,
+                      }}
+                    >
+                      {r.stockAnterior}
+                    </td>
+                    <td
+                      style={{
+                        padding: '0.5rem',
+                        textAlign: 'right',
+                        color: colors.gold,
+                      }}
+                    >
+                      +{r.cantidadNueva}
+                    </td>
+                    <td
+                      style={{
+                        padding: '0.5rem',
+                        textAlign: 'right',
+                        fontWeight: 700,
+                        color: successColor,
+                      }}
+                    >
+                      {r.stockNuevo}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+            <button
+              onClick={() => {
+                setShowStockModal(false);
+                window.location.href = '/compras';
+              }}
+              style={{
+                marginTop: '1.5rem',
+                padding: '0.75rem 2rem',
+                background: colors.gold,
+                color: '#000',
+                border: 'none',
+                borderRadius: 8,
+                fontWeight: 600,
+                cursor: 'pointer',
+                width: '100%',
+              }}
+            >
+              Aceptar
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

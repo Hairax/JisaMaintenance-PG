@@ -8,6 +8,14 @@ import {
 } from 'class-validator';
 
 export class UpdateRepuestoDto {
+  @IsEnum(['NORMAL', 'LIBRE'])
+  @IsOptional()
+  tipo?: string;
+
+  @IsString()
+  @IsOptional()
+  codigoPersonalizado?: string;
+
   @IsString()
   @IsOptional()
   nombre?: string;
@@ -16,9 +24,13 @@ export class UpdateRepuestoDto {
   @IsOptional()
   descripcion?: string;
 
-  @IsEnum(['PZA', 'KG', 'LT', 'MT', 'GL', 'UN', 'JGO'])
+  @IsString()
   @IsOptional()
   uMedida?: string;
+
+  @IsString()
+  @IsOptional()
+  almacen?: string;
 
   @IsString()
   @IsOptional()

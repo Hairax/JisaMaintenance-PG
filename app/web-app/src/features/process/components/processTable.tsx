@@ -14,6 +14,7 @@ const colors = {
 
 interface ProcessTableProps {
   processes: Process[];
+  centrosCosto: any[];
   theme: string;
   onAddProcess: () => void;
   onViewProcess: (process: Process) => void;
@@ -23,6 +24,7 @@ interface ProcessTableProps {
 
 export const ProcessTable: React.FC<ProcessTableProps> = ({
   processes,
+  centrosCosto,
   theme,
   onAddProcess,
   onViewProcess,
@@ -87,7 +89,7 @@ export const ProcessTable: React.FC<ProcessTableProps> = ({
               }}
             >
               <tr>
-                <th className="p-3 text-left font-semibold">ID</th>
+                <th className="p-3 text-left font-semibold">Código</th>
                 <th className="p-3 text-left font-semibold">Nombre</th>
                 <th className="p-3 text-left font-semibold">Centro de Costo</th>
                 <th className="p-3 text-left font-semibold">Creado</th>
@@ -102,33 +104,42 @@ export const ProcessTable: React.FC<ProcessTableProps> = ({
               }}
               className="divide-y"
             >
-              {processes.map((process) => (
-                <tr
-                  key={process.id}
-                  onClick={() => onViewProcess(process)}
-                  className="cursor-pointer transition duration-150 ease-in-out"
-                  onMouseOver={(e) => {
-                    e.currentTarget.style.backgroundColor = hoverBgColor;
-                  }}
-                  onMouseOut={(e) => {
-                    e.currentTarget.style.backgroundColor = '';
-                  }}
-                >
-                  <td className="p-3">{process.id}</td>
-                  <td className="p-3">{process.name}</td>
-                  <td className="p-3">{process.centroCosto}</td>
-                  <td className="p-3">
-                    {process.createdAt instanceof Date
-                      ? process.createdAt.toLocaleString()
-                      : new Date(process.createdAt).toLocaleString()}
-                  </td>
-                  <td className="p-3">
-                    {process.updatedAt instanceof Date
-                      ? process.updatedAt.toLocaleString()
-                      : new Date(process.updatedAt).toLocaleString()}
-                  </td>
-                </tr>
-              ))}
+              {processes.map((process) => {
+                const code = process.correlativo
+                  ? `${process.centroCosto}.${String(process.correlativo).padStart(2, '0')}`
+                  : `${process.centroCosto}`;
+                return (
+                  <tr
+                    key={process.id}
+                    onClick={() => onViewProcess(process)}
+                    className="cursor-pointer transition duration-150 ease-in-out"
+                    onMouseOver={(e) => {
+                      e.currentTarget.style.backgroundColor = hoverBgColor;
+                    }}
+                    onMouseOut={(e) => {
+                      e.currentTarget.style.backgroundColor = '';
+                    }}
+                  >
+                    <td className="p-3">{code}</td>
+                    <td className="p-3">{process.name}</td>
+                    <td className="p-3">
+                      {process.centroCosto} -{' '}
+                      {centrosCosto.find((cc) => cc.id === process.centroCosto)
+                        ?.name || `ID: ${process.centroCosto}`}
+                    </td>
+                    <td className="p-3">
+                      {process.createdAt instanceof Date
+                        ? process.createdAt.toLocaleString()
+                        : new Date(process.createdAt).toLocaleString()}
+                    </td>
+                    <td className="p-3">
+                      {process.updatedAt instanceof Date
+                        ? process.updatedAt.toLocaleString()
+                        : new Date(process.updatedAt).toLocaleString()}
+                    </td>
+                  </tr>
+                );
+              })}
               {processes.length === 0 && !loading && (
                 <tr>
                   <td

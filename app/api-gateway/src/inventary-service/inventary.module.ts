@@ -9,6 +9,8 @@ import { RepuestoHttpController } from './repuesto/repuesto.controller';
 import { RespuestoMaquinaHttpController } from './repuesto-maquina/respuestoMaquina.controller';
 import { CompraHttpController } from './compra/compra.controller';
 import { SalidaHttpController } from './salida/salida.controller';
+import { UnidadesMedidaHttpController } from './unidades-medida/unidades-medida.controller';
+import { AlmacenesHttpController } from './almacen/almacen.controller';
 
 @Module({
   imports: [
@@ -33,6 +35,8 @@ import { SalidaHttpController } from './salida/salida.controller';
     RespuestoMaquinaHttpController,
     CompraHttpController,
     SalidaHttpController,
+    UnidadesMedidaHttpController,
+    AlmacenesHttpController,
   ],
 })
 export class InventaryModule {}

@@ -58,6 +58,7 @@ export const ProcessPage: React.FC = () => {
 
       <ProcessTable
         processes={state.processes}
+        centrosCosto={state.costCenters}
         theme={theme}
         onAddProcess={() => handleOpenModal('add')}
         onViewProcess={(process) => handleOpenModal('view', process)}
@@ -75,6 +76,7 @@ export const ProcessPage: React.FC = () => {
         deleteCountdown={state.deleteCountdown}
         canConfirmDelete={state.canConfirmDelete}
         loading={state.loading}
+        costCenters={state.costCenters}
         onClose={handleCloseModal}
         onInputChange={handleInputChange}
         onCreateProcess={handleCreateProcess}

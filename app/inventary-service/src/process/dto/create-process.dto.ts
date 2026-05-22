@@ -1,4 +1,4 @@
-import { IsString, IsNumber } from 'class-validator';
+import { IsString, IsNumber, IsOptional } from 'class-validator';
 
 export class CreateProcessDto {
   @IsNumber()
@@ -6,4 +6,8 @@ export class CreateProcessDto {
 
   @IsString()
   name: string;
+
+  @IsOptional()
+  @IsNumber()
+  correlativo?: number;
 }

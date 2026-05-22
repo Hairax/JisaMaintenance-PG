@@ -12,10 +12,24 @@ export class ProcessService {
     private processRepository: Repository<Process>,
   ) {}
 
+  private async getNextCorrelativo(centroCostoId: number): Promise<number> {
+    const latest = await this.processRepository.findOne({
+      where: { costCenter: { id: centroCostoId } },
+      order: { correlativo: 'DESC' },
+    });
+    return latest?.correlativo ? latest.correlativo + 1 : 1;
+  }
+
   async create(dto: CreateProcessDto): Promise<ResponseProcessDto> {
+    const correlativo =
+      dto.correlativo != null && dto.correlativo > 0
+        ? dto.correlativo
+        : await this.getNextCorrelativo(dto.centroCosto_id);
+
     const process = this.processRepository.create({
       name: dto.name,
       costCenter: { id: dto.centroCosto_id },
+      correlativo,
       createdAt: new Date(),
       updatedAt: new Date(),
     });
@@ -24,6 +38,7 @@ export class ProcessService {
       id: saved.id,
       name: saved.name,
       centroCosto: saved.costCenter.id,
+      correlativo: saved.correlativo,
       createdAt: saved.createdAt,
       updatedAt: saved.updatedAt,
     };
@@ -37,6 +52,7 @@ export class ProcessService {
       id: p.id,
       name: p.name,
       centroCosto: p.costCenter.id,
+      correlativo: p.correlativo,
       createdAt: p.createdAt,
       updatedAt: p.updatedAt,
     }));
@@ -52,6 +68,7 @@ export class ProcessService {
       id: process.id,
       name: process.name,
       centroCosto: process.costCenter.id,
+      correlativo: process.correlativo,
       createdAt: process.createdAt,
       updatedAt: process.updatedAt,
     };
@@ -63,11 +80,21 @@ export class ProcessService {
       relations: ['costCenter'],
     });
     if (!process) throw new Error('Process not found');
+
+    const newCentroCostoId = dto.centroCosto_id ?? process.costCenter.id;
+    const correlativo =
+      dto.correlativo != null
+        ? dto.correlativo
+        : dto.centroCosto_id && dto.centroCosto_id !== process.costCenter.id
+          ? await this.getNextCorrelativo(dto.centroCosto_id)
+          : process.correlativo;
+
     const updated = this.processRepository.merge(process, {
       name: dto.name ?? process.name,
       costCenter: dto.centroCosto_id
         ? { id: dto.centroCosto_id }
         : process.costCenter,
+      correlativo,
       updatedAt: new Date(),
     });
     return await this.processRepository.save(updated);

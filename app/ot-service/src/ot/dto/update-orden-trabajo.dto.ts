@@ -54,6 +54,10 @@ export class UpdateOrdenTrabajoDto {
   descripcionTarea?: string;
 
   @IsOptional()
+  @IsString()
+  indicacionesEspeciales?: string;
+
+  @IsOptional()
   @IsDateString()
   fechaHora?: Date;
 

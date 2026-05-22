@@ -87,10 +87,13 @@ export class OrdenTrabajo {
   @Column({ type: 'text' })
   descripcionTarea: string;
 
+  @Column({ type: 'text', nullable: true })
+  indicacionesEspeciales?: string;
+
   @Column({ type: 'datetime' })
   fechaHora: Date;
 
-  @Column({ type: 'decimal' })
+  @Column({ type: 'decimal', default: 1 })
   tipoCambio: number;
 
   @Column({ default: 'Abierta' })

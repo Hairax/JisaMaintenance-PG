@@ -24,6 +24,10 @@ export class ProductoCompraDto {
   @IsNumber()
   @IsOptional()
   porcentajeDescuento?: number;
+
+  @IsNumber()
+  @IsOptional()
+  porcentajeImpuesto?: number;
 }
 
 export class CreateCompraDto {

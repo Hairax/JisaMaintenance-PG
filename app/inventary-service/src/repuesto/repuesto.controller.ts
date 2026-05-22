@@ -28,6 +28,11 @@ export class RepuestoController {
     return this.repuestoService.update(data.id, data.dto);
   }
 
+  @MessagePattern('repuesto.recalculate')
+  recalculate(@Payload() id: number) {
+    return this.repuestoService.recalculateCostoPonderado(id);
+  }
+
   @MessagePattern('repuesto.remove')
   async remove(@Payload() id: number) {
     try {

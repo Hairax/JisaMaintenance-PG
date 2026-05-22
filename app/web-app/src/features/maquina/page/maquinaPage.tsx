@@ -46,10 +46,24 @@ export const MaquinaPage: React.FC = () => {
   };
   return (
     <div style={pageStyle}>
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
+      <div
+        style={{
+          display: 'flex',
+          justifyContent: 'space-between',
+          alignItems: 'center',
+          marginBottom: 16,
+        }}
+      >
         <h2>Gestión de Máquinas</h2>
         <button
-          onClick={() => exportMaquinasToExcel(state.maquinas)}
+          onClick={() =>
+            exportMaquinasToExcel(
+              state.maquinas,
+              state.procesos,
+              state.centrosCosto,
+              state.proveedores,
+            )
+          }
           style={{
             backgroundColor: colors.gold,
             color: colors.darkText,
@@ -68,6 +82,9 @@ export const MaquinaPage: React.FC = () => {
         theme={theme}
         loading={state.loading}
         error={state.error}
+        procesos={state.procesos}
+        centrosCosto={state.centrosCosto}
+        proveedores={state.proveedores}
         onAddMaquina={() => handleOpenModal('create')}
         onViewMaquina={(maquina) => handleOpenModal('view', maquina)}
       />
@@ -82,6 +99,9 @@ export const MaquinaPage: React.FC = () => {
         deleteCountdown={state.deleteCountdown}
         canConfirmDelete={state.canConfirmDelete}
         loading={state.loading}
+        centrosCosto={state.centrosCosto}
+        procesos={state.procesos}
+        proveedores={state.proveedores}
         onClose={handleCloseModal}
         onInputChange={onInputChange}
         onCreateMaquina={handleCreateMaquina}

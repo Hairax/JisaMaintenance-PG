@@ -6,11 +6,18 @@ import {
 } from '../types/process.types';
 
 const API_BASE_URL = 'http://localhost:3000/process';
+const COST_CENTER_API_URL = 'http://localhost:3000/cost-centers';
 
 type ModalMode = 'view' | 'edit' | 'add';
 
+export interface CostCenter {
+  id: number;
+  name: string;
+}
+
 interface ProcessManagementState {
   processes: Process[];
+  costCenters: CostCenter[];
   loading: boolean;
   error: string | null;
   isModalOpen: boolean;
@@ -25,6 +32,7 @@ interface ProcessManagementState {
 export function useProcess() {
   const [state, setState] = useState<ProcessManagementState>({
     processes: [],
+    costCenters: [],
     loading: true,
     error: null,
     isModalOpen: false,
@@ -39,6 +47,27 @@ export function useProcess() {
   const countdownIntervalRef = useRef<ReturnType<typeof setInterval> | null>(
     null,
   );
+
+  // Fetch all cost centers
+  const fetchCostCenters = useCallback(async () => {
+    try {
+      const res = await fetch(COST_CENTER_API_URL);
+      if (!res.ok) {
+        throw new Error('Error al cargar centros de costo');
+      }
+      const data = await res.json();
+      setState((prev) => ({
+        ...prev,
+        costCenters: data,
+      }));
+    } catch (err) {
+      console.error('Error loading cost centers:', err);
+      setState((prev) => ({
+        ...prev,
+        costCenters: [],
+      }));
+    }
+  }, []);
 
   // Fetch all processes
   const fetchProcesses = useCallback(async () => {
@@ -67,11 +96,12 @@ export function useProcess() {
 
   useEffect(() => {
     fetchProcesses();
+    fetchCostCenters();
     return () => {
       if (countdownIntervalRef.current)
         clearInterval(countdownIntervalRef.current);
     };
-  }, [fetchProcesses]);
+  }, [fetchProcesses, fetchCostCenters]);
 
   const handleOpenModal = (mode: ModalMode, process: Process | null = null) => {
     setState((prev) => ({
@@ -121,9 +151,16 @@ export function useProcess() {
   const handleCreateProcess = async () => {
     setState((prev) => ({ ...prev, loading: true, error: null }));
     try {
+      const correlativoValue =
+        state.formData.correlativo !== undefined &&
+        state.formData.correlativo !== ''
+          ? Number(state.formData.correlativo)
+          : undefined;
+
       const dto: CreateProcessDto = {
         name: state.formData.name as string,
         centroCosto_id: Number(state.formData.centroCosto),
+        correlativo: correlativoValue,
       };
       const res = await fetch(API_BASE_URL, {
         method: 'POST',
@@ -154,11 +191,18 @@ export function useProcess() {
     if (!state.selectedProcess) return;
     setState((prev) => ({ ...prev, loading: true, error: null }));
     try {
+      const correlativoValue =
+        state.formData.correlativo !== undefined &&
+        state.formData.correlativo !== ''
+          ? Number(state.formData.correlativo)
+          : undefined;
+
       const dto: UpdateProcessDto = {
         name: state.formData.name,
         centroCosto_id: state.formData.centroCosto
           ? Number(state.formData.centroCosto)
           : undefined,
+        correlativo: correlativoValue,
       };
       const res = await fetch(`${API_BASE_URL}/${state.selectedProcess.id}`, {
         method: 'PUT',
@@ -246,5 +290,6 @@ export function useProcess() {
     handleUpdateProcess,
     handleDeleteClick,
     handleDelete,
+    fetchCostCenters,
   };
 }

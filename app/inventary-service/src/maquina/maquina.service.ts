@@ -12,7 +12,42 @@ export class MaquinaService {
     private maquinaRepository: Repository<Maquina>,
   ) {}
 
+  private async getNextCorrelativo(procesoId: number): Promise<number> {
+    const latest = await this.maquinaRepository.findOne({
+      where: { process: { id: procesoId } },
+      order: { correlativo: 'DESC' },
+    });
+    return latest?.correlativo && latest.correlativo > 0
+      ? latest.correlativo + 1
+      : 1;
+  }
+
+  private async assertCorrelativoUnique(
+    procesoId: number,
+    correlativo: number,
+    excludeId?: number,
+  ) {
+    if (!correlativo || correlativo <= 0) return;
+    const existing = await this.maquinaRepository.findOne({
+      where: { process: { id: procesoId }, correlativo },
+    });
+    if (existing && existing.id !== excludeId) {
+      throw new Error(
+        `El correlativo ${correlativo} ya existe para el proceso ${procesoId}`,
+      );
+    }
+  }
+
   async create(dto: CreateMaquinaDto): Promise<ResponseMaquinaDto> {
+    const correlativo =
+      dto.correlativo != null && dto.correlativo > 0
+        ? dto.correlativo
+        : await this.getNextCorrelativo(dto.proceso_id);
+
+    if (dto.correlativo != null && dto.correlativo > 0) {
+      await this.assertCorrelativoUnique(dto.proceso_id, dto.correlativo);
+    }
+
     const maquina = this.maquinaRepository.create({
       name: dto.name,
       fabricante: dto.fabricante,
@@ -25,6 +60,7 @@ export class MaquinaService {
       costCenter: { id: dto.centroCosto_id },
       process: { id: dto.proceso_id },
       proveedor: { id: dto.proveedor_id },
+      correlativo,
       createdAt: new Date(),
       updatedAt: new Date(),
     });
@@ -50,11 +86,34 @@ export class MaquinaService {
   }
 
   async update(id: number, dto: UpdateMaquinaDto): Promise<ResponseMaquinaDto> {
-    const maquina = await this.maquinaRepository.findOne({ where: { id } });
+    const maquina = await this.maquinaRepository.findOne({
+      where: { id },
+      relations: ['costCenter', 'process', 'proveedor'],
+    });
     if (!maquina) throw new Error('Maquina not found');
 
+    const targetProcesoId = dto.proceso_id ?? maquina.process?.id;
+
+    const correlativo =
+      dto.correlativo != null && dto.correlativo > 0
+        ? dto.correlativo
+        : dto.proceso_id && dto.proceso_id !== maquina.process?.id
+          ? await this.getNextCorrelativo(dto.proceso_id)
+          : maquina.correlativo;
+
+    if (dto.correlativo != null && dto.correlativo > 0) {
+      await this.assertCorrelativoUnique(targetProcesoId, dto.correlativo, id);
+    }
+
     const updated = this.maquinaRepository.merge(maquina, {
-      ...dto,
+      name: dto.name ?? maquina.name,
+      fabricante: dto.fabricante ?? maquina.fabricante,
+      tipoDeMaquina: dto.tipoDeMaquina ?? maquina.tipoDeMaquina,
+      numeroDeSerie: dto.numeroDeSerie ?? maquina.numeroDeSerie,
+      fechaDeFabricacion: dto.fechaDeFabricacion ?? maquina.fechaDeFabricacion,
+      fechaDeMontaje: dto.fechaDeMontaje ?? maquina.fechaDeMontaje,
+      costo: dto.costo ?? maquina.costo,
+      horasTrabajadas: dto.horasTrabajadas ?? maquina.horasTrabajadas,
       costCenter: dto.centroCosto_id
         ? { id: dto.centroCosto_id }
         : maquina.costCenter,
@@ -62,6 +121,7 @@ export class MaquinaService {
       proveedor: dto.proveedor_id
         ? { id: dto.proveedor_id }
         : maquina.proveedor,
+      correlativo,
       updatedAt: new Date(),
     });
 
@@ -88,6 +148,7 @@ export class MaquinaService {
     centroCosto_id: m.costCenter?.id,
     proceso_id: m.process?.id,
     proveedor_id: m.proveedor?.id,
+    correlativo: m.correlativo,
     createdAt: m.createdAt,
     updatedAt: m.updatedAt,
   });

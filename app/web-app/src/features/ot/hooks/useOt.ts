@@ -28,12 +28,17 @@ export function useOt() {
   const [centrosCosto, setCentrosCosto] = useState<
     { id: number; nombre: string }[]
   >([]);
-  const [procesos, setProcesos] = useState<{ id: number; nombre: string }[]>(
-    [],
-  );
-  const [maquinas, setMaquinas] = useState<{ id: number; nombre: string }[]>(
-    [],
-  );
+  const [procesos, setProcesos] = useState<
+    { id: number; nombre: string; centroCosto_id?: number }[]
+  >([]);
+  const [maquinas, setMaquinas] = useState<
+    {
+      id: number;
+      nombre: string;
+      proceso_id?: number;
+      centroCosto_id?: number;
+    }[]
+  >([]);
   const [tecnicos, setTecnicos] = useState<{ id: number; nombre: string }[]>(
     [],
   );
@@ -45,7 +50,7 @@ export function useOt() {
     { id: number; nombre: string }[]
   >([]);
   const [subUnidades, setSubUnidades] = useState<
-    { id: number; nombre: string }[]
+    { id: number; nombre: string; maquina_id?: number }[]
   >([]);
 
   // 2. Efecto para cargar las listas al montar el hook
@@ -81,7 +86,13 @@ export function useOt() {
           const procesosFormateados = Array.isArray(dataProcess)
             ? dataProcess.map((process: any) => ({
                 id: process.id,
-                nombre: process.name || 'Sin nombre',
+                nombre: process.name || process.nombre || 'Sin nombre',
+                centroCosto_id:
+                  process.centroCosto ??
+                  process.centroCosto_id ??
+                  process.centroCostoId ??
+                  process.costCenter_id ??
+                  process.costCenterId,
               }))
             : [];
           setProcesos(procesosFormateados);
@@ -94,7 +105,14 @@ export function useOt() {
           const maquinasFormateadas = Array.isArray(dataMachines)
             ? dataMachines.map((maquina: any) => ({
                 id: maquina.id,
-                nombre: maquina.name || 'Sin nombre',
+                nombre: maquina.name || maquina.nombre || 'Sin nombre',
+                proceso_id:
+                  maquina.proceso_id ?? maquina.procesoId ?? maquina.process_id,
+                centroCosto_id:
+                  maquina.centroCosto_id ??
+                  maquina.centroCostoId ??
+                  maquina.costCenter_id ??
+                  maquina.costCenterId,
               }))
             : [];
           setMaquinas(maquinasFormateadas);
@@ -150,6 +168,7 @@ export function useOt() {
             ? dataSubUnidades.map((su: any) => ({
                 id: su.id,
                 nombre: su.descripcion || su.name || 'Sin nombre',
+                maquina_id: su.maquina_id ?? su.maquinaId ?? su.machine_id,
               }))
             : [];
           setSubUnidades(subUnidadesFormateadas);
@@ -190,11 +209,29 @@ export function useOt() {
 
   // Modal handlers
   const handleOpenModal = (mode: ModalMode, ot: OrdenTrabajo | null = null) => {
+    const initialFormData =
+      mode === 'create'
+        ? {}
+        : ot
+          ? {
+              ...ot,
+              tipoOT_id: ot.tipoOT_id ?? ot.tipoOT?.id,
+              centroCosto_id: ot.centroCosto_id ?? ot.centroCosto?.id,
+              proceso_id: ot.proceso_id ?? ot.proceso?.id,
+              maquina_id: ot.maquina_id ?? ot.maquina?.id,
+              subUnidad_id: ot.subUnidad_id ?? ot.subUnidad?.id,
+              departamento_id: ot.departamento_id ?? ot.departamento?.id,
+              objeto_id: ot.objeto_id ?? ot.objeto?.id,
+              supervisor_id: ot.supervisor_id ?? ot.supervisor?.id,
+              indicacionesEspeciales: ot.indicacionesEspeciales,
+            }
+          : {};
+
     setState((prev) => ({
       ...prev,
       modalMode: mode,
       selectedOT: ot,
-      formData: mode === 'create' ? {} : ot ? { ...ot } : {},
+      formData: initialFormData,
       isModalOpen: true,
       showDeleteConfirm: false,
       canConfirmDelete: false,
@@ -225,10 +262,51 @@ export function useOt() {
       | { target: { name: string; value: any } },
   ) => {
     const { name, value } = e.target;
-    setState((prev) => ({
-      ...prev,
-      formData: { ...prev.formData, [name]: value },
-    }));
+    const numericFields = new Set([
+      'tipoOT_id',
+      'centroCosto_id',
+      'proceso_id',
+      'maquina_id',
+      'subUnidad_id',
+      'departamento_id',
+      'objeto_id',
+      'supervisor_id',
+      'tipoCambio',
+      'tiempoEstimado',
+    ]);
+
+    const parsedValue = numericFields.has(name)
+      ? value === ''
+        ? undefined
+        : Number(value)
+      : value;
+
+    setState((prev) => {
+      const updatedFormData: any = {
+        ...prev.formData,
+        [name]: parsedValue,
+      };
+
+      if (name === 'centroCosto_id') {
+        updatedFormData.proceso_id = undefined;
+        updatedFormData.maquina_id = undefined;
+        updatedFormData.subUnidad_id = undefined;
+      }
+
+      if (name === 'proceso_id') {
+        updatedFormData.maquina_id = undefined;
+        updatedFormData.subUnidad_id = undefined;
+      }
+
+      if (name === 'maquina_id') {
+        updatedFormData.subUnidad_id = undefined;
+      }
+
+      return {
+        ...prev,
+        formData: updatedFormData,
+      };
+    });
   };
 
   // Create OT
@@ -251,6 +329,7 @@ export function useOt() {
         tipoCambio: state.formData.tipoCambio,
         tiempoEstimado: state.formData.tiempoEstimado,
         estado: state.formData.estado || 'Abierta',
+        indicacionesEspeciales: state.formData.indicacionesEspeciales,
         tecnicos: state.formData.tecnicos || [],
       };
 
@@ -303,6 +382,9 @@ export function useOt() {
         tiempoEstimado:
           state.formData.tiempoEstimado || state.selectedOT.tiempoEstimado,
         estado: state.formData.estado || state.selectedOT.estado || 'Abierta',
+        indicacionesEspeciales:
+          state.formData.indicacionesEspeciales ||
+          state.selectedOT.indicacionesEspeciales,
         tecnicos: state.formData.tecnicos || state.selectedOT.tecnicos || [],
       };
 

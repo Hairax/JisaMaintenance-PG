@@ -44,6 +44,10 @@ export class CreateOrdenTrabajoDto {
   @IsNotEmpty()
   descripcionTarea: string;
 
+  @IsOptional()
+  @IsString()
+  indicacionesEspeciales?: string;
+
   @IsDateString()
   fechaHora: Date;
 

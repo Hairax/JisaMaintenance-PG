@@ -54,10 +54,19 @@ export interface OrdenTrabajo {
     nombre: string;
   };
   descripcionTarea?: string;
+  indicacionesEspeciales?: string;
   fechaHora?: string | Date;
   tipoCambio?: number;
   estado?: string;
   fechaCreacion?: string | Date;
+}
+
+export interface CatalogOption {
+  id: number;
+  nombre: string;
+  centroCosto_id?: number;
+  proceso_id?: number;
+  maquina_id?: number;
 }
 
 export type OrdenTrabajoFormData = Partial<

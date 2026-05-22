@@ -9,6 +9,8 @@ import { RepuestoModule } from './repuesto/repuesto.module';
 import { RepuestoMaquinaModule } from './repuesto-maquina/repuestoMaquina.module';
 import { CompraModule } from './compra/compra.module';
 import { SalidaModule } from './salida/salida.module';
+import { UnidadesMedidaModule } from './unidades-medida/unidades-medida.module';
+import { AlmacenModule } from './almacen/almacen.module';
 @Module({
   imports: [
     DatabaseModule,
@@ -21,6 +23,8 @@ import { SalidaModule } from './salida/salida.module';
     RepuestoMaquinaModule,
     CompraModule,
     SalidaModule,
+    UnidadesMedidaModule,
+    AlmacenModule,
   ],
   controllers: [],
   providers: [],

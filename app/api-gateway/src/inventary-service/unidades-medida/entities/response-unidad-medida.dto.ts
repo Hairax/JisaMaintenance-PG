@@ -1,0 +1,8 @@
+export class ResponseUnidadMedidaDto {
+  id: number;
+  nombre: string;
+  codigo: string;
+  descripcion?: string;
+  createdAt: Date;
+  updatedAt: Date;
+}

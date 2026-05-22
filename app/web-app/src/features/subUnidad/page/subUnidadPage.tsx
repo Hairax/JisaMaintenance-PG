@@ -31,7 +31,14 @@ export const SubUnidadPage: React.FC = () => {
       <div className="flex justify-end p-4">
         <button
           className="bg-green-600 hover:bg-green-700 text-white font-bold py-2 px-4 rounded shadow"
-          onClick={() => exportSubUnidadesToExcel(state.subUnidades)}
+          onClick={() =>
+            exportSubUnidadesToExcel(
+              state.subUnidades,
+              state.procesos,
+              state.maquinas,
+              state.centrosCosto,
+            )
+          }
         >
           Exportar a Excel
         </button>
@@ -39,6 +46,9 @@ export const SubUnidadPage: React.FC = () => {
       <SubUnidadTable
         subUnidades={state.subUnidades}
         theme={theme}
+        maquinas={state.maquinas}
+        procesos={state.procesos}
+        centrosCosto={state.centrosCosto}
         onAddSubUnidad={() => handleOpenModal('create')}
         onViewSubUnidad={(subUnidad) => handleOpenModal('view', subUnidad)}
         loading={state.loading}
@@ -51,6 +61,9 @@ export const SubUnidadPage: React.FC = () => {
         selectedSubUnidad={state.selectedSubUnidad}
         formData={state.formData}
         theme={theme}
+        centrosCosto={state.centrosCosto}
+        procesos={state.procesos}
+        maquinas={state.maquinas}
         showDeleteConfirm={state.showDeleteConfirm}
         deleteCountdown={state.deleteCountdown}
         canConfirmDelete={state.canConfirmDelete}

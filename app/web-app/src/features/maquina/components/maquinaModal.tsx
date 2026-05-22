@@ -1,5 +1,7 @@
 import React from 'react';
 import { Maquina, MaquinaFormData, ModalMode } from '../types/maquina.types';
+import { ProcessOption, SelectOption } from '../hooks/useMaquina';
+import { SearchableSelect } from '../../../shared/components/SearchableSelect';
 import { FaTimes, FaEdit, FaTrash, FaSave, FaPlus } from 'react-icons/fa';
 
 const colors = {
@@ -22,6 +24,9 @@ interface MaquinaModalProps {
   deleteCountdown: number;
   canConfirmDelete: boolean;
   loading: boolean;
+  centrosCosto: SelectOption[];
+  procesos: ProcessOption[];
+  proveedores: SelectOption[];
   onClose: () => void;
   onInputChange: (
     e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>,
@@ -43,6 +48,9 @@ export const MaquinaModal: React.FC<MaquinaModalProps> = ({
   deleteCountdown,
   canConfirmDelete,
   loading,
+  centrosCosto,
+  procesos,
+  proveedores,
   onClose,
   onInputChange,
   onCreateMaquina,
@@ -97,6 +105,29 @@ export const MaquinaModal: React.FC<MaquinaModalProps> = ({
       />
     </div>
   );
+
+  const filteredProcesos = procesos.filter((process) => {
+    return (
+      !formData.centroCosto_id ||
+      process.centroCosto === Number(formData.centroCosto_id)
+    );
+  });
+
+  const buildMachineCode = (machine: Partial<MaquinaFormData> | null) => {
+    const centroCosto = machine?.centroCosto_id;
+    const procesoId = machine?.proceso_id;
+    const correlativo = machine?.correlativo;
+    if (!centroCosto || !procesoId || !correlativo) return undefined;
+
+    const proceso = procesos.find((process) => process.id === procesoId);
+    const procesoCorrelativo = proceso?.correlativo;
+    if (procesoCorrelativo === undefined || procesoCorrelativo === null)
+      return undefined;
+
+    return `${centroCosto}.${String(procesoCorrelativo).padStart(2, '0')}.${String(
+      correlativo,
+    ).padStart(2, '0')}`;
+  };
 
   return (
     <div
@@ -165,22 +196,107 @@ export const MaquinaModal: React.FC<MaquinaModalProps> = ({
                 'number',
                 true,
               )}
-              {renderFormField(
-                'Centro de Costo ID',
-                'centroCosto_id',
-                'number',
-                true,
-              )}
-              {renderFormField('Proceso ID', 'proceso_id', 'number', true)}
-              {renderFormField('Proveedor ID', 'proveedor_id', 'number', true)}
+              {renderFormField('Correlativo', 'correlativo', 'number')}
+              <p className="text-xs text-slate-500">
+                Dejar vacío para asignar automáticamente el siguiente
+                correlativo.
+              </p>
+
+              {/* Centro de Costo */}
+              <div>
+                <label
+                  style={{ color: secondaryTextColor }}
+                  className="block text-sm font-medium mb-1"
+                >
+                  Centro de Costo
+                </label>
+                <SearchableSelect
+                  options={centrosCosto}
+                  value={formData.centroCosto_id || 0}
+                  onChange={(id) => {
+                    const event = {
+                      target: {
+                        name: 'centroCosto_id',
+                        value: String(id),
+                      },
+                    } as React.ChangeEvent<HTMLInputElement>;
+                    onInputChange(event);
+                  }}
+                  label="Selecciona un Centro de Costo"
+                  inputBg={inputBgColor}
+                  inputBorder={inputBorderColor}
+                  textColor={textColor}
+                  secondaryTextColor={secondaryTextColor}
+                />
+              </div>
+
+              {/* Proceso */}
+              <div>
+                <label
+                  style={{ color: secondaryTextColor }}
+                  className="block text-sm font-medium mb-1"
+                >
+                  Proceso
+                </label>
+                <SearchableSelect
+                  options={filteredProcesos}
+                  value={formData.proceso_id || 0}
+                  onChange={(id) => {
+                    const event = {
+                      target: {
+                        name: 'proceso_id',
+                        value: String(id),
+                      },
+                    } as React.ChangeEvent<HTMLInputElement>;
+                    onInputChange(event);
+                  }}
+                  label="Selecciona un Proceso"
+                  showId={false}
+                  inputBg={inputBgColor}
+                  inputBorder={inputBorderColor}
+                  textColor={textColor}
+                  secondaryTextColor={secondaryTextColor}
+                />
+              </div>
+
+              {/* Proveedor */}
+              <div>
+                <label
+                  style={{ color: secondaryTextColor }}
+                  className="block text-sm font-medium mb-1"
+                >
+                  Proveedor
+                </label>
+                <SearchableSelect
+                  options={proveedores}
+                  value={formData.proveedor_id || 0}
+                  onChange={(id) => {
+                    const event = {
+                      target: {
+                        name: 'proveedor_id',
+                        value: String(id),
+                      },
+                    } as React.ChangeEvent<HTMLInputElement>;
+                    onInputChange(event);
+                  }}
+                  label="Selecciona un Proveedor"
+                  inputBg={inputBgColor}
+                  inputBorder={inputBorderColor}
+                  textColor={textColor}
+                  secondaryTextColor={secondaryTextColor}
+                />
+              </div>
             </form>
           )}
 
           {mode === 'view' && selectedMaquina && !showDeleteConfirm && (
             <div className="space-y-2 text-sm">
               <p>
-                <strong style={{ color: secondaryTextColor }}>ID:</strong>{' '}
-                <span style={{ color: textColor }}>{selectedMaquina.id}</span>
+                <strong style={{ color: secondaryTextColor }}>Código:</strong>{' '}
+                <span style={{ color: textColor }}>
+                  {buildMachineCode(selectedMaquina) ||
+                    `ID: ${selectedMaquina.id}`}
+                </span>
               </p>
               <p>
                 <strong style={{ color: secondaryTextColor }}>Nombre:</strong>{' '}
@@ -238,26 +354,40 @@ export const MaquinaModal: React.FC<MaquinaModalProps> = ({
               </p>
               <p>
                 <strong style={{ color: secondaryTextColor }}>
-                  Centro de Costo ID:
+                  Centro de Costo:
                 </strong>{' '}
                 <span style={{ color: textColor }}>
-                  {selectedMaquina.centroCosto_id}
+                  {centrosCosto.find(
+                    (cc) => cc.id === selectedMaquina.centroCosto_id,
+                  )?.id || `ID: ${selectedMaquina.centroCosto_id}`}{' '}
+                  -
+                  {centrosCosto.find(
+                    (cc) => cc.id === selectedMaquina.centroCosto_id,
+                  )?.name || `ID: ${selectedMaquina.centroCosto_id}`}
+                </span>
+              </p>
+              <p>
+                <strong style={{ color: secondaryTextColor }}>Proceso:</strong>{' '}
+                <span style={{ color: textColor }}>
+                  {procesos.find((p) => p.id === selectedMaquina.proceso_id)
+                    ?.correlativo || `ID: ${selectedMaquina.proceso_id}`}
+                  -
+                  {procesos.find((p) => p.id === selectedMaquina.proceso_id)
+                    ?.name || `ID: ${selectedMaquina.proceso_id}`}
                 </span>
               </p>
               <p>
                 <strong style={{ color: secondaryTextColor }}>
-                  Proceso ID:
+                  Proveedor:
                 </strong>{' '}
                 <span style={{ color: textColor }}>
-                  {selectedMaquina.proceso_id}
-                </span>
-              </p>
-              <p>
-                <strong style={{ color: secondaryTextColor }}>
-                  Proveedor ID:
-                </strong>{' '}
-                <span style={{ color: textColor }}>
-                  {selectedMaquina.proveedor_id}
+                  {proveedores.find(
+                    (prov) => prov.id === selectedMaquina.proveedor_id,
+                  )?.id || `ID: ${selectedMaquina.proveedor_id}`}{' '}
+                  -
+                  {proveedores.find(
+                    (prov) => prov.id === selectedMaquina.proveedor_id,
+                  )?.name || `ID: ${selectedMaquina.proveedor_id}`}
                 </span>
               </p>
             </div>

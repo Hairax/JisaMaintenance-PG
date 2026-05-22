@@ -1,9 +1,16 @@
-import { IsString, IsNumber } from 'class-validator';
+import { IsString, IsNumber, IsOptional, Min } from 'class-validator';
 
 export class UpdateSubUnidadDto {
+  @IsOptional()
   @IsNumber()
-  maquina_id: number;
+  maquina_id?: number;
 
+  @IsOptional()
   @IsString()
-  descripcion: string;
+  descripcion?: string;
+
+  @IsOptional()
+  @IsNumber()
+  @Min(1)
+  correlativo?: number;
 }

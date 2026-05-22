@@ -1,5 +1,7 @@
 import React from 'react';
 import { Process } from '../types/process.types';
+import { CostCenter } from '../hooks/useProcess';
+import { CostCenterSearchSelect } from './CostCenterSearchSelect';
 import { FaTimes, FaEdit, FaTrash, FaSave, FaPlus } from 'react-icons/fa';
 
 const colors = {
@@ -24,6 +26,7 @@ interface ProcessModalProps {
   deleteCountdown: number;
   canConfirmDelete: boolean;
   loading: boolean;
+  costCenters: CostCenter[];
   onClose: () => void;
   onInputChange: (
     e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>,
@@ -45,6 +48,7 @@ export const ProcessModal: React.FC<ProcessModalProps> = ({
   deleteCountdown,
   canConfirmDelete,
   loading,
+  costCenters,
   onClose,
   onInputChange,
   onCreateProcess,
@@ -87,6 +91,7 @@ export const ProcessModal: React.FC<ProcessModalProps> = ({
         type={type}
         name={name}
         id={name}
+        min={type === 'number' ? 1 : undefined}
         value={
           formData[name] instanceof Date
             ? (formData[name] as Date).toISOString()
@@ -103,6 +108,13 @@ export const ProcessModal: React.FC<ProcessModalProps> = ({
       />
     </div>
   );
+
+  const buildProcessCode = (process: Partial<Process> | null | undefined) => {
+    if (!process?.centroCosto || !process?.correlativo) {
+      return process?.centroCosto ? String(process.centroCosto) : undefined;
+    }
+    return `${process.centroCosto}.${String(process.correlativo).padStart(2, '0')}`;
+  };
 
   return (
     <div
@@ -139,29 +151,74 @@ export const ProcessModal: React.FC<ProcessModalProps> = ({
           {mode === 'add' || mode === 'edit' ? (
             <form onSubmit={(e) => e.preventDefault()} className="space-y-3">
               {renderFormField('Nombre', 'name', 'text', true)}
-              {renderFormField(
-                'Centro de Costo (ID)',
-                'centroCosto',
-                'number',
-                true,
-              )}
+              {renderFormField('Correlativo', 'correlativo', 'number')}
+              <p className="text-xs text-slate-500">
+                Dejar vacío para asignar automáticamente el siguiente
+                correlativo.
+              </p>
+
+              {/* Centro de Costo Search Select */}
+              <div>
+                <label
+                  htmlFor="centroCosto"
+                  style={{ color: secondaryTextColor }}
+                  className="block text-sm font-medium mb-1"
+                >
+                  Centro de Costo
+                </label>
+                <CostCenterSearchSelect
+                  options={costCenters}
+                  value={formData.centroCosto || 0}
+                  onChange={(id) => {
+                    const event = {
+                      target: {
+                        name: 'centroCosto',
+                        value: String(id),
+                      },
+                    } as React.ChangeEvent<HTMLInputElement>;
+                    onInputChange(event);
+                  }}
+                  placeholder="Buscar por ID o nombre..."
+                  inputBg={inputBgColor}
+                  inputBorder={inputBorderColor}
+                  textColor={textColor}
+                  secondaryTextColor={secondaryTextColor}
+                />
+              </div>
             </form>
           ) : mode === 'view' && selectedProcess && !showDeleteConfirm ? (
             <div className="space-y-2 text-sm">
               <p>
-                <strong style={{ color: secondaryTextColor }}>ID:</strong>{' '}
-                <span style={{ color: textColor }}>{selectedProcess.id}</span>
-              </p>
-              <p>
                 <strong style={{ color: secondaryTextColor }}>Nombre:</strong>{' '}
                 <span style={{ color: textColor }}>{selectedProcess.name}</span>
+              </p>
+              <p>
+                <strong style={{ color: secondaryTextColor }}>Código:</strong>{' '}
+                <span style={{ color: textColor }}>
+                  {buildProcessCode(selectedProcess) ||
+                    `ID: ${selectedProcess.id}`}
+                </span>
               </p>
               <p>
                 <strong style={{ color: secondaryTextColor }}>
                   Centro de Costo:
                 </strong>{' '}
                 <span style={{ color: textColor }}>
-                  {selectedProcess.centroCosto}
+                  {costCenters.find(
+                    (cc) => cc.id === selectedProcess.centroCosto,
+                  )?.id || `ID: ${selectedProcess.centroCosto}`}
+                  -
+                  {costCenters.find(
+                    (cc) => cc.id === selectedProcess.centroCosto,
+                  )?.name || `ID: ${selectedProcess.centroCosto}`}
+                </span>
+              </p>
+              <p>
+                <strong style={{ color: secondaryTextColor }}>
+                  Correlativo:
+                </strong>{' '}
+                <span style={{ color: textColor }}>
+                  {selectedProcess.correlativo ?? '—'}
                 </span>
               </p>
               <p>

@@ -1,4 +1,4 @@
-import { IsString, IsNumber, IsDateString } from 'class-validator';
+import { IsString, IsNumber, IsDateString, IsOptional } from 'class-validator';
 
 export class CreateMaquinaDto {
   @IsString()
@@ -33,4 +33,8 @@ export class CreateMaquinaDto {
 
   @IsNumber()
   proveedor_id: number;
+
+  @IsOptional()
+  @IsNumber()
+  correlativo?: number;
 }

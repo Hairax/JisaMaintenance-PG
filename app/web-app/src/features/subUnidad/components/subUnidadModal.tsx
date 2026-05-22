@@ -4,6 +4,7 @@ import {
   SubUnidadFormData,
   ModalMode,
 } from '../types/subUnidad.types';
+import { SearchableSelect } from '../../../shared/components/SearchableSelect';
 import { FaTimes, FaEdit, FaTrash, FaSave, FaPlus } from 'react-icons/fa';
 
 const colors = {
@@ -16,6 +17,22 @@ const colors = {
   lightText: '#FFFFFF',
 };
 
+interface SelectOption {
+  id: number;
+  name: string;
+}
+
+interface ProcessOption extends SelectOption {
+  centroCosto: number;
+  correlativo?: number;
+}
+
+interface MachineOption extends SelectOption {
+  centroCosto: number;
+  proceso: number;
+  correlativo?: number;
+}
+
 interface SubUnidadModalProps {
   isOpen: boolean;
   mode: ModalMode;
@@ -26,6 +43,9 @@ interface SubUnidadModalProps {
   deleteCountdown: number;
   canConfirmDelete: boolean;
   loading: boolean;
+  centrosCosto: SelectOption[];
+  procesos: ProcessOption[];
+  maquinas: MachineOption[];
   onClose: () => void;
   onInputChange: (
     e: React.ChangeEvent<
@@ -49,6 +69,9 @@ export const SubUnidadModal: React.FC<SubUnidadModalProps> = ({
   deleteCountdown,
   canConfirmDelete,
   loading,
+  centrosCosto,
+  procesos,
+  maquinas,
   onClose,
   onInputChange,
   onCreateSubUnidad,
@@ -104,6 +127,65 @@ export const SubUnidadModal: React.FC<SubUnidadModalProps> = ({
     </div>
   );
 
+  const filteredProcesos = procesos.filter((process) => {
+    return (
+      !formData.centroCosto_id ||
+      process.centroCosto === Number(formData.centroCosto_id)
+    );
+  });
+
+  const filteredMaquinas = maquinas.filter((machine) => {
+    return (
+      !formData.proceso_id || machine.proceso === Number(formData.proceso_id)
+    );
+  });
+
+  const buildSubUnidadCode = (subUnidad: SubUnidad | null) => {
+    if (!subUnidad) return undefined;
+
+    const machine = maquinas.find((m) => m.id === subUnidad.maquina_id);
+    const process = procesos.find((p) => p.id === machine?.proceso);
+    const centroCosto = machine?.centroCosto;
+    const procesoCorrelativo = process?.correlativo;
+    const maquinaCorrelativo = machine?.correlativo;
+    const subUnidadCorrelativo = subUnidad.correlativo;
+
+    if (
+      centroCosto === undefined ||
+      procesoCorrelativo == null ||
+      maquinaCorrelativo == null ||
+      subUnidadCorrelativo == null
+    ) {
+      return undefined;
+    }
+
+    return `${centroCosto}.${String(procesoCorrelativo).padStart(2, '0')}.${String(
+      maquinaCorrelativo,
+    ).padStart(2, '0')}.${String(subUnidadCorrelativo).padStart(2, '0')}`;
+  };
+
+  const buildPreviewCode = () => {
+    const centroCosto = formData.centroCosto_id;
+    const proceso = procesos.find((p) => p.id === formData.proceso_id);
+    const machine = maquinas.find((m) => m.id === formData.maquina_id);
+    const subUnidadCorrelativo = formData.correlativo;
+
+    if (
+      centroCosto === undefined ||
+      !proceso ||
+      !machine ||
+      subUnidadCorrelativo == null ||
+      proceso.correlativo == null ||
+      machine.correlativo == null
+    ) {
+      return undefined;
+    }
+
+    return `${centroCosto}.${String(proceso.correlativo ?? '').padStart(2, '0')}.${String(
+      machine.correlativo ?? '',
+    ).padStart(2, '0')}.${String(subUnidadCorrelativo).padStart(2, '0')}`;
+  };
+
   return (
     <div
       style={{ backgroundColor: overlayBgColor }}
@@ -139,15 +221,101 @@ export const SubUnidadModal: React.FC<SubUnidadModalProps> = ({
           {(mode === 'create' || mode === 'edit') && (
             <form onSubmit={(e) => e.preventDefault()} className="space-y-3">
               {renderFormField('Descripción', 'descripcion', 'text', true)}
-              {renderFormField('ID Máquina', 'maquina_id', 'number', true)}
+
+              <div>
+                <label
+                  style={{ color: secondaryTextColor }}
+                  className="block text-sm font-medium mb-1"
+                >
+                  Centro de Costo
+                </label>
+                <SearchableSelect
+                  options={centrosCosto}
+                  value={formData.centroCosto_id || 0}
+                  onChange={(id) =>
+                    onInputChange({
+                      target: { name: 'centroCosto_id', value: String(id) },
+                    } as React.ChangeEvent<HTMLInputElement>)
+                  }
+                  label="Selecciona un Centro de Costo"
+                  inputBg={inputBgColor}
+                  inputBorder={inputBorderColor}
+                  textColor={textColor}
+                  secondaryTextColor={secondaryTextColor}
+                />
+              </div>
+
+              <div>
+                <label
+                  style={{ color: secondaryTextColor }}
+                  className="block text-sm font-medium mb-1"
+                >
+                  Proceso
+                </label>
+                <SearchableSelect
+                  options={filteredProcesos}
+                  value={formData.proceso_id || 0}
+                  onChange={(id) =>
+                    onInputChange({
+                      target: { name: 'proceso_id', value: String(id) },
+                    } as React.ChangeEvent<HTMLInputElement>)
+                  }
+                  label="Selecciona un Proceso"
+                  showId={false}
+                  inputBg={inputBgColor}
+                  inputBorder={inputBorderColor}
+                  textColor={textColor}
+                  secondaryTextColor={secondaryTextColor}
+                  disabled={!formData.centroCosto_id}
+                />
+              </div>
+
+              <div>
+                <label
+                  style={{ color: secondaryTextColor }}
+                  className="block text-sm font-medium mb-1"
+                >
+                  Máquina
+                </label>
+                <SearchableSelect
+                  options={filteredMaquinas}
+                  value={formData.maquina_id || 0}
+                  onChange={(id) =>
+                    onInputChange({
+                      target: { name: 'maquina_id', value: String(id) },
+                    } as React.ChangeEvent<HTMLInputElement>)
+                  }
+                  label="Selecciona una Máquina"
+                  showId={false}
+                  inputBg={inputBgColor}
+                  inputBorder={inputBorderColor}
+                  textColor={textColor}
+                  secondaryTextColor={secondaryTextColor}
+                  disabled={!formData.proceso_id}
+                />
+              </div>
+
+              {renderFormField('Correlativo', 'correlativo', 'number')}
+              <p className="text-xs text-slate-500">
+                Si dejas este campo vacío, el sistema asignará el siguiente
+                correlativo disponible para la máquina.
+              </p>
+              {buildPreviewCode() && (
+                <p className="text-xs text-slate-500">
+                  Código compuesto: <strong>{buildPreviewCode()}</strong>
+                </p>
+              )}
             </form>
           )}
 
           {mode === 'view' && selectedSubUnidad && !showDeleteConfirm && (
             <div className="space-y-2 text-sm">
               <p>
-                <strong style={{ color: secondaryTextColor }}>ID:</strong>{' '}
-                <span style={{ color: textColor }}>{selectedSubUnidad.id}</span>
+                <strong style={{ color: secondaryTextColor }}>Código:</strong>{' '}
+                <span style={{ color: textColor }}>
+                  {buildSubUnidadCode(selectedSubUnidad) ||
+                    `ID ${selectedSubUnidad.id}`}
+                </span>
               </p>
               <p>
                 <strong style={{ color: secondaryTextColor }}>
@@ -159,10 +327,35 @@ export const SubUnidadModal: React.FC<SubUnidadModalProps> = ({
               </p>
               <p>
                 <strong style={{ color: secondaryTextColor }}>
-                  ID Máquina:
+                  Centro de Costo:
                 </strong>{' '}
                 <span style={{ color: textColor }}>
-                  {selectedSubUnidad.maquina_id}
+                  {centrosCosto.find(
+                    (cc) =>
+                      cc.id ===
+                      maquinas.find(
+                        (m) => m.id === selectedSubUnidad.maquina_id,
+                      )?.centroCosto,
+                  )?.name || 'N/A'}
+                </span>
+              </p>
+              <p>
+                <strong style={{ color: secondaryTextColor }}>Proceso:</strong>{' '}
+                <span style={{ color: textColor }}>
+                  {procesos.find(
+                    (p) =>
+                      p.id ===
+                      maquinas.find(
+                        (m) => m.id === selectedSubUnidad.maquina_id,
+                      )?.proceso,
+                  )?.name || 'N/A'}
+                </span>
+              </p>
+              <p>
+                <strong style={{ color: secondaryTextColor }}>Máquina:</strong>{' '}
+                <span style={{ color: textColor }}>
+                  {maquinas.find((m) => m.id === selectedSubUnidad.maquina_id)
+                    ?.name || selectedSubUnidad.maquina_id}
                 </span>
               </p>
               <p>

@@ -39,13 +39,26 @@ interface OtModalProps {
   onEditMode: () => void;
   tiposMantenimiento: { id: number; nombre: string }[];
   centrosCosto: { id: number; nombre: string }[];
-  procesos: { id: number; nombre: string }[];
-  maquinas: { id: number; nombre: string }[];
+  procesos: {
+    id: number;
+    nombre: string;
+    centroCosto_id?: number;
+  }[];
+  maquinas: {
+    id: number;
+    nombre: string;
+    proceso_id?: number;
+    centroCosto_id?: number;
+  }[];
   tecnicos: { id: number; nombre: string }[];
   departamentos: { id: number; nombre: string }[];
   objetos: { id: number; nombre: string }[];
   supervisores: { id: number; nombre: string }[];
-  subUnidades: { id: number; nombre: string }[];
+  subUnidades: {
+    id: number;
+    nombre: string;
+    maquina_id?: number;
+  }[];
 }
 
 export const OtModal: React.FC<OtModalProps> = ({
@@ -100,6 +113,31 @@ export const OtModal: React.FC<OtModalProps> = ({
   const deleteColor = '#E53935';
   const deleteHoverColor = '#B71C1C';
 
+  const formCentroCostoId =
+    formData.centroCosto_id ?? selectedOT?.centroCosto_id ?? undefined;
+  const formProcesoId =
+    formData.proceso_id ?? selectedOT?.proceso_id ?? undefined;
+  const formMaquinaId =
+    formData.maquina_id ?? selectedOT?.maquina_id ?? undefined;
+
+  const filteredProcesos = procesos.filter(
+    (process) =>
+      typeof formCentroCostoId === 'undefined' ||
+      process.centroCosto_id === formCentroCostoId,
+  );
+
+  const filteredMaquinas = maquinas.filter(
+    (machine) =>
+      typeof formProcesoId === 'undefined' ||
+      machine.proceso_id === formProcesoId,
+  );
+
+  const filteredSubUnidades = subUnidades.filter(
+    (subUnidad) =>
+      typeof formMaquinaId === 'undefined' ||
+      subUnidad.maquina_id === formMaquinaId,
+  );
+
   // Filtrar técnicos por ID de búsqueda - mostrar todos si no hay búsqueda
   const filteredTecnicos = tecnicoSearchId
     ? tecnicos.filter((t) =>
@@ -130,11 +168,11 @@ export const OtModal: React.FC<OtModalProps> = ({
     type: string = 'text',
     required = false,
   ) => (
-    <div>
+    <div className="space-y-1">
       <label
         htmlFor={name}
         style={{ color: secondaryTextColor }}
-        className="block text-sm font-medium mb-1"
+        className="block text-sm font-medium"
       >
         {label}
       </label>
@@ -163,17 +201,49 @@ export const OtModal: React.FC<OtModalProps> = ({
     </div>
   );
 
+  const renderTextAreaField = (
+    label: string,
+    name: keyof OrdenTrabajoFormData,
+    required = false,
+  ) => (
+    <div className="space-y-1">
+      <label
+        htmlFor={name}
+        style={{ color: secondaryTextColor }}
+        className="block text-sm font-medium"
+      >
+        {label}
+      </label>
+      <textarea
+        name={name}
+        id={name}
+        value={typeof formData[name] === 'string' ? formData[name] : ''}
+        onChange={onInputChange}
+        required={required}
+        rows={4}
+        style={{
+          backgroundColor: inputBgColor,
+          borderColor: inputBorderColor,
+          color: textColor,
+          minHeight: 110,
+        }}
+        className="w-full px-3 py-2 rounded border focus:outline-none focus:ring-1 resize-none"
+      />
+    </div>
+  );
+
   const renderSelectField = (
     label: string,
     name: keyof OrdenTrabajoFormData,
     options: { id: string | number; label: string }[],
     required = false,
+    disabled = false,
   ) => (
-    <div>
+    <div className="space-y-1">
       <label
         htmlFor={name}
         style={{ color: secondaryTextColor }}
-        className="block text-sm font-medium mb-1"
+        className="block text-sm font-medium"
       >
         {label}
         {options.length === 0 && (
@@ -194,12 +264,12 @@ export const OtModal: React.FC<OtModalProps> = ({
         }
         onChange={onInputChange}
         required={required}
-        disabled={options.length === 0}
+        disabled={disabled || options.length === 0}
         style={{
           backgroundColor: inputBgColor,
           borderColor: inputBorderColor,
           color: textColor,
-          opacity: options.length === 0 ? 0.6 : 1,
+          opacity: disabled || options.length === 0 ? 0.6 : 1,
         }}
         className="w-full px-3 py-2 rounded border focus:outline-none focus:ring-1"
       >
@@ -297,106 +367,126 @@ export const OtModal: React.FC<OtModalProps> = ({
         <div className="flex-grow overflow-y-auto pr-2">
           {(mode === 'create' || mode === 'edit') && (
             <form onSubmit={(e) => e.preventDefault()} className="space-y-3">
-              {renderSelectField(
-                'Tipo de Mantenimiento',
-                'tipoOT_id',
-                tiposMantenimiento.map((t) => ({
-                  id: t.id,
-                  label: `${t.id} - ${t.nombre}`,
-                })),
-                true,
-              )}
-              {renderSelectField(
-                'Centro de Costo',
-                'centroCosto_id',
-                centrosCosto.map((c) => ({
-                  id: c.id,
-                  label: `${c.id} - ${c.nombre}`,
-                })),
-                true,
-              )}
-              {renderSelectField(
-                'Proceso',
-                'proceso_id',
-                procesos.map((p) => ({
-                  id: p.id,
-                  label: `${p.id} - ${p.nombre}`,
-                })),
-                true,
-              )}
-              {renderSelectField(
-                'Máquina',
-                'maquina_id',
-                maquinas.map((m) => ({
-                  id: m.id,
-                  label: `${m.id} - ${m.nombre}`,
-                })),
-                true,
-              )}
-              {renderSelectField(
-                'Departamento',
-                'departamento_id',
-                departamentos.map((d) => ({
-                  id: d.id,
-                  label: `${d.id} - ${d.nombre}`,
-                })),
-                true,
-              )}
-              {renderSelectField(
-                'Objeto',
-                'objeto_id',
-                objetos.map((o) => ({
-                  id: o.id,
-                  label: `${o.id} - ${o.nombre}`,
-                })),
-                true,
-              )}
-              {renderSelectField(
-                'Supervisor',
-                'supervisor_id',
-                supervisores.map((s) => ({
-                  id: s.id,
-                  label: `${s.id} - ${s.nombre}`,
-                })),
-                true,
-              )}
-              {renderSelectField(
-                'Sub Unidad',
-                'subUnidad_id',
-                subUnidades.map((su) => ({
-                  id: su.id,
-                  label: `${su.id} - ${su.nombre}`,
-                })),
-                false,
-              )}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="space-y-3">
+                  {renderSelectField(
+                    'Tipo de Mantenimiento',
+                    'tipoOT_id',
+                    tiposMantenimiento.map((t) => ({
+                      id: t.id,
+                      label: `${t.id} - ${t.nombre}`,
+                    })),
+                    true,
+                  )}
+                  {renderSelectField(
+                    'Centro de Costo',
+                    'centroCosto_id',
+                    centrosCosto.map((c) => ({
+                      id: c.id,
+                      label: `${c.id} - ${c.nombre}`,
+                    })),
+                    true,
+                  )}
+                  {renderSelectField(
+                    'Proceso',
+                    'proceso_id',
+                    filteredProcesos.map((p) => ({
+                      id: p.id,
+                      label: `${p.id} - ${p.nombre}`,
+                    })),
+                    true,
+                    typeof formCentroCostoId === 'undefined',
+                  )}
+                  {renderSelectField(
+                    'Máquina',
+                    'maquina_id',
+                    filteredMaquinas.map((m) => ({
+                      id: m.id,
+                      label: `${m.id} - ${m.nombre}`,
+                    })),
+                    true,
+                    typeof formProcesoId === 'undefined',
+                  )}
+                  {renderSelectField(
+                    'Sub Unidad',
+                    'subUnidad_id',
+                    filteredSubUnidades.map((su) => ({
+                      id: su.id,
+                      label: `${su.id} - ${su.nombre}`,
+                    })),
+                    false,
+                    typeof formMaquinaId === 'undefined',
+                  )}
+                </div>
+                <div className="space-y-3">
+                  {renderSelectField(
+                    'Departamento',
+                    'departamento_id',
+                    departamentos.map((d) => ({
+                      id: d.id,
+                      label: `${d.id} - ${d.nombre}`,
+                    })),
+                    true,
+                  )}
+                  {renderSelectField(
+                    'Objeto',
+                    'objeto_id',
+                    objetos.map((o) => ({
+                      id: o.id,
+                      label: `${o.id} - ${o.nombre}`,
+                    })),
+                    true,
+                  )}
+                  {renderSelectField(
+                    'Supervisor',
+                    'supervisor_id',
+                    supervisores.map((s) => ({
+                      id: s.id,
+                      label: `${s.id} - ${s.nombre}`,
+                    })),
+                    true,
+                  )}
+                  {renderSelectField(
+                    'Estado',
+                    'estado',
+                    [
+                      { id: 'Abierta', label: 'Abierta' },
+                      { id: 'En Progreso', label: 'En Progreso' },
+                      { id: 'Cerrada', label: 'Cerrada' },
+                    ],
+                    true,
+                  )}
+                  {renderFormField(
+                    'Tipo de Cambio',
+                    'tipoCambio',
+                    'number',
+                    false,
+                  )}
+                  {renderFormField(
+                    'Tiempo Estimado',
+                    'tiempoEstimado',
+                    'number',
+                    true,
+                  )}
+                  {renderFormField(
+                    'Fecha y Hora',
+                    'fechaHora',
+                    'datetime-local',
+                    true,
+                  )}
+                </div>
+              </div>
+
               {renderFormField(
                 'Descripción de la Tarea',
                 'descripcionTarea',
                 'text',
                 true,
               )}
-              {renderFormField(
-                'Fecha y Hora',
-                'fechaHora',
-                'datetime-local',
-                true,
-              )}
-              {renderFormField('Tipo de Cambio', 'tipoCambio', 'number', true)}
-              {renderSelectField(
-                'Estado',
-                'estado',
-                [
-                  { id: 'Abierta', label: 'Abierta' },
-                  { id: 'En Progreso', label: 'En Progreso' },
-                  { id: 'Cerrada', label: 'Cerrada' },
-                ],
-                true,
-              )}
-              {renderFormField(
-                'Tiempo Estimado',
-                'tiempoEstimado',
-                'number',
-                true,
+              {renderTextAreaField(
+                'Indicaciones Especiales',
+                'indicacionesEspeciales',
+                false,
               )}
 
               {/* Sección de Técnicos con búsqueda por ID */}
@@ -687,6 +777,27 @@ export const OtModal: React.FC<OtModalProps> = ({
                   }}
                 >
                   {selectedOT.descripcionTarea || '—'}
+                </p>
+              </div>
+
+              {/* Indicaciones especiales */}
+              <div>
+                <p>
+                  <strong style={{ color: secondaryTextColor }}>
+                    Indicaciones Especiales:
+                  </strong>
+                </p>
+                <p
+                  style={{
+                    backgroundColor: inputBgColor,
+                    padding: '8px',
+                    borderRadius: '4px',
+                    marginTop: '4px',
+                    whiteSpace: 'pre-wrap',
+                    wordBreak: 'break-word',
+                  }}
+                >
+                  {selectedOT.indicacionesEspeciales || '—'}
                 </p>
               </div>
 

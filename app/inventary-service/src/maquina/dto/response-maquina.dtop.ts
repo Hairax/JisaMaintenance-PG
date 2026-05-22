@@ -11,6 +11,7 @@ export class ResponseMaquinaDto {
   centroCosto_id: number;
   proceso_id: number;
   proveedor_id: number;
+  correlativo?: number;
   createdAt: Date;
   updatedAt: Date;
 }

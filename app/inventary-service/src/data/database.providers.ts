@@ -10,6 +10,8 @@ import { Compra } from '../compra/entities/compra.entity';
 import { CompraDetalle } from '../compra/entities/compra-detalle.entity';
 import { Salida } from '../salida/entities/salida.entity';
 import { SalidaDetalle } from '../salida/entities/salida-detalle.entity';
+import { UnidadMedida } from '../unidades-medida/entities/unidad-medida.entity';
+import { Almacen } from 'src/almacen/entities/almacen.entity';
 
 export const databaseProviders = [
   {
@@ -34,6 +36,8 @@ export const databaseProviders = [
           CompraDetalle,
           Salida,
           SalidaDetalle,
+          UnidadMedida,
+          Almacen,
         ],
         synchronize: true,
       });

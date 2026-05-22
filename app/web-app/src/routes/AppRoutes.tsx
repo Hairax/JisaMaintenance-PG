@@ -12,8 +12,6 @@ import { ObjetoPage } from '../features/objeto/page/objetoPage';
 import { OtPage } from '../features/ot/page/otPage';
 import { ProcessPage } from '../features/process/page/processPage';
 import { ProovedoresPage } from '../features/proveedores-management/page/proovedoresPage';
-import { RepuestoPage } from '../features/repuesto/page/repuestoPage';
-import { RepuestoMaquinaPage } from '../features/repuesto-maquina/page/repuestoMaquinaPage';
 import { SubUnidadPage } from '../features/subUnidad/page/subUnidadPage';
 import { TipoMantenimientoPage } from '../features/tipoMantenimiento/page/tipoMantenimientoPage';
 import { InformePage } from '../features/informe/page/informePage';
@@ -64,8 +62,6 @@ export const AppRoutes = () => {
         <Route path="/ot" element={<OtPage />} />
         <Route path="/process" element={<ProcessPage />} />
         <Route path="/proveedores" element={<ProovedoresPage />} />
-        <Route path="/repuesto" element={<RepuestoPage />} />
-        <Route path="/repuesto-maquina" element={<RepuestoMaquinaPage />} />
         <Route path="/subunidad" element={<SubUnidadPage />} />
         <Route path="/tipo-mantenimiento" element={<TipoMantenimientoPage />} />
         <Route path="/informe" element={<InformePage />} />

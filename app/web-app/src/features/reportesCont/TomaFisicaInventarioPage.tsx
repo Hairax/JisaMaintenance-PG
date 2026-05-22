@@ -5,6 +5,8 @@ const API = 'http://localhost:3000';
 
 interface Repuesto {
   id: number;
+  tipo: 'NORMAL' | 'LIBRE';
+  codigoPersonalizado?: string;
   nombre: string;
   cantidad: number;
   costoUnitario: number;

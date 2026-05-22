@@ -2,6 +2,7 @@ export interface SubUnidad {
   id: number;
   descripcion: string;
   maquina_id: number;
+  correlativo?: number;
   createdAt: string; // Usualmente los dates llegan como string ISO desde el backend
   updatedAt: string;
 }
@@ -13,6 +14,8 @@ export type SubUnidadFormData = Omit<
   id?: number;
   createdAt?: string;
   updatedAt?: string;
+  centroCosto_id?: number;
+  proceso_id?: number;
 };
 
 export type ModalMode = 'view' | 'edit' | 'create';

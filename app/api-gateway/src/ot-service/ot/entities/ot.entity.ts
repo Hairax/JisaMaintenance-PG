@@ -20,6 +20,7 @@ export class OrdenTrabajoResponse {
   tiempoEstimado?: number;
   supervisor: UserDto;
   descripcionTarea: string;
+  indicacionesEspeciales?: string;
   fechaHora: Date;
   tipoCambio: number;
   estado: string; // Abierta | En Progreso Técnico | En Progreso Almacén | Cerrada

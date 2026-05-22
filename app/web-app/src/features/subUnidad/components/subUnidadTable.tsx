@@ -2,6 +2,22 @@ import React from 'react';
 import { SubUnidad } from '../types/subUnidad.types';
 import { FaPlus } from 'react-icons/fa';
 
+export interface SelectOption {
+  id: number;
+  name: string;
+}
+
+export interface ProcessOption extends SelectOption {
+  centroCosto: number;
+  correlativo?: number;
+}
+
+export interface MachineOption extends SelectOption {
+  centroCosto: number;
+  proceso: number;
+  correlativo?: number;
+}
+
 const colors = {
   brown: '#9E5533',
   beige: '#E1CD9B',
@@ -14,6 +30,9 @@ const colors = {
 
 interface SubUnidadTableProps {
   subUnidades: SubUnidad[];
+  centrosCosto: SelectOption[];
+  procesos: ProcessOption[];
+  maquinas: MachineOption[];
   theme: string;
   onAddSubUnidad: () => void;
   onViewSubUnidad: (subUnidad: SubUnidad) => void;
@@ -23,6 +42,9 @@ interface SubUnidadTableProps {
 
 export const SubUnidadTable: React.FC<SubUnidadTableProps> = ({
   subUnidades,
+  centrosCosto,
+  procesos,
+  maquinas,
   theme,
   onAddSubUnidad,
   onViewSubUnidad,
@@ -92,9 +114,9 @@ export const SubUnidadTable: React.FC<SubUnidadTableProps> = ({
               }}
             >
               <tr>
-                <th className="p-3 text-left font-semibold">ID</th>
+                <th className="p-3 text-left font-semibold">Código</th>
                 <th className="p-3 text-left font-semibold">Descripción</th>
-                <th className="p-3 text-left font-semibold">ID Máquina</th>
+                <th className="p-3 text-left font-semibold">Máquina</th>
                 <th className="p-3 text-left font-semibold">Creado</th>
                 <th className="p-3 text-left font-semibold">Actualizado</th>
               </tr>
@@ -107,25 +129,48 @@ export const SubUnidadTable: React.FC<SubUnidadTableProps> = ({
               }}
               className="divide-y"
             >
-              {subUnidades.map((subUnidad) => (
-                <tr
-                  key={subUnidad.id}
-                  onClick={() => onViewSubUnidad(subUnidad)}
-                  className="cursor-pointer transition duration-150 ease-in-out"
-                  onMouseOver={(e) => {
-                    e.currentTarget.style.backgroundColor = hoverBgColor;
-                  }}
-                  onMouseOut={(e) => {
-                    e.currentTarget.style.backgroundColor = '';
-                  }}
-                >
-                  <td className="p-3">{subUnidad.id}</td>
-                  <td className="p-3">{subUnidad.descripcion}</td>
-                  <td className="p-3">{subUnidad.maquina_id}</td>
-                  <td className="p-3">{subUnidad.createdAt}</td>
-                  <td className="p-3">{subUnidad.updatedAt}</td>
-                </tr>
-              ))}
+              {subUnidades.map((subUnidad) => {
+                const machine = maquinas.find(
+                  (m) => m.id === subUnidad.maquina_id,
+                );
+                const process = procesos.find((p) => p.id === machine?.proceso);
+                const code =
+                  machine &&
+                  process &&
+                  subUnidad.correlativo != null &&
+                  process.correlativo != null &&
+                  machine.correlativo != null
+                    ? `${machine.centroCosto}.${String(
+                        process.correlativo,
+                      ).padStart(2, '0')}.${String(
+                        machine.correlativo,
+                      ).padStart(2, '0')}.${String(
+                        subUnidad.correlativo,
+                      ).padStart(2, '0')}`
+                    : `ID ${subUnidad.id}`;
+
+                return (
+                  <tr
+                    key={subUnidad.id}
+                    onClick={() => onViewSubUnidad(subUnidad)}
+                    className="cursor-pointer transition duration-150 ease-in-out"
+                    onMouseOver={(e) => {
+                      e.currentTarget.style.backgroundColor = hoverBgColor;
+                    }}
+                    onMouseOut={(e) => {
+                      e.currentTarget.style.backgroundColor = '';
+                    }}
+                  >
+                    <td className="p-3">{code}</td>
+                    <td className="p-3">{subUnidad.descripcion}</td>
+                    <td className="p-3">
+                      {machine?.name || subUnidad.maquina_id}
+                    </td>
+                    <td className="p-3">{subUnidad.createdAt}</td>
+                    <td className="p-3">{subUnidad.updatedAt}</td>
+                  </tr>
+                );
+              })}
               {subUnidades.length === 0 && !loading && (
                 <tr>
                   <td

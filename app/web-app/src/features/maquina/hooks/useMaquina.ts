@@ -7,9 +7,28 @@ import {
 
 const API_BASE_URL = 'http://localhost:3000';
 
+export interface SelectOption {
+  id: number;
+  name: string;
+}
+
+export interface ProcessOption extends SelectOption {
+  centroCosto: number;
+  correlativo?: number;
+}
+
+interface ExtendedMaquinaState extends MaquinaManagementState {
+  centrosCosto: SelectOption[];
+  procesos: ProcessOption[];
+  proveedores: SelectOption[];
+}
+
 export const useMaquina = () => {
-  const [state, setState] = useState<MaquinaManagementState>({
+  const [state, setState] = useState<ExtendedMaquinaState>({
     maquinas: [],
+    centrosCosto: [],
+    procesos: [],
+    proveedores: [],
     loading: true,
     error: null,
     isModalOpen: false,
@@ -47,13 +66,72 @@ export const useMaquina = () => {
     }
   }, []);
 
+  // Fetch Centro de Costos
+  const fetchCentrosCosto = useCallback(async () => {
+    try {
+      const res = await fetch(`${API_BASE_URL}/cost-centers`);
+      if (!res.ok) throw new Error('Error al cargar centros de costo');
+      const data = await res.json();
+      setState((prev) => ({ ...prev, centrosCosto: data }));
+    } catch (err) {
+      console.error('Error loading cost centers:', err);
+    }
+  }, []);
+
+  const formatProcessName = (process: any) => {
+    const correlativo = process.correlativo;
+    const prefix =
+      correlativo !== undefined && correlativo !== null
+        ? String(correlativo).padStart(2, '0')
+        : '??';
+    return `${prefix} - ${process.name}`;
+  };
+
+  // Fetch Procesos
+  const fetchProcesos = useCallback(async () => {
+    try {
+      const res = await fetch(`${API_BASE_URL}/process`);
+      if (!res.ok) throw new Error('Error al cargar procesos');
+      const data = await res.json();
+      const procesos = data.map((process: any) => ({
+        id: process.id,
+        name: formatProcessName(process),
+        centroCosto: process.centroCosto,
+        correlativo: process.correlativo,
+      }));
+      setState((prev) => ({ ...prev, procesos }));
+    } catch (err) {
+      console.error('Error loading processes:', err);
+    }
+  }, []);
+
+  // Fetch Proveedores
+  const fetchProveedores = useCallback(async () => {
+    try {
+      const res = await fetch(`${API_BASE_URL}/proveedores`);
+      if (!res.ok) throw new Error('Error al cargar proveedores');
+      const data = await res.json();
+      // Transformar 'nombre' a 'name' para compatibilidad con SearchableSelect
+      const transformedData = data.map((proveedor: any) => ({
+        id: proveedor.id,
+        name: proveedor.nombre,
+      }));
+      setState((prev) => ({ ...prev, proveedores: transformedData }));
+    } catch (err) {
+      console.error('Error loading providers:', err);
+    }
+  }, []);
+
   useEffect(() => {
     fetchMaquinas();
+    fetchCentrosCosto();
+    fetchProcesos();
+    fetchProveedores();
     return () => {
       if (countdownIntervalRef.current)
         clearInterval(countdownIntervalRef.current);
     };
-  }, [fetchMaquinas]);
+  }, [fetchMaquinas, fetchCentrosCosto, fetchProcesos, fetchProveedores]);
 
   const handleOpenModal = (mode: ModalMode, maquina: Maquina | null = null) => {
     setState((prev) => ({
@@ -82,10 +160,23 @@ export const useMaquina = () => {
   };
 
   const handleInputChange = (name: string, value: unknown) => {
-    setState((prev) => ({
-      ...prev,
-      formData: { ...prev.formData, [name]: value },
-    }));
+    setState((prev) => {
+      const updatedFormData = { ...prev.formData, [name]: value };
+
+      if (name === 'centroCosto_id' && updatedFormData.proceso_id) {
+        const selectedProceso = prev.procesos.find(
+          (process) => process.id === Number(updatedFormData.proceso_id),
+        );
+        if (selectedProceso?.centroCosto !== Number(value)) {
+          updatedFormData.proceso_id = undefined;
+        }
+      }
+
+      return {
+        ...prev,
+        formData: updatedFormData,
+      };
+    });
   };
 
   const handleCreateMaquina = async () => {

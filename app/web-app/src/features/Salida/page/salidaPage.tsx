@@ -2,6 +2,10 @@ import React, { useEffect, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { useTheme } from '../../../shared/contexts/ThemeContext';
 import { salidaService } from '../services/salida.service';
+import {
+  SearchableSelect,
+  SearchableOption,
+} from '../../../shared/components/SearchableSelect';
 import { FaPlus, FaSave, FaTrash } from 'react-icons/fa';
 
 interface Usuario {
@@ -22,9 +26,12 @@ interface OT {
 
 interface Repuesto {
   id: number;
+  tipo: 'NORMAL' | 'LIBRE';
+  codigoPersonalizado: string;
   nombre: string;
   uMedida: string;
   costoUnitario: number;
+  costoUnitarioPonderado?: number;
   correlativo: number;
   centroCosto_id: number;
   proceso_id: number;
@@ -72,6 +79,7 @@ interface Producto {
   unidadMedida: string;
   cantidad: number;
   precioUnitario: number;
+  stockActual: number;
 }
 
 interface SalidaDetalleApi {
@@ -103,15 +111,6 @@ const colors = {
   lightText: '#FFFFFF',
 };
 
-const EMPTY_PRODUCTO: Producto = {
-  repuestoId: '',
-  codigo: '',
-  nombre: '',
-  unidadMedida: '',
-  cantidad: 0,
-  precioUnitario: 0,
-};
-
 const EMPTY_FILTER: RowFilter = {
   ccId: '',
   procId: '',
@@ -124,7 +123,25 @@ function padId(n: number, digits: number) {
   return String(n).padStart(digits, '0');
 }
 
+function formatDateForInput(value?: string | Date): string {
+  if (!value) return '';
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return '';
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  const day = String(date.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
+}
+
+function formatLocalDateToIso(dateString: string): string {
+  if (!dateString) return '';
+  return new Date(`${dateString}T00:00:00`).toISOString();
+}
+
 function getCompositeId(r: Repuesto): string {
+  if (r.tipo === 'LIBRE') {
+    return r.codigoPersonalizado || String(r.id);
+  }
   return [
     r.centroCosto_id ? String(r.centroCosto_id) : '',
     r.proceso_id ? String(r.proceso_id) : '',
@@ -170,12 +187,7 @@ export default function SalidaPage() {
   const [observacion, setObservacion] = useState('');
   const [almacen, setAlmacen] = useState('');
 
-  const [userSearch, setUserSearch] = useState('');
-  const [otSearch, setOtSearch] = useState('');
-
-  const [productos, setProductos] = useState<Producto[]>([
-    { ...EMPTY_PRODUCTO },
-  ]);
+  const [productos, setProductos] = useState<Producto[]>([]);
   const [usuarios, setUsuarios] = useState<Usuario[]>([]);
   const [ots, setOts] = useState<OT[]>([]);
   const [repuestos, setRepuestos] = useState<Repuesto[]>([]);
@@ -183,12 +195,24 @@ export default function SalidaPage() {
   const [processes, setProcesses] = useState<Process[]>([]);
   const [maquinas, setMaquinas] = useState<Maquina[]>([]);
   const [subUnidades, setSubUnidades] = useState<SubUnidad[]>([]);
-  const [rowFilters, setRowFilters] = useState<RowFilter[]>([
-    { ...EMPTY_FILTER },
-  ]);
+  const [searchFilter, setSearchFilter] = useState('');
+  const [ccId, setCcId] = useState('');
+  const [procId, setProcId] = useState('');
+  const [maqId, setMaqId] = useState('');
+  const [subId, setSubId] = useState('');
+  const [showStockModal, setShowStockModal] = useState(false);
 
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  const [stockResults, setStockResults] = useState<
+    {
+      codigo: string;
+      nombre: string;
+      stockAnterior: number;
+      cantidadNueva: number;
+      stockNuevo: number;
+    }[]
+  >([]);
 
   useEffect(() => {
     const loadData = async () => {
@@ -228,7 +252,7 @@ export default function SalidaPage() {
           setUsuarioId(String(salida.usuarioId || ''));
           setOtId(String(salida.otId || ''));
           if (salida.fecha) {
-            setFecha(new Date(salida.fecha).toISOString().split('T')[0]);
+            setFecha(formatDateForInput(salida.fecha));
           }
           setObservacion(salida.observacion || '');
           setAlmacen(salida.almacen || '');
@@ -246,10 +270,10 @@ export default function SalidaPage() {
                   unidadMedida: d.unidadMedida || repuesto?.uMedida || 'UN',
                   cantidad: Number(d.cantidad),
                   precioUnitario: Number(d.precioUnitario),
+                  stockActual: repuesto ? repuesto.cantidad : 0,
                 };
               }),
             );
-            setRowFilters(salida.detalles.map(() => ({ ...EMPTY_FILTER })));
           }
         }
       } catch (err) {
@@ -270,87 +294,50 @@ export default function SalidaPage() {
   ) => {
     const next = [...productos];
 
-    if (field === 'repuestoId') {
-      if (
-        value &&
-        productos.some((p, j) => j !== index && p.repuestoId === String(value))
-      ) {
-        setError('Este repuesto ya fue agregado en la salida');
-        return;
-      }
-      setError('');
-      const selected = repuestos.find((r) => r.id === Number(value));
-      if (selected) {
-        next[index] = {
-          ...next[index],
-          repuestoId: String(value),
-          codigo: getCompositeId(selected),
-          nombre: selected.nombre,
-          unidadMedida: selected.uMedida || 'UN',
-          precioUnitario: Number(selected.costoUnitario) || 0,
-        };
-      } else {
-        next[index] = {
-          ...next[index],
-          repuestoId: '',
-          codigo: '',
-          nombre: '',
-          unidadMedida: '',
-        };
-      }
-    } else if (field === 'cantidad' || field === 'precioUnitario') {
+    if (field === 'cantidad') {
       next[index] = { ...next[index], [field]: Number(value) };
-    } else {
-      next[index] = { ...next[index], [field]: String(value) } as Producto;
     }
 
     setProductos(next);
   };
 
-  const addProducto = () => {
-    setProductos([...productos, { ...EMPTY_PRODUCTO }]);
-    setRowFilters([...rowFilters, { ...EMPTY_FILTER }]);
+  const addRepuestoFromSearch = (repuestoId: string) => {
+    if (!repuestoId) return;
+    if (productos.some((p) => p.repuestoId === repuestoId)) {
+      setError('Este repuesto ya fue agregado en la salida');
+      return;
+    }
+    setError('');
+    const selected = repuestos.find((r) => r.id === Number(repuestoId));
+    if (selected) {
+      const newProducto: Producto = {
+        repuestoId: String(repuestoId),
+        codigo: getCompositeId(selected),
+        nombre: selected.nombre,
+        unidadMedida: selected.uMedida || 'UN',
+        cantidad: 1,
+        precioUnitario:
+          Number(selected.costoUnitarioPonderado || selected.costoUnitario) ||
+          0,
+        stockActual: selected.cantidad,
+      };
+      setProductos([...productos, newProducto]);
+    }
   };
 
   const removeProducto = (index: number) => {
     setProductos(productos.filter((_, i) => i !== index));
-    setRowFilters(rowFilters.filter((_, i) => i !== index));
   };
 
-  const handleRowFilter = (
-    index: number,
-    field: keyof RowFilter,
-    value: string,
-  ) => {
-    const next = [...rowFilters];
-    const updated = { ...next[index], [field]: value };
+  const getFilteredRepuestos = () => {
+    return repuestos.filter((r) => {
+      if (ccId && String(r.centroCosto_id) !== ccId) return false;
+      if (procId && String(r.proceso_id) !== procId) return false;
+      if (maqId && String(r.maquina_id) !== maqId) return false;
+      if (subId && String(r.subUnidad_id) !== subId) return false;
 
-    if (field === 'ccId') {
-      updated.procId = '';
-      updated.maqId = '';
-      updated.subId = '';
-    }
-    if (field === 'procId') {
-      updated.maqId = '';
-      updated.subId = '';
-    }
-    if (field === 'maqId') {
-      updated.subId = '';
-    }
-
-    next[index] = updated;
-    setRowFilters(next);
-  };
-
-  const getFilteredRepuestos = (filter: RowFilter) =>
-    repuestos.filter((r) => {
-      if (filter.ccId && String(r.centroCosto_id) !== filter.ccId) return false;
-      if (filter.procId && String(r.proceso_id) !== filter.procId) return false;
-      if (filter.maqId && String(r.maquina_id) !== filter.maqId) return false;
-      if (filter.subId && String(r.subUnidad_id) !== filter.subId) return false;
-
-      if (filter.search) {
-        const s = filter.search.toLowerCase();
+      if (searchFilter) {
+        const s = searchFilter.toLowerCase();
         return (
           getCompositeId(r).toLowerCase().includes(s) ||
           r.nombre.toLowerCase().includes(s) ||
@@ -359,45 +346,49 @@ export default function SalidaPage() {
       }
       return true;
     });
-
-  const calcularTotales = () => {
-    let subtotal = 0;
-    productos.forEach((p) => {
-      subtotal += Number(p.cantidad) * Number(p.precioUnitario);
-    });
-    return { subtotal, total: subtotal };
   };
 
-  const { subtotal, total } = calcularTotales();
+  const calcularTotales = () => {
+    let total = 0;
+    productos.forEach((p) => {
+      total += Number(p.cantidad) * Number(p.precioUnitario);
+    });
+    return { total };
+  };
 
-  const filteredUsuarios = usuarios.filter((u) => {
-    if (!userSearch.trim()) return true;
-    const q = userSearch.toLowerCase();
-    return (
-      String(u.id).includes(q) || getUsuarioName(u).toLowerCase().includes(q)
-    );
-  });
+  const { total } = calcularTotales();
 
-  const filteredOts = ots.filter((o) => {
-    if (!otSearch.trim()) return true;
-    const q = otSearch.toLowerCase();
-    return String(o.id).includes(q) || getOtName(o).toLowerCase().includes(q);
-  });
+  const filteredUsuarios = usuarios;
+
+  const filteredOts = ots.map((o) => ({
+    id: o.id,
+    name: getOtName(o),
+  }));
 
   const handleGuardarSalida = async () => {
-    if (!usuarioId || !otId || !fecha || productos.length === 0) {
-      setError('Por favor completa todos los campos obligatorios');
+    if (productos.length === 0) {
+      setError('Debe agregar al menos un repuesto');
       return;
     }
 
-    if (productos.some((p) => !p.repuestoId || Number(p.cantidad) <= 0)) {
-      setError('Cada detalle debe tener un repuesto y cantidad mayor a 0');
+    if (productos.some((p) => Number(p.cantidad) <= 0)) {
+      setError('Cada detalle debe tener cantidad mayor a 0');
       return;
     }
 
     try {
       setLoading(true);
       setError('');
+
+      // Calculate stock results for modal
+      const stockResults = productos.map((p) => ({
+        codigo: p.codigo,
+        nombre: p.nombre,
+        stockAnterior: p.stockActual || 0,
+        cantidadNueva: Number(p.cantidad),
+        stockNuevo: (p.stockActual || 0) - Number(p.cantidad),
+      }));
+      setStockResults(stockResults);
 
       const detalles = productos.map((p) => ({
         repuestoId: Number(p.repuestoId),
@@ -406,12 +397,13 @@ export default function SalidaPage() {
         unidadMedida: p.unidadMedida,
         cantidad: Number(p.cantidad),
         precioUnitario: Number(p.precioUnitario),
+        stockActual: Number(p.stockActual),
       }));
 
       const payload = {
         usuarioId: Number(usuarioId),
         otId: Number(otId),
-        fecha: new Date(fecha).toISOString(),
+        fecha: formatLocalDateToIso(fecha),
         observacion: observacion || null,
         almacen: almacen || null,
         detalles,
@@ -432,20 +424,37 @@ export default function SalidaPage() {
       } else {
         alert(okMessage);
       }
-
+      setShowStockModal(true);
       setUsuarioId('');
       setOtId('');
       setFecha('');
       setObservacion('');
       setAlmacen('');
-      setProductos([{ ...EMPTY_PRODUCTO }]);
-      setRowFilters([{ ...EMPTY_FILTER }]);
-      setUserSearch('');
-      setOtSearch('');
+      setProductos([]);
     } catch (err) {
-      const msg = err instanceof Error ? err.message : String(err);
-      setError(`Error al guardar salida: ${msg}`);
-      console.error(err);
+      let errorMsg = 'Error al guardar salida';
+
+      // Intentar extraer el mensaje de error más específico
+      if (err instanceof Error) {
+        // Si es un error normal, usar su mensaje
+        errorMsg = err.message;
+      } else if (typeof err === 'object' && err !== null) {
+        // Si es un objeto, buscar propiedades comunes
+        const errObj = err as any;
+        if (errObj.error?.message) {
+          errorMsg = errObj.error.message;
+        } else if (errObj.message) {
+          errorMsg = errObj.message;
+        } else if (errObj.status === 'error' && errObj.details) {
+          errorMsg = errObj.details;
+        }
+      } else if (typeof err === 'string') {
+        errorMsg = err;
+      }
+
+      // Buscar si el mensaje contiene información de stock
+      setError(errorMsg);
+      console.error('Error al guardar salida:', err);
     } finally {
       setLoading(false);
     }
@@ -610,16 +619,6 @@ export default function SalidaPage() {
           </div>
 
           <div>
-            <label style={labelStyle}>Buscar Usuario</label>
-            <input
-              style={inputStyle}
-              placeholder="Buscar por ID o nombre"
-              value={userSearch}
-              onChange={(e) => setUserSearch(e.target.value)}
-            />
-          </div>
-
-          <div>
             <label style={labelStyle}>Usuario *</label>
             <select
               style={inputStyle}
@@ -636,29 +635,17 @@ export default function SalidaPage() {
           </div>
 
           <div>
-            <label style={labelStyle}>Buscar OT</label>
-            <input
-              style={inputStyle}
-              placeholder="Buscar por ID o nombre"
-              value={otSearch}
-              onChange={(e) => setOtSearch(e.target.value)}
-            />
-          </div>
-
-          <div>
             <label style={labelStyle}>OT *</label>
-            <select
-              style={inputStyle}
+            <SearchableSelect
+              options={filteredOts}
               value={otId}
-              onChange={(e) => setOtId(e.target.value)}
-            >
-              <option value="">Seleccione OT</option>
-              {filteredOts.map((o) => (
-                <option key={o.id} value={o.id}>
-                  {o.id} - {getOtName(o)}
-                </option>
-              ))}
-            </select>
+              onChange={(id) => setOtId(String(id))}
+              placeholder="Seleccione OT"
+              inputBg={inputBgColor}
+              inputBorder={inputBorderColor}
+              textColor={textColor}
+              secondaryTextColor={secondaryTextColor}
+            />
           </div>
 
           <div>
@@ -700,6 +687,127 @@ export default function SalidaPage() {
           </h3>
         </div>
 
+        <div
+          style={{
+            padding: '1rem',
+            display: 'grid',
+            gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))',
+            gap: '0.75rem',
+            borderBottom: `1px solid ${inputBorderColor}`,
+          }}
+        >
+          <div>
+            <label style={labelStyle}>Centro de Costo</label>
+            <select
+              style={inputStyle}
+              value={ccId}
+              onChange={(e) => {
+                setCcId(e.target.value);
+                setProcId('');
+                setMaqId('');
+                setSubId('');
+              }}
+            >
+              <option value="">Todos</option>
+              {costCenters.map((cc) => (
+                <option key={cc.id} value={cc.id}>
+                  {cc.name}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          <div>
+            <label style={labelStyle}>Proceso</label>
+            <select
+              style={inputStyle}
+              value={procId}
+              disabled={!ccId}
+              onChange={(e) => {
+                setProcId(e.target.value);
+                setMaqId('');
+                setSubId('');
+              }}
+            >
+              <option value="">Todos</option>
+              {processes
+                .filter((p) => !ccId || String(p.centroCosto) === ccId)
+                .map((p) => (
+                  <option key={p.id} value={p.id}>
+                    {p.name}
+                  </option>
+                ))}
+            </select>
+          </div>
+
+          <div>
+            <label style={labelStyle}>Maquina</label>
+            <select
+              style={inputStyle}
+              value={maqId}
+              disabled={!procId}
+              onChange={(e) => {
+                setMaqId(e.target.value);
+                setSubId('');
+              }}
+            >
+              <option value="">Todos</option>
+              {maquinas
+                .filter((m) => !procId || String(m.proceso_id) === procId)
+                .map((m) => (
+                  <option key={m.id} value={m.id}>
+                    {m.name}
+                  </option>
+                ))}
+            </select>
+          </div>
+
+          <div>
+            <label style={labelStyle}>Sub-Unidad</label>
+            <select
+              style={inputStyle}
+              value={subId}
+              disabled={!maqId}
+              onChange={(e) => setSubId(e.target.value)}
+            >
+              <option value="">Todos</option>
+              {subUnidades
+                .filter((s) => !maqId || String(s.maquina_id) === maqId)
+                .map((s) => (
+                  <option key={s.id} value={s.id}>
+                    {s.descripcion}
+                  </option>
+                ))}
+            </select>
+          </div>
+
+          <div style={{ gridColumn: '1 / -1' }}>
+            <label style={labelStyle}>Buscar Repuesto</label>
+            <input
+              style={inputStyle}
+              placeholder="Buscar por ID, código o nombre"
+              value={searchFilter}
+              onChange={(e) => setSearchFilter(e.target.value)}
+            />
+          </div>
+
+          <div style={{ gridColumn: '1 / -1' }}>
+            <label style={labelStyle}>Seleccionar Repuesto</label>
+            <select
+              style={inputStyle}
+              value=""
+              onChange={(e) => addRepuestoFromSearch(e.target.value)}
+            >
+              <option value="">Seleccione un repuesto para agregar</option>
+              {getFilteredRepuestos().map((r) => (
+                <option key={r.id} value={r.id}>
+                  {getCompositeId(r)} - {r.nombre}
+                </option>
+              ))}
+            </select>
+          </div>
+        </div>
+
         <div style={{ overflowX: 'auto' }}>
           <table
             style={{
@@ -719,35 +827,23 @@ export default function SalidaPage() {
                 <th
                   style={{
                     padding: '0.6rem 0.75rem',
-                    minWidth: 260,
                     textAlign: 'left',
+                    minWidth: 200,
                   }}
                 >
                   Repuesto
                 </th>
-                <th style={{ padding: '0.6rem 0.5rem', textAlign: 'left' }}>
-                  Cod.
-                </th>
-                <th
-                  style={{
-                    padding: '0.6rem 0.5rem',
-                    textAlign: 'left',
-                    minWidth: 130,
-                  }}
-                >
-                  Nombre
-                </th>
                 <th style={{ padding: '0.6rem 0.5rem', textAlign: 'center' }}>
                   U.M.
+                </th>
+                <th style={{ padding: '0.6rem 0.5rem', textAlign: 'center' }}>
+                  Stock Actual
                 </th>
                 <th style={{ padding: '0.6rem 0.5rem', textAlign: 'center' }}>
                   Cant.
                 </th>
                 <th style={{ padding: '0.6rem 0.5rem', textAlign: 'right' }}>
                   Precio Bs.
-                </th>
-                <th style={{ padding: '0.6rem 0.5rem', textAlign: 'right' }}>
-                  Importe
                 </th>
                 <th style={{ padding: '0.6rem 0.5rem', textAlign: 'right' }}>
                   Subtotal
@@ -757,25 +853,13 @@ export default function SalidaPage() {
             </thead>
             <tbody style={{ color: textColor }}>
               {productos.map((p, i) => {
-                const importe = Number(p.cantidad) * Number(p.precioUnitario);
+                const subtotal = Number(p.cantidad) * Number(p.precioUnitario);
                 const rowBg =
                   i % 2 === 0
                     ? tbodyBgColor
                     : theme === 'dark'
                       ? '#1a1a1a'
                       : '#FAFAFA';
-                const rf = rowFilters[i] ?? { ...EMPTY_FILTER };
-
-                const filtProc = rf.ccId
-                  ? processes.filter((pr) => String(pr.centroCosto) === rf.ccId)
-                  : processes;
-                const filtMaq = rf.procId
-                  ? maquinas.filter((m) => String(m.proceso_id) === rf.procId)
-                  : [];
-                const filtSub = rf.maqId
-                  ? subUnidades.filter((s) => String(s.maquina_id) === rf.maqId)
-                  : [];
-                const filtRep = getFilteredRepuestos(rf);
 
                 return (
                   <tr
@@ -785,143 +869,26 @@ export default function SalidaPage() {
                       borderBottom: `1px solid ${inputBorderColor}`,
                     }}
                   >
-                    <td style={{ padding: '0.5rem', minWidth: 300 }}>
-                      <div
-                        style={{
-                          display: 'flex',
-                          flexDirection: 'column',
-                          gap: 4,
-                        }}
-                      >
-                        <input
-                          type="text"
-                          placeholder="Buscar por id, codigo o nombre..."
-                          style={{ ...inputStyle, fontSize: '0.75rem' }}
-                          value={rf.search}
-                          onChange={(e) =>
-                            handleRowFilter(i, 'search', e.target.value)
-                          }
-                        />
-
+                    <td style={{ padding: '0.5rem' }}>
+                      <div>
+                        <div style={{ fontWeight: 600 }}>{p.nombre}</div>
                         <div
                           style={{
-                            display: 'grid',
-                            gridTemplateColumns: '1fr 1fr',
-                            gap: 4,
+                            fontSize: '0.75rem',
+                            color: secondaryTextColor,
                           }}
                         >
-                          <select
-                            style={{ ...inputStyle, fontSize: '0.75rem' }}
-                            value={rf.ccId}
-                            onChange={(e) =>
-                              handleRowFilter(i, 'ccId', e.target.value)
-                            }
-                          >
-                            <option value="">C.Costo</option>
-                            {costCenters.map((c) => (
-                              <option key={c.id} value={String(c.id)}>
-                                {c.name}
-                              </option>
-                            ))}
-                          </select>
-
-                          <select
-                            style={{ ...inputStyle, fontSize: '0.75rem' }}
-                            value={rf.procId}
-                            disabled={!rf.ccId}
-                            onChange={(e) =>
-                              handleRowFilter(i, 'procId', e.target.value)
-                            }
-                          >
-                            <option value="">Proceso</option>
-                            {filtProc.map((pr) => (
-                              <option key={pr.id} value={String(pr.id)}>
-                                {pr.name}
-                              </option>
-                            ))}
-                          </select>
-
-                          <select
-                            style={{ ...inputStyle, fontSize: '0.75rem' }}
-                            value={rf.maqId}
-                            disabled={!rf.procId}
-                            onChange={(e) =>
-                              handleRowFilter(i, 'maqId', e.target.value)
-                            }
-                          >
-                            <option value="">Maquina</option>
-                            {filtMaq.map((m) => (
-                              <option key={m.id} value={String(m.id)}>
-                                {m.name}
-                              </option>
-                            ))}
-                          </select>
-
-                          <select
-                            style={{ ...inputStyle, fontSize: '0.75rem' }}
-                            value={rf.subId}
-                            disabled={!rf.maqId}
-                            onChange={(e) =>
-                              handleRowFilter(i, 'subId', e.target.value)
-                            }
-                          >
-                            <option value="">SubUnidad</option>
-                            {filtSub.map((s) => (
-                              <option key={s.id} value={String(s.id)}>
-                                {s.descripcion}
-                              </option>
-                            ))}
-                          </select>
+                          {p.codigo}
                         </div>
-
-                        <select
-                          style={inputStyle}
-                          value={p.repuestoId}
-                          onChange={(e) =>
-                            handleChangeProducto(
-                              i,
-                              'repuestoId',
-                              e.target.value,
-                            )
-                          }
-                        >
-                          <option value="">Seleccionar repuesto</option>
-                          {filtRep.map((r) => (
-                            <option key={r.id} value={r.id}>
-                              {getCompositeId(r)} - {r.nombre}
-                            </option>
-                          ))}
-                        </select>
                       </div>
                     </td>
 
-                    <td style={{ padding: '0.5rem' }}>
-                      <input
-                        style={{
-                          ...inputStyle,
-                          fontFamily: 'monospace',
-                          fontSize: '0.75rem',
-                          width: 90,
-                        }}
-                        value={p.codigo}
-                        readOnly
-                      />
-                    </td>
-
-                    <td style={{ padding: '0.5rem' }}>
-                      <input style={inputStyle} value={p.nombre} readOnly />
+                    <td style={{ padding: '0.5rem', textAlign: 'center' }}>
+                      {p.unidadMedida}
                     </td>
 
                     <td style={{ padding: '0.5rem', textAlign: 'center' }}>
-                      <input
-                        style={{
-                          ...inputStyle,
-                          width: 55,
-                          textAlign: 'center',
-                        }}
-                        value={p.unidadMedida}
-                        readOnly
-                      />
+                      {p.stockActual}
                     </td>
 
                     <td style={{ padding: '0.5rem', textAlign: 'center' }}>
@@ -949,24 +916,8 @@ export default function SalidaPage() {
                         step="0.01"
                         style={{ ...inputStyle, width: 80, textAlign: 'right' }}
                         value={p.precioUnitario}
-                        onChange={(e) =>
-                          handleChangeProducto(
-                            i,
-                            'precioUnitario',
-                            Number(e.target.value),
-                          )
-                        }
+                        readOnly
                       />
-                    </td>
-
-                    <td
-                      style={{
-                        padding: '0.5rem',
-                        textAlign: 'right',
-                        fontWeight: 500,
-                      }}
-                    >
-                      {importe.toFixed(2)}
                     </td>
 
                     <td
@@ -976,26 +927,24 @@ export default function SalidaPage() {
                         fontWeight: 600,
                       }}
                     >
-                      {importe.toFixed(2)}
+                      {subtotal.toFixed(2)}
                     </td>
 
                     <td style={{ padding: '0.5rem', textAlign: 'center' }}>
-                      {productos.length > 1 && (
-                        <button
-                          onClick={() => removeProducto(i)}
-                          style={{
-                            background: errorColor,
-                            color: '#fff',
-                            border: 'none',
-                            borderRadius: 6,
-                            padding: '0.3rem 0.5rem',
-                            cursor: 'pointer',
-                          }}
-                          title="Eliminar fila"
-                        >
-                          <FaTrash />
-                        </button>
-                      )}
+                      <button
+                        onClick={() => removeProducto(i)}
+                        style={{
+                          background: errorColor,
+                          color: '#fff',
+                          border: 'none',
+                          borderRadius: 6,
+                          padding: '0.3rem 0.5rem',
+                          cursor: 'pointer',
+                        }}
+                        title="Eliminar fila"
+                      >
+                        <FaTrash />
+                      </button>
                     </td>
                   </tr>
                 );
@@ -1012,33 +961,9 @@ export default function SalidaPage() {
             borderTop: `1px solid ${inputBorderColor}`,
             flexWrap: 'wrap',
             alignItems: 'center',
+            justifyContent: 'flex-end',
           }}
         >
-          <button
-            onClick={addProducto}
-            style={{
-              background: addButtonBg,
-              color: colors.darkText,
-              border: 'none',
-              borderRadius: 6,
-              padding: '0.5rem 1rem',
-              cursor: 'pointer',
-              fontWeight: 700,
-              display: 'flex',
-              alignItems: 'center',
-              gap: '0.5rem',
-              fontSize: '0.9rem',
-            }}
-            onMouseOver={(e) => {
-              e.currentTarget.style.background = addButtonHover;
-            }}
-            onMouseOut={(e) => {
-              e.currentTarget.style.background = addButtonBg;
-            }}
-          >
-            <FaPlus /> Agregar Repuesto
-          </button>
-
           <button
             onClick={handleGuardarSalida}
             disabled={loading}
@@ -1099,7 +1024,7 @@ export default function SalidaPage() {
                 fontWeight: 700,
               }}
             >
-              Subtotal
+              Total Salida
             </p>
             <p
               style={{
@@ -1109,46 +1034,178 @@ export default function SalidaPage() {
                 margin: 0,
               }}
             >
-              {subtotal.toFixed(2)}{' '}
-              <span style={{ fontSize: '0.78rem', fontWeight: 400 }}>Bs.</span>
-            </p>
-          </div>
-
-          <div
-            style={{
-              textAlign: 'center',
-              padding: '0.75rem',
-              background: theme === 'dark' ? '#2a2a2a' : '#FFF8E1',
-              borderRadius: 8,
-              border: `2px solid ${colors.gold}`,
-            }}
-          >
-            <p
-              style={{
-                fontSize: '0.72rem',
-                textTransform: 'uppercase',
-                letterSpacing: '0.05em',
-                color: secondaryTextColor,
-                margin: '0 0 4px',
-                fontWeight: 700,
-              }}
-            >
-              Total Salida
-            </p>
-            <p
-              style={{
-                fontSize: '1.55rem',
-                fontWeight: 800,
-                color: colors.gold,
-                margin: 0,
-              }}
-            >
               {total.toFixed(2)}{' '}
-              <span style={{ fontSize: '0.85rem', fontWeight: 500 }}>Bs.</span>
+              <span style={{ fontSize: '0.78rem', fontWeight: 400 }}>Bs.</span>
             </p>
           </div>
         </div>
       </div>
+
+      {/* Modal de stock actualizado */}
+      {showStockModal && (
+        <div
+          style={{
+            position: 'fixed',
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0,
+            backgroundColor: 'rgba(0,0,0,0.6)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            zIndex: 1000,
+          }}
+          onClick={() => {
+            setShowStockModal(false);
+            window.location.href = '/compra/list';
+          }}
+        >
+          <div
+            style={{
+              background: theme === 'dark' ? '#1e293b' : '#ffffff',
+              borderRadius: 12,
+              padding: '1.5rem',
+              maxWidth: 600,
+              width: '90%',
+              maxHeight: '80vh',
+              overflow: 'auto',
+              boxShadow: '0 20px 50px rgba(0,0,0,0.3)',
+            }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <h3
+              style={{
+                fontSize: '1.25rem',
+                fontWeight: 700,
+                marginBottom: '1rem',
+                color: colors.gold,
+              }}
+            >
+              Stock Actualizado
+            </h3>
+            <p style={{ marginBottom: '1rem', color: textColor }}>
+              Los siguientes repuestos han sido actualizados:
+            </p>
+            <table
+              style={{
+                width: '100%',
+                borderCollapse: 'collapse',
+                fontSize: '0.85rem',
+              }}
+            >
+              <thead>
+                <tr style={{ borderBottom: '2px solid #e2e8f0' }}>
+                  <th
+                    style={{
+                      textAlign: 'left',
+                      padding: '0.5rem',
+                      color: secondaryTextColor,
+                    }}
+                  >
+                    Código
+                  </th>
+                  <th
+                    style={{
+                      textAlign: 'left',
+                      padding: '0.5rem',
+                      color: secondaryTextColor,
+                    }}
+                  >
+                    Nombre
+                  </th>
+                  <th
+                    style={{
+                      textAlign: 'right',
+                      padding: '0.5rem',
+                      color: secondaryTextColor,
+                    }}
+                  >
+                    Stock Anterior
+                  </th>
+                  <th
+                    style={{
+                      textAlign: 'right',
+                      padding: '0.5rem',
+                      color: secondaryTextColor,
+                    }}
+                  >
+                    Cant. Nueva
+                  </th>
+                  <th
+                    style={{
+                      textAlign: 'right',
+                      padding: '0.5rem',
+                      color: secondaryTextColor,
+                    }}
+                  >
+                    Stock Nuevo
+                  </th>
+                </tr>
+              </thead>
+              <tbody>
+                {stockResults.map((r, i) => (
+                  <tr key={i} style={{ borderBottom: '1px solid #e2e8f0' }}>
+                    <td style={{ padding: '0.5rem', color: textColor }}>
+                      {r.codigo}
+                    </td>
+                    <td style={{ padding: '0.5rem', color: textColor }}>
+                      {r.nombre}
+                    </td>
+                    <td
+                      style={{
+                        padding: '0.5rem',
+                        textAlign: 'right',
+                        color: textColor,
+                      }}
+                    >
+                      {r.stockAnterior}
+                    </td>
+                    <td
+                      style={{
+                        padding: '0.5rem',
+                        textAlign: 'right',
+                        color: colors.gold,
+                      }}
+                    >
+                      -{r.cantidadNueva}
+                    </td>
+                    <td
+                      style={{
+                        padding: '0.5rem',
+                        textAlign: 'right',
+                        fontWeight: 700,
+                        color: successColor,
+                      }}
+                    >
+                      {r.stockNuevo}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+            <button
+              onClick={() => {
+                setShowStockModal(false);
+                window.location.href = '/salidas';
+              }}
+              style={{
+                marginTop: '1.5rem',
+                padding: '0.75rem 2rem',
+                background: colors.gold,
+                color: '#000',
+                border: 'none',
+                borderRadius: 8,
+                fontWeight: 600,
+                cursor: 'pointer',
+                width: '100%',
+              }}
+            >
+              Aceptar
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

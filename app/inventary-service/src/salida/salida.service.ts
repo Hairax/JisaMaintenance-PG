@@ -1,4 +1,4 @@
-import { Injectable, Inject } from '@nestjs/common';
+import { Injectable, Inject, BadRequestException } from '@nestjs/common';
 import { Repository } from 'typeorm';
 import { Salida } from './entities/salida.entity';
 import { SalidaDetalle } from './entities/salida-detalle.entity';
@@ -59,16 +59,18 @@ export class SalidaService {
         where: { id: Number(d.repuestoId) },
       });
       if (!repuesto) {
-        throw new Error(`Repuesto ${d.repuestoId} no encontrado`);
+        throw new BadRequestException(`Repuesto ${d.repuestoId} no encontrado`);
       }
       const current = Number(repuesto.cantidad);
       const requested = Number(d.cantidad);
       const remaining = current - requested;
       if (requested <= 0) {
-        throw new Error(`Cantidad inválida para repuesto ${repuesto.id}`);
+        throw new BadRequestException(
+          `Cantidad inválida para repuesto ${repuesto.id}`,
+        );
       }
       if (remaining < 0) {
-        throw new Error(
+        throw new BadRequestException(
           `Stock insuficiente para ${repuesto.nombre} (ID ${repuesto.id}). Disponible: ${current}, solicitado: ${requested}`,
         );
       }

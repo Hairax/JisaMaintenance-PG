@@ -16,6 +16,9 @@ export class SubUnidad {
   @JoinColumn({ name: 'maquina_id' })
   maquina: Maquina;
 
+  @Column({ nullable: true, type: 'int' })
+  correlativo?: number;
+
   @Column()
   descripcion: string;
 

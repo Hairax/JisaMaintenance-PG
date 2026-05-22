@@ -92,7 +92,6 @@ export default function ComprasMaterialesPage() {
       setLoading(false);
     }
   }, []);
-
   useEffect(() => {
     cargarDatos();
   }, [cargarDatos]);
@@ -126,51 +125,126 @@ export default function ComprasMaterialesPage() {
   );
 
   const exportarExcel = () => {
-    const filas: Record<string, unknown>[] = [];
+    // Definimos el orden estricto de las columnas basándonos en la imagen de reporte_compras
+    const headers = [
+      'N° Documento',
+      'Tipo Doc.',
+      'N° Factura',
+      'NIT',
+      'Proveedor',
+      'Almacén',
+      'Detalle',
+      'Fecha',
+      'Código',
+      'Material',
+      'U.M.',
+      'Cantidad',
+      'P. Unit. Bs',
+      'Descuento Bs',
+      'Subtotal Bs',
+      'Costo Bs',
+      'Valorado Bs.',
+    ];
+
+    // Array de arrays: la primera fila serán los encabezados obligatoriamente
+    const datosHoja: any[][] = [headers];
+
     for (const c of dataFiltrada) {
-      const base = {
-        'N° Documento': c.nroDocumento || '',
-        'Tipo Doc.': c.tipoDocumento || '',
-        'N° Factura': c.nroFactura || '',
-        NIT: c.nit || '',
-        Proveedor: proveedorNombre(c),
-        Fecha: fmtDate(c.fecha),
-        Almacén: c.almacen || '',
-        Detalle: c.detalle || '',
-        'Subtotal Bs': Number(c.subtotal).toFixed(2),
-        'Descuento Bs': Number(c.descuentoTotal).toFixed(2),
-        'Total Bs': Number(c.total).toFixed(2),
-      };
-      if ((c.detalles ?? []).length === 0) {
-        filas.push({
-          ...base,
-          Material: '',
-          Código: '',
-          Tipo: '',
-          Cantidad: '',
-          'U.M.': '',
-          'P. Unit. Bs': '',
-          'Subtotal Det. Bs': '',
-        });
-      } else {
-        for (const d of c.detalles) {
-          filas.push({
-            ...base,
-            Material: d.nombre,
-            Código: d.codigo || '',
-            Tipo: d.tipoProducto,
-            Cantidad: Number(d.cantidad),
-            'U.M.': d.unidadMedida,
-            'P. Unit. Bs': Number(d.precioUnitario).toFixed(2),
-            'Subtotal Det. Bs': Number(d.subtotal).toFixed(2),
-          });
-        }
+      // Si la compra no tiene detalles, evitamos que rompa metiendo campos vacíos alineados
+      const detalles =
+        (c.detalles ?? []).length === 0
+          ? [
+              {
+                nombre: '',
+                codigo: '',
+                unidadMedida: '',
+                cantidad: 0,
+                precioUnitario: 0,
+                porcentajeDescuento: 0,
+                subtotal: 0,
+              },
+            ]
+          : c.detalles;
+
+      for (const d of detalles) {
+        // --- 1. Mapeo y formateo estricto de tipos de datos ---
+
+        // Celdas numéricas con fallback a 0 para que Excel no reciba NaN o undefined
+        const cantidad = Number(d.cantidad) || 0;
+        const pUnitario = Number(d.precioUnitario) || 0;
+        const descuentoBs = Number(c.descuentoTotal) || 0; // O la lógica que manejes por ítem
+        const subtotal = Number(d.subtotal) || 0;
+
+        // Lógica de Costo (según tu Excel suele ser igual al subtotal o pUnitario según la estructura)
+        const costoBs = subtotal;
+
+        // Nueva columna solicitada: Precio menos el 13% de IVA (Valorado Bs.)
+        const valoradoBs = subtotal * 0.87;
+
+        // Fecha como objeto Date nativo (imprescindible para que Excel lo reconozca como tipo Fecha)
+        const fechaObjeto = c.fecha ? new Date(c.fecha) : '';
+
+        // Construimos la fila respetando rigurosamente el orden de las columnas de la captura
+        const fila = [
+          c.nroDocumento || '',
+          c.tipoDocumento || '',
+          c.nroFactura || '',
+          c.nit || '',
+          proveedorNombre(c),
+          c.almacen || '',
+          c.detalle || '',
+          fechaObjeto, // Columna H: Fecha (Tipo Date)
+          d.codigo || '', // Columna I: Código
+          d.nombre, // Columna J: Material
+          d.unidadMedida, // Columna K: U.M.
+          cantidad, // Columna L: Cantidad (Tipo Number)
+          pUnitario, // Columna M: P. Unit. Bs (Tipo Number)
+          descuentoBs, // Columna N: Descuento Bs (Tipo Number)
+          subtotal, // Columna O: Subtotal Bs (Tipo Number)
+          costoBs, // Columna P: Costo Bs (Tipo Number)
+          valoradoBs, // Columna Q: Valorado Bs. (Precio menos 13%) (Tipo Number)
+        ];
+
+        datosHoja.push(fila);
       }
     }
-    const hoja = XLSX.utils.json_to_sheet(filas);
+
+    // Creamos la hoja directamente desde un Array de Arrays (aoa) para asegurar el orden de columnas
+    const hoja = XLSX.utils.aoa_to_sheet(datosHoja);
+
+    // --- 2. Forzar formatos de celda en Excel ---
+    // Nos aseguramos de que Excel sepa cómo renderizar visualmente los números sin perder el tipo "number"
+    const rango = XLSX.utils.decode_range(hoja['!ref'] || 'A1:A1');
+    for (let R = 1; R <= rango.e.r; ++R) {
+      // Empezamos en 1 para saltarnos los encabezados
+
+      // Formato para columnas de dinero (L, M, N, O, P, Q) -> ÍNDICES: 11, 12, 13, 14, 15, 16
+      const columnasMoneda = [12, 13, 14, 15, 16];
+      columnasMoneda.forEach((colIdx) => {
+        const cellRef = XLSX.utils.encode_cell({ r: R, c: colIdx });
+        if (hoja[cellRef] && hoja[cellRef].t === 'n') {
+          hoja[cellRef].z = '#,##0.00'; // Formato numérico estándar de contabilidad/decimales
+        }
+      });
+
+      // Formato para la columna de Cantidad (Columna L -> Índice 11)
+      const cantRef = XLSX.utils.encode_cell({ r: R, c: 11 });
+      if (hoja[cantRef] && hoja[cantRef].t === 'n') {
+        hoja[cantRef].z = '#,##0'; // Enteros o decimales simples
+      }
+
+      // Formato para la columna de Fecha (Columna H -> Índice 7)
+      const fechaRef = XLSX.utils.encode_cell({ r: R, c: 7 });
+      if (hoja[fechaRef] && hoja[fechaRef].t === 'd') {
+        hoja[fechaRef].z = 'dd/mm/yyyy'; // Formato de fecha para es-BO
+      }
+    }
+
     const libro = XLSX.utils.book_new();
+
+    // cellDates: true es VITAL para que la librería no transforme los objetos Date en strings numéricos extraños
     XLSX.utils.book_append_sheet(libro, hoja, 'Compras');
-    XLSX.writeFile(libro, 'reporte_compras.xlsx');
+    XLSX.writeFile(libro, 'reporte_compras.xlsx', { cellDates: true });
   };
 
   if (loading)

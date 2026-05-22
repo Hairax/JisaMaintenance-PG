@@ -15,19 +15,23 @@ export class Repuesto {
   @PrimaryGeneratedColumn()
   id: number;
 
+  @Column({ type: 'enum', enum: ['NORMAL', 'LIBRE'], default: 'NORMAL' })
+  tipo: string;
+
+  @Column({ nullable: true })
+  codigoPersonalizado: string;
+
   @Column()
   nombre: string;
 
   @Column({ type: 'text', nullable: true })
   descripcion: string;
 
-  @Column({
-    type: 'enum',
-    enum: ['PZA', 'KG', 'LT', 'MT', 'GL', 'UN', 'JGO'],
-    default: 'PZA',
-    nullable: true,
-  })
+  @Column({ nullable: true })
   uMedida: string;
+
+  @Column({ nullable: true })
+  almacen: string;
 
   @Column({ nullable: true })
   numeroDeParte: string;
@@ -40,6 +44,16 @@ export class Repuesto {
 
   @Column({ type: 'decimal', precision: 10, scale: 4, default: 0 })
   costoUnitario: number;
+
+  @Column({ type: 'decimal', precision: 10, scale: 4, default: 0 })
+  costoUnitarioPonderado: number;
+
+  // Apertura: initial stock and price when the repuesto was created (not from compras)
+  @Column({ type: 'decimal', precision: 10, scale: 4, default: 0 })
+  aperturaCantidad: number;
+
+  @Column({ type: 'decimal', precision: 10, scale: 4, default: 0 })
+  aperturaCostoUnitario: number;
 
   @Column({ default: 0 })
   cantidad: number;

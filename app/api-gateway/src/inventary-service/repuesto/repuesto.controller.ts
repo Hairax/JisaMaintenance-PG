@@ -31,6 +31,12 @@ export class RepuestoHttpController {
   findOne(@Param('id') id: string): Observable<ResponseRepuestoDto> {
     return this.client.send('repuesto.findOne', Number(id));
   }
+
+  @Post(':id/recalcular')
+  recalculate(@Param('id') id: string): Observable<ResponseRepuestoDto> {
+    return this.client.send('repuesto.recalculate', Number(id));
+  }
+
   @Put(':id')
   update(
     @Param('id') id: string,

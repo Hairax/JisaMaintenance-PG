@@ -138,7 +138,7 @@ export const ProveedoresModal: React.FC<ProveedoresModalProps> = ({
           {(mode === 'create' || mode === 'edit') && !showDeleteConfirm ? (
             <form onSubmit={(e) => e.preventDefault()} className="space-y-3">
               {renderFormField('Nombre', 'nombre', 'text', true)}
-              {renderFormField('RUC', 'ruc', 'text', true)}
+              {renderFormField('NIT', 'ruc', 'text', true)}
               {renderFormField(
                 'Correo Electrónico',
                 'correoElectronico',
@@ -157,7 +157,7 @@ export const ProveedoresModal: React.FC<ProveedoresModalProps> = ({
                 </span>
               </p>
               <p>
-                <strong style={{ color: secondaryTextColor }}>RUC:</strong>{' '}
+                <strong style={{ color: secondaryTextColor }}>NIT:</strong>{' '}
                 <span style={{ color: textColor }}>
                   {selectedProveedor.ruc}
                 </span>

@@ -1,7 +1,8 @@
 export class Process {
   id: number;
   name: string;
-  costCenter: number;
+  centroCosto: number;
+  correlativo?: number;
   createdAt: Date;
   updatedAt: Date;
 }

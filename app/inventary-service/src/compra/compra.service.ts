@@ -6,6 +6,7 @@ import { Repuesto } from '../repuesto/entities/repuesto.entity';
 import { CreateCompraDto } from './dto/create-compra.dto';
 import { UpdateCompraDto } from './dto/update-compra.dto';
 import { ResponseCompraDto } from './dto/response-compra.dto';
+import { RepuestoService } from '../repuesto/repuesto.service';
 
 @Injectable()
 export class CompraService {
@@ -16,6 +17,7 @@ export class CompraService {
     private compraDetalleRepository: Repository<CompraDetalle>,
     @Inject('REPUESTO_REPOSITORY')
     private repuestoRepository: Repository<Repuesto>,
+    private repuestoService: RepuestoService,
   ) {}
 
   // ── helpers ────────────────────────────────────────────────────────────────
@@ -23,15 +25,25 @@ export class CompraService {
     let subtotal = 0;
     let descuentoTotal = 0;
     const calculated = detalles.map((d) => {
-      const importe = Number(d.cantidad) * Number(d.precioUnitario);
+      const precioBruto = Number(d.precioUnitario);
+      const porcentajeImpuesto = d.porcentajeImpuesto || 13;
+      // Calcular precio sin impuesto: precio - (precio * porcentaje)
+      const precioSinImpuesto =
+        porcentajeImpuesto > 0
+          ? precioBruto - precioBruto * (porcentajeImpuesto / 100)
+          : precioBruto;
+
+      const importe = Number(d.cantidad) * precioSinImpuesto;
       const descuento = (importe * (d.porcentajeDescuento || 0)) / 100;
-      subtotal += importe;
+      subtotal += Number(d.cantidad) * precioBruto; // Total con impuesto
       descuentoTotal += descuento;
       return {
         ...d,
+        precioUnitario: precioSinImpuesto, // Guardar precio sin impuesto
         importe,
         descuentoMonto: descuento,
         subtotal: importe - descuento,
+        porcentajeImpuesto,
       };
     });
     return {
@@ -43,7 +55,11 @@ export class CompraService {
   }
 
   private async incrementStock(
-    detalles: { repuestoId?: number; cantidad: number }[],
+    detalles: {
+      repuestoId?: number;
+      cantidad: number;
+      precioUnitario?: number;
+    }[],
     sign: 1 | -1,
   ) {
     for (const d of detalles) {
@@ -52,7 +68,30 @@ export class CompraService {
         where: { id: d.repuestoId },
       });
       if (!rep) continue;
-      rep.cantidad = Number(rep.cantidad) + sign * Number(d.cantidad);
+
+      const cantidadAnterior = Number(rep.cantidad);
+      const cantidadNueva = sign * Number(d.cantidad);
+      const costoAnterior = Number(rep.costoUnitario) || 0;
+      const costoNuevo = Number(d.precioUnitario) || 0;
+
+      // Actualizar cantidad
+      rep.cantidad = cantidadAnterior + cantidadNueva;
+
+      // Calcular costo promedio ponderado solo en entradas (sign = 1)
+      // Fórmula: ((cantidadActual * costoActual) + (cantidadNueva * costoNuevo)) / (cantidadActual + cantidadNueva)
+      if (sign === 1 && cantidadNueva > 0 && costoNuevo > 0) {
+        const cantidadTotal = cantidadAnterior + cantidadNueva;
+        if (cantidadTotal > 0) {
+          const totalAnterior = cantidadAnterior * costoAnterior;
+          const totalNuevo = cantidadNueva * costoNuevo;
+          rep.costoUnitarioPonderado =
+            (totalAnterior + totalNuevo) / cantidadTotal;
+          if (!rep.costoUnitario) {
+            rep.costoUnitario = costoNuevo;
+          }
+        }
+      }
+
       rep.updatedAt = new Date();
       await this.repuestoRepository.save(rep);
     }
@@ -125,6 +164,7 @@ export class CompraService {
     // Update header fields using repository.update() — no cascade, no save()
     const { detalles, ...headerFields } = dto;
     let savedDetalles: CompraDetalle[] = [];
+    const repuestosAfectados = new Set<number>();
 
     if (detalles?.length) {
       const { calculated, subtotal, descuentoTotal, total } =
@@ -149,6 +189,13 @@ export class CompraService {
       );
       savedDetalles = await this.compraDetalleRepository.save(entities);
 
+      // Collect affected repuestos for later recalculation
+      for (const d of calculated) {
+        if (d.repuestoId) {
+          repuestosAfectados.add(d.repuestoId);
+        }
+      }
+
       // Apply new stock (+)
       await this.incrementStock(calculated, 1);
     } else {
@@ -156,6 +203,18 @@ export class CompraService {
         ...headerFields,
         updatedAt: new Date(),
       });
+    }
+
+    // Recalculate costos ponderados y actualizar salidas para cada repuesto afectado
+    for (const repuestoId of repuestosAfectados) {
+      try {
+        await this.repuestoService.recalculateCostoPonderado(repuestoId);
+      } catch (error) {
+        console.error(
+          `Error recalculando costo ponderado para repuesto ${repuestoId}:`,
+          error,
+        );
+      }
     }
 
     const updated = await this.findOne(id);
