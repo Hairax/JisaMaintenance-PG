@@ -8,5 +8,6 @@ import { DatabaseModule } from '../data/database.module';
   imports: [DatabaseModule],
   controllers: [OtController],
   providers: [OrdenTrabajoService, ...otProviders],
+  exports: [OrdenTrabajoService],
 })
 export class OtModule {}

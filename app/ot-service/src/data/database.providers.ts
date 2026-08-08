@@ -11,6 +11,7 @@ import { User } from '../ot/entities/user.entity';
 import { Proveedor } from '../ot/entities/proveedor.entity';
 import { Informe } from '../informe/entities/informe.entity';
 import { InformeDetalle } from '../informe/entities/informe-detalle.entity';
+import { ProgramacionOt } from '../programacion-ot/entities/programacion-ot.entity';
 
 export const databaseProviders = [
   {
@@ -36,6 +37,7 @@ export const databaseProviders = [
           Proveedor,
           Informe,
           InformeDetalle,
+          ProgramacionOt,
         ],
         synchronize: true,
       });

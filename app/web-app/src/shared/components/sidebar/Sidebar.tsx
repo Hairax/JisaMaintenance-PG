@@ -49,6 +49,7 @@ export const Sidebar = () => {
     { to: '/maquina', text: 'Máquinas' },
     { to: '/objeto', text: 'Objetos' },
     { to: '/ot', text: 'Órdenes de Trabajo' },
+    { to: '/programacion-ot', text: 'Programación Automática de OTs' },
     { to: '/process', text: 'Procesos' },
     { to: '/proveedores', text: 'Proveedores' },
     { to: '/repuestos', text: 'Repuestos' },

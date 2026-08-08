@@ -24,7 +24,7 @@ import ComprasMaterialesPage from '../features/reportesCont/ComprasMaterialesPag
 import ConsumoMaterialesPage from '../features/reportesCont/ConsumoMaterialesPage';
 import TomaFisicaInventarioPage from '../features/reportesCont/TomaFisicaInventarioPage';
 import MantenimientoPorActivoPage from '../features/reportesCont/MantenimientoPorActivoPage';
-import BiDashboardPage from '../features/web-app/src/features/bi/page/BiDashboardPage';
+import DashboardPage from '../features/dashboard/pages/DashboardPage';
 import DisponibilidadPage from '../features/kpis/Disponibilidad';
 import TMEFPage from '../features/kpis/TMEFPage';
 import TMPRPage from '../features/kpis/TMPRPage';
@@ -34,6 +34,7 @@ import { ListCompraPage } from '../features/Compra/page/listCompraPage';
 import SalidaPage from '../features/Salida/page/salidaPage';
 import { ListSalidaPage } from '../features/Salida/page/listSalidaPage';
 import RepuestosPage from '../features/repuestos/page/RepuestosPage';
+import ProgramacionOtPage from '../features/programacion-ot/page/ProgramacionOtPage';
 
 export const AppRoutes = () => {
   return (
@@ -53,7 +54,7 @@ export const AppRoutes = () => {
       >
         <Route path="/home" element={<HomePage />} />
         <Route path="/" element={<Navigate to="/home" replace />} />
-        <Route path="/dashboard" element={<BiDashboardPage />} />
+        <Route path="/dashboard" element={<DashboardPage />} />
         <Route path="/management/users" element={<UserManagementPage />} />
         <Route path="/management/cost-centers" element={<CoCeManagement />} />
         <Route path="/departamento" element={<DepartamentoPage />} />
@@ -72,6 +73,7 @@ export const AppRoutes = () => {
         <Route path="/salidas" element={<ListSalidaPage />} />
         <Route path="/salidas/registrar" element={<SalidaPage />} />
         <Route path="/repuestos" element={<RepuestosPage />} />
+        <Route path="/programacion-ot" element={<ProgramacionOtPage />} />
 
         {/* Ruta para reportes contables */}
         <Route path="/reportes/kardex" element={<KardexValoradoPage />} />

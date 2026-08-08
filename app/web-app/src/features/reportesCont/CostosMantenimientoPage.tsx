@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import * as XLSX from 'xlsx';
+import { minutosTrabajados, costoManoObra } from '../../shared/utils/laborCost';
 
 const API = 'http://localhost:3000';
 
@@ -25,6 +26,27 @@ interface Salida {
   fecha: string;
 }
 
+interface InformeDetalle {
+  id: number;
+  otId: number;
+  horaInicio: string;
+  horaFinalización: string;
+}
+
+interface Informe {
+  id: number;
+  userId: number;
+  detalles: InformeDetalle[];
+}
+
+interface Usuario {
+  id: number;
+  name: string;
+  lastName: string;
+  hora$?: number | null;
+  minutos$?: number | null;
+}
+
 interface MantenimientoRow {
   id: number;
   fecha: string;
@@ -32,6 +54,9 @@ interface MantenimientoRow {
   centroCosto: string;
   descripcion: string;
   estado: string;
+  horasTrabajadas: number;
+  costoManoObra: number;
+  costoMateriales: number;
   costoTotal: number;
 }
 
@@ -55,6 +80,12 @@ const fmtCurrency = (n: number): string =>
     maximumFractionDigits: 2,
   });
 
+const fmtHours = (h: number): string => {
+  const hrs = Math.floor(h);
+  const mins = Math.round((h - hrs) * 60);
+  return `${hrs}h ${mins.toString().padStart(2, '0')}m`;
+};
+
 // ── Component ─────────────────────────────────────────────────────────────────
 
 export default function CostosMantenimientoPage() {
@@ -67,15 +98,19 @@ export default function CostosMantenimientoPage() {
     setLoading(true);
     setError(null);
     try {
-      const [resOTs, resSalidas] = await Promise.all([
+      const [resOTs, resSalidas, resInformes, resUsers] = await Promise.all([
         fetch(`${API}/ots`),
         fetch(`${API}/salidas`),
+        fetch(`${API}/informes`),
+        fetch(`${API}/users`),
       ]);
 
-      const [ots, salidas] = (await Promise.all([
+      const [ots, salidas, informes, users] = (await Promise.all([
         resOTs.ok ? resOTs.json() : Promise.resolve([]),
         resSalidas.ok ? resSalidas.json() : Promise.resolve([]),
-      ])) as [OT[], Salida[]];
+        resInformes.ok ? resInformes.json() : Promise.resolve([]),
+        resUsers.ok ? resUsers.json() : Promise.resolve([]),
+      ])) as [OT[], Salida[], Informe[], Usuario[]];
 
       const salidaMap: Record<number, number> = {};
       for (const s of Array.isArray(salidas) ? salidas : []) {
@@ -83,16 +118,47 @@ export default function CostosMantenimientoPage() {
         salidaMap[otId] = (salidaMap[otId] ?? 0) + Number(s.total);
       }
 
+      const userMap: Record<number, Usuario> = {};
+      for (const u of Array.isArray(users) ? users : []) {
+        userMap[u.id] = u;
+      }
+
+      // Horas y costo de mano de obra por OT, a partir de los detalles de
+      // informe diario (horaInicio / horaFinalización) y la tarifa del
+      // técnico que registró el trabajo (hora$ o minutos$).
+      const horasPorOT: Record<number, number> = {};
+      const manoObraPorOT: Record<number, number> = {};
+      for (const inf of Array.isArray(informes) ? informes : []) {
+        for (const det of inf.detalles ?? []) {
+          const otId = Number(det.otId);
+          const minutos = minutosTrabajados(
+            det.horaInicio,
+            det['horaFinalización'],
+          );
+          horasPorOT[otId] = (horasPorOT[otId] ?? 0) + minutos / 60;
+          manoObraPorOT[otId] =
+            (manoObraPorOT[otId] ?? 0) +
+            costoManoObra(userMap[inf.userId], minutos);
+        }
+      }
+
       const data: MantenimientoRow[] = (Array.isArray(ots) ? ots : []).map(
-        (ot) => ({
-          id: ot.id,
-          fecha: (ot.fechaHora ?? ot.fechaCreacion ?? '').slice(0, 10),
-          tipo: getNombre(ot.tipoOT),
-          centroCosto: getNombre(ot.costCenter),
-          descripcion: ot.descripcionTarea,
-          estado: ot.estado,
-          costoTotal: salidaMap[ot.id] ?? 0,
-        }),
+        (ot) => {
+          const costoMateriales = salidaMap[ot.id] ?? 0;
+          const costoManoObraOT = manoObraPorOT[ot.id] ?? 0;
+          return {
+            id: ot.id,
+            fecha: (ot.fechaHora ?? ot.fechaCreacion ?? '').slice(0, 10),
+            tipo: getNombre(ot.tipoOT),
+            centroCosto: getNombre(ot.costCenter),
+            descripcion: ot.descripcionTarea,
+            estado: ot.estado,
+            horasTrabajadas: horasPorOT[ot.id] ?? 0,
+            costoManoObra: costoManoObraOT,
+            costoMateriales,
+            costoTotal: costoManoObraOT + costoMateriales,
+          };
+        },
       );
 
       setRows(data);
@@ -120,6 +186,16 @@ export default function CostosMantenimientoPage() {
     [rows, tipoFiltro],
   );
 
+  const costoManoObraGlobal = useMemo(
+    () => dataFiltrada.reduce((s, r) => s + r.costoManoObra, 0),
+    [dataFiltrada],
+  );
+
+  const costoMaterialesGlobal = useMemo(
+    () => dataFiltrada.reduce((s, r) => s + r.costoMateriales, 0),
+    [dataFiltrada],
+  );
+
   const costoTotalGlobal = useMemo(
     () => dataFiltrada.reduce((s, r) => s + r.costoTotal, 0),
     [dataFiltrada],
@@ -133,7 +209,10 @@ export default function CostosMantenimientoPage() {
       'Centro de Costo': item.centroCosto,
       Descripción: item.descripcion,
       Estado: item.estado,
-      'Costo Total (Bs)': item.costoTotal,
+      'Horas Trabajadas': item.horasTrabajadas.toFixed(2),
+      'Costo Mano de Obra (Bs)': item.costoManoObra.toFixed(2),
+      'Costo Materiales (Bs)': item.costoMateriales.toFixed(2),
+      'Costo Total (Bs)': item.costoTotal.toFixed(2),
     }));
 
     const hoja = XLSX.utils.json_to_sheet(datosParaExportar);
@@ -274,6 +353,14 @@ export default function CostosMantenimientoPage() {
           {[
             { label: 'Total OTs', value: dataFiltrada.length },
             {
+              label: 'Costo Mano de Obra (Bs)',
+              value: `Bs ${fmtCurrency(costoManoObraGlobal)}`,
+            },
+            {
+              label: 'Costo Materiales (Bs)',
+              value: `Bs ${fmtCurrency(costoMaterialesGlobal)}`,
+            },
+            {
               label: 'Costo Total (Bs)',
               value: `Bs ${fmtCurrency(costoTotalGlobal)}`,
             },
@@ -329,6 +416,15 @@ export default function CostosMantenimientoPage() {
                   Estado
                 </th>
                 <th style={{ padding: '0.75rem', textAlign: 'right' }}>
+                  Horas Trab.
+                </th>
+                <th style={{ padding: '0.75rem', textAlign: 'right' }}>
+                  Costo M.O. (Bs)
+                </th>
+                <th style={{ padding: '0.75rem', textAlign: 'right' }}>
+                  Costo Mat. (Bs)
+                </th>
+                <th style={{ padding: '0.75rem', textAlign: 'right' }}>
                   Costo Total (Bs)
                 </th>
               </tr>
@@ -357,6 +453,21 @@ export default function CostosMantenimientoPage() {
                   </td>
                   <td style={{ padding: '0.75rem' }}>{item.estado}</td>
                   <td style={{ padding: '0.75rem', textAlign: 'right' }}>
+                    {item.horasTrabajadas > 0
+                      ? fmtHours(item.horasTrabajadas)
+                      : '—'}
+                  </td>
+                  <td style={{ padding: '0.75rem', textAlign: 'right' }}>
+                    {item.costoManoObra > 0
+                      ? `Bs ${fmtCurrency(item.costoManoObra)}`
+                      : '—'}
+                  </td>
+                  <td style={{ padding: '0.75rem', textAlign: 'right' }}>
+                    {item.costoMateriales > 0
+                      ? `Bs ${fmtCurrency(item.costoMateriales)}`
+                      : '—'}
+                  </td>
+                  <td style={{ padding: '0.75rem', textAlign: 'right' }}>
                     {item.costoTotal > 0
                       ? `Bs ${fmtCurrency(item.costoTotal)}`
                       : '—'}
@@ -366,7 +477,7 @@ export default function CostosMantenimientoPage() {
               {dataFiltrada.length === 0 && (
                 <tr>
                   <td
-                    colSpan={7}
+                    colSpan={10}
                     style={{
                       padding: '1.5rem',
                       textAlign: 'center',
@@ -383,6 +494,17 @@ export default function CostosMantenimientoPage() {
                 <tr style={{ background: '#E1CD9B', fontWeight: 700 }}>
                   <td colSpan={6} style={{ padding: '0.75rem' }}>
                     Total
+                  </td>
+                  <td style={{ padding: '0.75rem', textAlign: 'right' }}>
+                    {fmtHours(
+                      dataFiltrada.reduce((s, r) => s + r.horasTrabajadas, 0),
+                    )}
+                  </td>
+                  <td style={{ padding: '0.75rem', textAlign: 'right' }}>
+                    Bs {fmtCurrency(costoManoObraGlobal)}
+                  </td>
+                  <td style={{ padding: '0.75rem', textAlign: 'right' }}>
+                    Bs {fmtCurrency(costoMaterialesGlobal)}
                   </td>
                   <td style={{ padding: '0.75rem', textAlign: 'right' }}>
                     Bs {fmtCurrency(costoTotalGlobal)}

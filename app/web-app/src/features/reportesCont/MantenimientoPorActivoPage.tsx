@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useState } from 'react';
 import * as XLSX from 'xlsx';
+import { minutosTrabajados, costoManoObra } from '../../shared/utils/laborCost';
 
 const API = 'http://localhost:3000';
 
@@ -82,6 +83,8 @@ interface Usuario {
   id: number;
   name: string;
   lastName: string;
+  hora$?: number | null;
+  minutos$?: number | null;
 }
 
 // ── Computed types ─────────────────────────────────────────────────────────────
@@ -92,6 +95,7 @@ interface ManoObraRow {
   horaInicio: string;
   horaFin: string;
   horas: number;
+  costo: number;
   observaciones?: string;
 }
 
@@ -99,8 +103,10 @@ interface OTConCostos {
   ot: OT;
   manoObra: ManoObraRow[];
   totalHoras: number;
+  totalManoObra: number;
   salidas: Salida[];
   totalMateriales: number;
+  costoTotal: number;
 }
 
 interface MaquinaRow {
@@ -108,18 +114,14 @@ interface MaquinaRow {
   ots: OTConCostos[];
   totalOTs: number;
   totalHoras: number;
+  totalManoObra: number;
   totalMateriales: number;
+  costoTotal: number;
   otsCerradas: number;
   otsAbiertas: number;
 }
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
-
-const parseHours = (t: string): number => {
-  if (!t) return 0;
-  const parts = t.split(':').map(Number);
-  return (parts[0] ?? 0) + (parts[1] ?? 0) / 60 + (parts[2] ?? 0) / 3600;
-};
 
 const fmtHours = (h: number) => {
   const hrs = Math.floor(h);
@@ -206,25 +208,31 @@ export default function MantenimientoPorActivoPage() {
         resUsers.ok ? resUsers.json() : [],
       ])) as [Maquina[], OT[], Informe[], Salida[], Usuario[]];
 
-      const userMap: Record<number, string> = {};
+      const userMap: Record<number, Usuario> = {};
       for (const u of Array.isArray(users) ? users : []) {
-        userMap[u.id] = `${u.name} ${u.lastName}`.trim();
+        userMap[u.id] = u;
       }
+      const userNombre = (id: number) => {
+        const u = userMap[id];
+        return u ? `${u.name} ${u.lastName}`.trim() : `Técnico #${id}`;
+      };
 
       const buildOTRow = (ot: OT): OTConCostos => {
         const manoObra: ManoObraRow[] = [];
         for (const inf of Array.isArray(informes) ? informes : []) {
           for (const det of inf.detalles ?? []) {
             if (Number(det.otId) === ot.id) {
-              const horas =
-                parseHours(det['horaFinalización']) -
-                parseHours(det.horaInicio);
+              const minutos = minutosTrabajados(
+                det.horaInicio,
+                det['horaFinalización'],
+              );
               manoObra.push({
-                tecnicoNombre: userMap[inf.userId] ?? `Técnico #${inf.userId}`,
+                tecnicoNombre: userNombre(inf.userId),
                 fecha: det.createdAt ?? inf.createdAt,
                 horaInicio: det.horaInicio,
                 horaFin: det['horaFinalización'],
-                horas: Math.max(0, horas),
+                horas: minutos / 60,
+                costo: costoManoObra(userMap[inf.userId], minutos),
                 observaciones: det.observaciones,
               });
             }
@@ -234,16 +242,21 @@ export default function MantenimientoPorActivoPage() {
         const otSalidas = (Array.isArray(salidas) ? salidas : []).filter(
           (s) => Number(s.otId) === ot.id,
         );
+        const totalHoras = manoObra.reduce((s, r) => s + r.horas, 0);
+        const totalManoObra = manoObra.reduce((s, r) => s + r.costo, 0);
+        const totalMateriales = otSalidas.reduce(
+          (s, sal) => s + Number(sal.total),
+          0,
+        );
 
         return {
           ot,
           manoObra,
-          totalHoras: manoObra.reduce((s, r) => s + r.horas, 0),
+          totalHoras,
+          totalManoObra,
           salidas: otSalidas,
-          totalMateriales: otSalidas.reduce(
-            (s, sal) => s + Number(sal.total),
-            0,
-          ),
+          totalMateriales,
+          costoTotal: totalManoObra + totalMateriales,
         };
       };
 
@@ -263,10 +276,15 @@ export default function MantenimientoPorActivoPage() {
             ots: otsConCostos,
             totalOTs: otsConCostos.length,
             totalHoras: otsConCostos.reduce((s, r) => s + r.totalHoras, 0),
+            totalManoObra: otsConCostos.reduce(
+              (s, r) => s + r.totalManoObra,
+              0,
+            ),
             totalMateriales: otsConCostos.reduce(
               (s, r) => s + r.totalMateriales,
               0,
             ),
+            costoTotal: otsConCostos.reduce((s, r) => s + r.costoTotal, 0),
             otsCerradas: otsConCostos.filter((r) => r.ot.estado === 'Cerrada')
               .length,
             otsAbiertas: otsConCostos.filter((r) => r.ot.estado !== 'Cerrada')
@@ -320,7 +338,9 @@ export default function MantenimientoPorActivoPage() {
         'Fecha Montaje': fmtDate(r.maquina.fechaDeMontaje),
         'Total OTs': r.totalOTs,
         'Horas Trabajadas': r.totalHoras.toFixed(2),
+        'Costo Mano de Obra (Bs)': r.totalManoObra.toFixed(2),
         'Costo Materiales (Bs)': r.totalMateriales.toFixed(2),
+        'Costo Total (Bs)': r.costoTotal.toFixed(2),
         Sección: 'Resumen Activo',
         'OT #': '',
         'Tipo Mant.': '',
@@ -342,7 +362,9 @@ export default function MantenimientoPorActivoPage() {
           'Fecha Montaje': '',
           'Total OTs': '',
           'Horas Trabajadas': '',
+          'Costo Mano de Obra (Bs)': '',
           'Costo Materiales (Bs)': '',
+          'Costo Total (Bs)': '',
           Sección: 'OT',
           'OT #': `#${otRow.ot.id}`,
           'Tipo Mant.': getName(otRow.ot.tipoOT),
@@ -353,7 +375,9 @@ export default function MantenimientoPorActivoPage() {
           'Horas OT': otRow.totalHoras.toFixed(2),
           Producto: '',
           Cantidad: '',
-          'Subtotal (Bs)': otRow.totalMateriales.toFixed(2),
+          'Subtotal (Bs)': (
+            otRow.totalManoObra + otRow.totalMateriales
+          ).toFixed(2),
         });
         for (const mo of otRow.manoObra) {
           datos.push({
@@ -364,7 +388,9 @@ export default function MantenimientoPorActivoPage() {
             'Fecha Montaje': '',
             'Total OTs': '',
             'Horas Trabajadas': '',
+            'Costo Mano de Obra (Bs)': '',
             'Costo Materiales (Bs)': '',
+            'Costo Total (Bs)': '',
             Sección: 'Mano Obra',
             'OT #': `#${otRow.ot.id}`,
             'Tipo Mant.': '',
@@ -375,7 +401,7 @@ export default function MantenimientoPorActivoPage() {
             'Horas OT': mo.horas.toFixed(2),
             Producto: '',
             Cantidad: '',
-            'Subtotal (Bs)': '',
+            'Subtotal (Bs)': mo.costo.toFixed(2),
           });
         }
         for (const sal of otRow.salidas) {
@@ -388,7 +414,9 @@ export default function MantenimientoPorActivoPage() {
               'Fecha Montaje': '',
               'Total OTs': '',
               'Horas Trabajadas': '',
+              'Costo Mano de Obra (Bs)': '',
               'Costo Materiales (Bs)': '',
+              'Costo Total (Bs)': '',
               Sección: 'Material',
               'OT #': `#${otRow.ot.id}`,
               'Tipo Mant.': '',
@@ -516,9 +544,19 @@ export default function MantenimientoPorActivoPage() {
               color: 'text-[#6A1B9A]',
             },
             {
+              label: 'Costo M.O. Total',
+              value: `Bs ${fmtCurrency(filtrados.reduce((s, r) => s + r.totalManoObra, 0))}`,
+              color: 'text-[#6A1B9A]',
+            },
+            {
               label: 'Costo Mat. Total',
               value: `Bs ${fmtCurrency(filtrados.reduce((s, r) => s + r.totalMateriales, 0))}`,
               color: 'text-[#D32F2F]',
+            },
+            {
+              label: 'Costo Total',
+              value: `Bs ${fmtCurrency(filtrados.reduce((s, r) => s + r.costoTotal, 0))}`,
+              color: 'text-[#2E7D32]',
             },
           ].map((s) => (
             <div
@@ -606,6 +644,14 @@ export default function MantenimientoPorActivoPage() {
                         {r.totalMateriales > 0
                           ? fmtCurrency(r.totalMateriales)
                           : '—'}
+                      </div>
+                    </div>
+                    <div>
+                      <div className="text-xs text-gray-400">
+                        Costo Total (Bs)
+                      </div>
+                      <div className="font-bold text-green-700">
+                        {r.costoTotal > 0 ? fmtCurrency(r.costoTotal) : '—'}
                       </div>
                     </div>
                   </div>
@@ -699,6 +745,11 @@ export default function MantenimientoPorActivoPage() {
                               <span className="text-[#D32F2F] font-semibold shrink-0 w-24 text-right">
                                 {otRow.totalMateriales > 0
                                   ? `Bs ${fmtCurrency(otRow.totalMateriales)}`
+                                  : '—'}
+                              </span>
+                              <span className="text-[#2E7D32] font-semibold shrink-0 w-24 text-right">
+                                {otRow.costoTotal > 0
+                                  ? `Bs ${fmtCurrency(otRow.costoTotal)}`
                                   : '—'}
                               </span>
                             </div>
@@ -796,6 +847,9 @@ export default function MantenimientoPorActivoPage() {
                                         <th className="p-2 text-right font-semibold text-gray-500">
                                           Horas
                                         </th>
+                                        <th className="p-2 text-right font-semibold text-gray-500">
+                                          Costo (Bs)
+                                        </th>
                                         <th className="p-2 text-left font-semibold text-gray-500">
                                           Observaciones
                                         </th>
@@ -805,7 +859,7 @@ export default function MantenimientoPorActivoPage() {
                                       {otRow.manoObra.length === 0 && (
                                         <tr>
                                           <td
-                                            colSpan={6}
+                                            colSpan={7}
                                             className="p-3 text-center text-gray-400"
                                           >
                                             Sin registros de trabajo aún.
@@ -834,6 +888,9 @@ export default function MantenimientoPorActivoPage() {
                                           <td className="p-2 text-right font-bold text-purple-700">
                                             {fmtHours(mo.horas)}
                                           </td>
+                                          <td className="p-2 text-right font-bold text-green-700">
+                                            {fmtCurrency(mo.costo)}
+                                          </td>
                                           <td className="p-2 text-gray-500">
                                             {mo.observaciones ?? '—'}
                                           </td>
@@ -845,10 +902,13 @@ export default function MantenimientoPorActivoPage() {
                                             colSpan={4}
                                             className="p-2 text-right"
                                           >
-                                            Total horas:
+                                            Totales:
                                           </td>
                                           <td className="p-2 text-right text-purple-700">
                                             {fmtHours(otRow.totalHoras)}
+                                          </td>
+                                          <td className="p-2 text-right text-green-700">
+                                            {fmtCurrency(otRow.totalManoObra)}
                                           </td>
                                           <td />
                                         </tr>

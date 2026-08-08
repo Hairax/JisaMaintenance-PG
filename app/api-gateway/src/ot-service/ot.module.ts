@@ -5,6 +5,7 @@ import { ObjetoHttpController } from './objeto/objeto.controller';
 import { DepartamentoHttpController } from './departamento/departamento.controller';
 import { OtHttpController } from './ot/ot.controller';
 import { InformeHttpController } from './informe/informe.controller';
+import { ProgramacionOtHttpController } from './programacion-ot/programacion-ot.controller';
 @Module({
   imports: [
     ClientsModule.register([
@@ -24,6 +25,7 @@ import { InformeHttpController } from './informe/informe.controller';
     DepartamentoHttpController,
     OtHttpController,
     InformeHttpController,
+    ProgramacionOtHttpController,
   ],
   providers: [],
 })

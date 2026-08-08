@@ -1,5 +1,6 @@
 import React, { useCallback, useEffect, useState } from 'react';
 import * as XLSX from 'xlsx';
+import { minutosTrabajados, costoManoObra } from '../../shared/utils/laborCost';
 
 const API = 'http://localhost:3000';
 
@@ -9,6 +10,8 @@ interface Usuario {
   id: number;
   name: string;
   lastName: string;
+  hora$?: number | null;
+  minutos$?: number | null;
 }
 
 interface InformeDetalle {
@@ -78,6 +81,7 @@ interface ManoObraRow {
   horaInicio: string;
   horaFin: string;
   horas: number;
+  costo: number;
   observaciones?: string;
 }
 
@@ -85,18 +89,13 @@ interface OTReportRow {
   ot: OT;
   manoObra: ManoObraRow[];
   totalHoras: number;
+  totalManoObra: number;
   salidas: Salida[];
   totalMateriales: number;
   costoTotal: number;
 }
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
-
-const parseHours = (t: string): number => {
-  if (!t) return 0;
-  const parts = t.split(':').map(Number);
-  return (parts[0] ?? 0) + (parts[1] ?? 0) / 60 + (parts[2] ?? 0) / 3600;
-};
 
 const fmtHours = (h: number) => {
   const hrs = Math.floor(h);
@@ -178,10 +177,14 @@ export default function CostosOrdenesTrabajoPage() {
         resUsers.ok ? resUsers.json() : [],
       ])) as [OT[], Informe[], Salida[], Usuario[]];
 
-      const userMap: Record<number, string> = {};
+      const userMap: Record<number, Usuario> = {};
       for (const u of Array.isArray(users) ? users : []) {
-        userMap[u.id] = `${u.name} ${u.lastName}`.trim();
+        userMap[u.id] = u;
       }
+      const userNombre = (id: number) => {
+        const u = userMap[id];
+        return u ? `${u.name} ${u.lastName}`.trim() : `Técnico #${id}`;
+      };
 
       const reportRows: OTReportRow[] = (Array.isArray(ots) ? ots : []).map(
         (ot) => {
@@ -190,22 +193,24 @@ export default function CostosOrdenesTrabajoPage() {
           for (const inf of Array.isArray(informes) ? informes : []) {
             for (const det of inf.detalles ?? []) {
               if (Number(det.otId) === ot.id) {
-                const horas =
-                  parseHours(det['horaFinalización']) -
-                  parseHours(det.horaInicio);
+                const minutos = minutosTrabajados(
+                  det.horaInicio,
+                  det['horaFinalización'],
+                );
                 manoObra.push({
-                  tecnicoNombre:
-                    userMap[inf.userId] ?? `Técnico #${inf.userId}`,
+                  tecnicoNombre: userNombre(inf.userId),
                   fecha: det.createdAt ?? inf.createdAt,
                   horaInicio: det.horaInicio,
                   horaFin: det['horaFinalización'],
-                  horas: Math.max(0, horas),
+                  horas: minutos / 60,
+                  costo: costoManoObra(userMap[inf.userId], minutos),
                   observaciones: det.observaciones,
                 });
               }
             }
           }
           const totalHoras = manoObra.reduce((s, r) => s + r.horas, 0);
+          const totalManoObra = manoObra.reduce((s, r) => s + r.costo, 0);
 
           // --- Materiales: salidas vinculadas a esta OT ---
           const otSalidas = (Array.isArray(salidas) ? salidas : []).filter(
@@ -220,9 +225,10 @@ export default function CostosOrdenesTrabajoPage() {
             ot,
             manoObra,
             totalHoras,
+            totalManoObra,
             salidas: otSalidas,
             totalMateriales,
-            costoTotal: totalMateriales, // labor monetary cost not stored; shown as hours
+            costoTotal: totalMateriales + totalManoObra,
           };
         },
       );
@@ -254,6 +260,11 @@ export default function CostosOrdenesTrabajoPage() {
 
   const totalHorasGlobal = filtrados.reduce((s, r) => s + r.totalHoras, 0);
   const totalMatsGlobal = filtrados.reduce((s, r) => s + r.totalMateriales, 0);
+  const totalManoObraGlobal = filtrados.reduce(
+    (s, r) => s + r.totalManoObra,
+    0,
+  );
+  const costoTotalGlobal = filtrados.reduce((s, r) => s + r.costoTotal, 0);
 
   const toggleExpand = (id: number) =>
     setExpandedId((prev) => (prev === id ? null : id));
@@ -277,7 +288,9 @@ export default function CostosOrdenesTrabajoPage() {
         Proceso: getName(r.ot.proceso),
         'Tiempo Estimado (h)': r.ot.tiempoEstimado ?? '—',
         'Total Horas Trabajadas': r.totalHoras.toFixed(2),
+        'Costo Mano de Obra (Bs)': r.totalManoObra.toFixed(2),
         'Costo Materiales (Bs)': r.totalMateriales.toFixed(2),
+        'Costo Total (Bs)': r.costoTotal.toFixed(2),
         Sección: 'Resumen',
       });
       for (const mo of r.manoObra) {
@@ -292,7 +305,9 @@ export default function CostosOrdenesTrabajoPage() {
           Proceso: '',
           'Tiempo Estimado (h)': '',
           'Total Horas Trabajadas': mo.horas.toFixed(2),
+          'Costo Mano de Obra (Bs)': mo.costo.toFixed(2),
           'Costo Materiales (Bs)': '',
+          'Costo Total (Bs)': '',
           Sección: `Mano Obra – ${mo.tecnicoNombre} (${mo.horaInicio} → ${mo.horaFin})`,
         });
       }
@@ -309,7 +324,9 @@ export default function CostosOrdenesTrabajoPage() {
             Proceso: '',
             'Tiempo Estimado (h)': '',
             'Total Horas Trabajadas': '',
+            'Costo Mano de Obra (Bs)': '',
             'Costo Materiales (Bs)': Number(det.subtotal).toFixed(2),
+            'Costo Total (Bs)': '',
             Sección: `Material – ${det.nombre} (${det.cantidad} ${det.unidadMedida})`,
           });
         }
@@ -491,9 +508,19 @@ export default function CostosOrdenesTrabajoPage() {
               color: '#6A1B9A',
             },
             {
+              label: 'Costo Mano de Obra',
+              value: `Bs ${fmtCurrency(totalManoObraGlobal)}`,
+              color: '#6A1B9A',
+            },
+            {
               label: 'Costo Materiales',
               value: `Bs ${fmtCurrency(totalMatsGlobal)}`,
               color: '#D32F2F',
+            },
+            {
+              label: 'Costo Total',
+              value: `Bs ${fmtCurrency(costoTotalGlobal)}`,
+              color: '#2E7D32',
             },
           ].map((s) => (
             <div
@@ -565,13 +592,22 @@ export default function CostosOrdenesTrabajoPage() {
                 >
                   Costo Mat. (Bs)
                 </th>
+                <th
+                  style={{
+                    padding: '0.75rem',
+                    textAlign: 'right',
+                    color: '#2E7D32',
+                  }}
+                >
+                  Costo Total (Bs)
+                </th>
               </tr>
             </thead>
             <tbody>
               {filtrados.length === 0 && (
                 <tr>
                   <td
-                    colSpan={10}
+                    colSpan={11}
                     style={{
                       padding: '1.5rem',
                       textAlign: 'center',
@@ -648,12 +684,22 @@ export default function CostosOrdenesTrabajoPage() {
                           ? fmtCurrency(r.totalMateriales)
                           : '—'}
                       </td>
+                      <td
+                        style={{
+                          padding: '0.75rem',
+                          textAlign: 'right',
+                          fontWeight: 700,
+                          color: '#2E7D32',
+                        }}
+                      >
+                        {r.costoTotal > 0 ? fmtCurrency(r.costoTotal) : '—'}
+                      </td>
                     </tr>
 
                     {isExpanded && (
                       <tr>
                         <td
-                          colSpan={10}
+                          colSpan={11}
                           style={{ padding: 0, background: '#F9F6EE' }}
                         >
                           <div style={{ padding: '1.25rem 2rem 1.5rem' }}>
@@ -802,6 +848,14 @@ export default function CostosOrdenesTrabajoPage() {
                                     <th
                                       style={{
                                         padding: '0.5rem 0.75rem',
+                                        textAlign: 'right',
+                                      }}
+                                    >
+                                      Costo (Bs)
+                                    </th>
+                                    <th
+                                      style={{
+                                        padding: '0.5rem 0.75rem',
                                         textAlign: 'left',
                                       }}
                                     >
@@ -813,7 +867,7 @@ export default function CostosOrdenesTrabajoPage() {
                                   {r.manoObra.length === 0 && (
                                     <tr>
                                       <td
-                                        colSpan={6}
+                                        colSpan={7}
                                         style={{
                                           padding: '0.75rem',
                                           textAlign: 'center',
@@ -862,6 +916,16 @@ export default function CostosOrdenesTrabajoPage() {
                                       <td
                                         style={{
                                           padding: '0.5rem 0.75rem',
+                                          textAlign: 'right',
+                                          fontWeight: 600,
+                                          color: '#2E7D32',
+                                        }}
+                                      >
+                                        {fmtCurrency(mo.costo)}
+                                      </td>
+                                      <td
+                                        style={{
+                                          padding: '0.5rem 0.75rem',
                                           color: '#666',
                                         }}
                                       >
@@ -883,7 +947,7 @@ export default function CostosOrdenesTrabajoPage() {
                                           textAlign: 'right',
                                         }}
                                       >
-                                        Total horas trabajadas:
+                                        Totales:
                                       </td>
                                       <td
                                         style={{
@@ -893,6 +957,15 @@ export default function CostosOrdenesTrabajoPage() {
                                         }}
                                       >
                                         {fmtHours(r.totalHoras)}
+                                      </td>
+                                      <td
+                                        style={{
+                                          padding: '0.5rem 0.75rem',
+                                          textAlign: 'right',
+                                          color: '#2E7D32',
+                                        }}
+                                      >
+                                        {fmtCurrency(r.totalManoObra)}
                                       </td>
                                       <td />
                                     </tr>
