@@ -13,6 +13,7 @@ import {
   Scatter,
   ZAxis,
 } from 'recharts';
+import { useTheme } from '../../shared/contexts/ThemeContext';
 
 const API = 'http://localhost:3000';
 
@@ -186,25 +187,29 @@ function RankingTMEF({ activos }: RankingTMEFProps) {
   );
 
   return (
-    <div className="mt-10 bg-white p-4 rounded-xl shadow">
+    <div className="mt-10 bg-white dark:bg-[#232323] p-4 rounded-xl shadow">
       <div className="flex flex-col md:flex-row md:items-center gap-4 mb-4">
-        <span className="font-semibold text-gray-700">
+        <span className="font-semibold text-gray-700 dark:text-gray-200">
           Ranking TMEF por Activo
         </span>
-        <div className="flex gap-2 items-center">
-          <label className="text-sm text-gray-600">Desde</label>
+        <div className="flex gap-2 items-center flex-wrap">
+          <label className="text-sm text-gray-600 dark:text-gray-400">
+            Desde
+          </label>
           <input
             type="date"
             value={from}
             onChange={(e) => setFrom(e.target.value)}
-            className="border rounded px-2 py-1"
+            className="border border-gray-300 dark:border-gray-700 dark:bg-[#2A2A2A] dark:text-gray-100 dark:[color-scheme:dark] rounded px-2 py-1"
           />
-          <label className="text-sm text-gray-600">Hasta</label>
+          <label className="text-sm text-gray-600 dark:text-gray-400">
+            Hasta
+          </label>
           <input
             type="date"
             value={to}
             onChange={(e) => setTo(e.target.value)}
-            className="border rounded px-2 py-1"
+            className="border border-gray-300 dark:border-gray-700 dark:bg-[#2A2A2A] dark:text-gray-100 dark:[color-scheme:dark] rounded px-2 py-1"
           />
         </div>
         <button
@@ -217,13 +222,19 @@ function RankingTMEF({ activos }: RankingTMEFProps) {
       <div className="overflow-x-auto">
         <table className="w-full border-collapse">
           <thead>
-            <tr className="bg-gray-100 text-gray-700">
-              <th className="border p-2 text-left">#</th>
-              <th className="border p-2 text-left">Activo</th>
-              <th className="border p-2 text-center">Fallas</th>
-              <th className="border p-2 text-center">
+            <tr className="bg-gray-100 dark:bg-[#2A2A2A] text-gray-700 dark:text-gray-200">
+              <th className="border border-gray-300 dark:border-gray-700 p-2 text-left">
+                #
+              </th>
+              <th className="border border-gray-300 dark:border-gray-700 p-2 text-left">
+                Activo
+              </th>
+              <th className="border border-gray-300 dark:border-gray-700 p-2 text-center">
+                Fallas
+              </th>
+              <th className="border border-gray-300 dark:border-gray-700 p-2 text-center">
                 <button
-                  className="font-bold text-blue-600 hover:underline"
+                  className="font-bold text-blue-600 dark:text-blue-400 hover:underline"
                   onClick={() => setSortAsc((v) => !v)}
                   title="Ordenar por TMEF"
                 >
@@ -236,12 +247,18 @@ function RankingTMEF({ activos }: RankingTMEFProps) {
             {sorted.map((row, i) => (
               <tr
                 key={row.id}
-                className="hover:bg-gray-50 transition-colors text-gray-800"
+                className="hover:bg-gray-50 dark:hover:bg-[#2A2A2A] transition-colors text-gray-800 dark:text-gray-100"
               >
-                <td className="border p-2">{i + 1}</td>
-                <td className="border p-2">{row.nombre}</td>
-                <td className="border p-2 text-center">{row.fallas}</td>
-                <td className="border p-2 text-center">
+                <td className="border border-gray-300 dark:border-gray-700 p-2">
+                  {i + 1}
+                </td>
+                <td className="border border-gray-300 dark:border-gray-700 p-2">
+                  {row.nombre}
+                </td>
+                <td className="border border-gray-300 dark:border-gray-700 p-2 text-center">
+                  {row.fallas}
+                </td>
+                <td className="border border-gray-300 dark:border-gray-700 p-2 text-center">
                   {row.tmef !== null ? row.tmef.toFixed(2) : 'No calculable'}
                 </td>
               </tr>
@@ -250,7 +267,7 @@ function RankingTMEF({ activos }: RankingTMEFProps) {
               <tr>
                 <td
                   colSpan={4}
-                  className="border p-4 text-center text-gray-400"
+                  className="border border-gray-300 dark:border-gray-700 p-4 text-center text-gray-400 dark:text-gray-500"
                 >
                   Sin datos para el rango seleccionado.
                 </td>
@@ -266,6 +283,8 @@ function RankingTMEF({ activos }: RankingTMEFProps) {
 // ── Main component ────────────────────────────────────────────────────────────
 
 export default function TMEFPage() {
+  const { theme } = useTheme();
+  const isDark = theme === 'dark';
   const [maquinas, setMaquinas] = useState<Maquina[]>([]);
   const [activosConOTs, setActivosConOTs] = useState<ActivoConOTs[]>([]);
   const [loading, setLoading] = useState(true);
@@ -354,7 +373,7 @@ export default function TMEFPage() {
 
   if (loading)
     return (
-      <div className="p-8 text-center text-gray-400">
+      <div className="p-8 text-center text-gray-400 dark:text-gray-500">
         Cargando datos de TMEF...
       </div>
     );
@@ -362,7 +381,7 @@ export default function TMEFPage() {
   if (error)
     return (
       <div className="p-8 text-center">
-        <p className="text-red-600 mb-3">{error}</p>
+        <p className="text-red-600 dark:text-red-400 mb-3">{error}</p>
         <button
           onClick={cargarDatos}
           className="bg-yellow-500 text-white px-4 py-2 rounded hover:bg-yellow-600"
@@ -372,10 +391,19 @@ export default function TMEFPage() {
       </div>
     );
 
+  const axisTick = { fill: isDark ? '#D1D5DB' : '#374151' };
+  const gridStroke = isDark ? '#3A3A3A' : '#e5e7eb';
+  const tooltipStyle = {
+    background: isDark ? '#232323' : '#fff',
+    border: `1px solid ${isDark ? '#3A3A3A' : '#e5e7eb'}`,
+    color: isDark ? '#F5F5F5' : '#111827',
+    borderRadius: 8,
+  };
+
   return (
-    <div className="p-8 bg-gray-50 min-h-screen">
+    <div className="p-4 md:p-8 bg-gray-50 dark:bg-[#1A1A1A] min-h-screen">
       <div className="flex items-center justify-between flex-wrap gap-3 mb-6">
-        <h1 className="text-3xl font-bold text-gray-800">
+        <h1 className="text-3xl font-bold text-gray-800 dark:text-gray-100">
           KPI: Tiempo Medio Entre Fallas (TMEF)
         </h1>
         <button
@@ -387,15 +415,15 @@ export default function TMEFPage() {
       </div>
 
       {/* Filtros */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-8 bg-white p-4 rounded-xl shadow">
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-8 bg-white dark:bg-[#232323] p-4 rounded-xl shadow">
         <div>
-          <label className="block text-sm font-medium text-gray-600">
+          <label className="block text-sm font-medium text-gray-600 dark:text-gray-400">
             Activo
           </label>
           <select
             value={activoSeleccionado}
             onChange={(e) => setActivoSeleccionado(e.target.value)}
-            className="w-full border rounded px-2 py-1"
+            className="w-full border border-gray-300 dark:border-gray-700 dark:bg-[#2A2A2A] dark:text-gray-100 rounded px-2 py-1"
           >
             <option value="">Todos</option>
             {maquinas.map((m) => (
@@ -407,26 +435,26 @@ export default function TMEFPage() {
         </div>
 
         <div>
-          <label className="block text-sm font-medium text-gray-600">
+          <label className="block text-sm font-medium text-gray-600 dark:text-gray-400">
             Fecha Inicio
           </label>
           <input
             type="date"
             value={fechaInicio}
             onChange={(e) => setFechaInicio(e.target.value)}
-            className="w-full border rounded px-2 py-1"
+            className="w-full border border-gray-300 dark:border-gray-700 dark:bg-[#2A2A2A] dark:text-gray-100 dark:[color-scheme:dark] rounded px-2 py-1"
           />
         </div>
 
         <div>
-          <label className="block text-sm font-medium text-gray-600">
+          <label className="block text-sm font-medium text-gray-600 dark:text-gray-400">
             Fecha Fin
           </label>
           <input
             type="date"
             value={fechaFin}
             onChange={(e) => setFechaFin(e.target.value)}
-            className="w-full border rounded px-2 py-1"
+            className="w-full border border-gray-300 dark:border-gray-700 dark:bg-[#2A2A2A] dark:text-gray-100 dark:[color-scheme:dark] rounded px-2 py-1"
           />
         </div>
 
@@ -438,7 +466,7 @@ export default function TMEFPage() {
                 setFechaFin('');
                 setActivoSeleccionado('');
               }}
-              className="text-sm text-gray-500 underline"
+              className="text-sm text-gray-500 dark:text-gray-400 underline"
             >
               Limpiar filtros
             </button>
@@ -472,43 +500,61 @@ export default function TMEFPage() {
         ].map((c) => (
           <div
             key={c.label}
-            className="bg-white rounded-xl shadow p-4 text-center"
+            className="bg-white dark:bg-[#232323] rounded-xl shadow p-4 text-center"
           >
-            <div className="text-xl font-bold text-gray-700">{c.value}</div>
-            <div className="text-xs text-gray-400 mt-1">{c.label}</div>
+            <div className="text-xl font-bold text-gray-700 dark:text-gray-100">
+              {c.value}
+            </div>
+            <div className="text-xs text-gray-400 dark:text-gray-500 mt-1">
+              {c.label}
+            </div>
           </div>
         ))}
       </div>
 
       {/* Tabla */}
-      <div className="overflow-x-auto bg-white rounded-xl shadow">
+      <div className="overflow-x-auto bg-white dark:bg-[#232323] rounded-xl shadow">
         <table className="w-full border-collapse">
           <thead>
-            <tr className="bg-gray-100 text-gray-700">
-              <th className="border p-2 text-left">Activo</th>
-              <th className="border p-2 text-center">Fallas</th>
-              <th className="border p-2 text-center">TMEF (días)</th>
-              <th className="border p-2 text-center">Última Falla</th>
-              <th className="border p-2 text-left">Tipos de Falla</th>
+            <tr className="bg-gray-100 dark:bg-[#2A2A2A] text-gray-700 dark:text-gray-200">
+              <th className="border border-gray-300 dark:border-gray-700 p-2 text-left">
+                Activo
+              </th>
+              <th className="border border-gray-300 dark:border-gray-700 p-2 text-center">
+                Fallas
+              </th>
+              <th className="border border-gray-300 dark:border-gray-700 p-2 text-center">
+                TMEF (días)
+              </th>
+              <th className="border border-gray-300 dark:border-gray-700 p-2 text-center">
+                Última Falla
+              </th>
+              <th className="border border-gray-300 dark:border-gray-700 p-2 text-left">
+                Tipos de Falla
+              </th>
             </tr>
           </thead>
           <tbody>
             {tmefData.map((item, i) => (
               <tr
                 key={i}
-                className="hover:bg-gray-50 transition-colors text-gray-800"
+                className="hover:bg-gray-50 dark:hover:bg-[#2A2A2A] transition-colors text-gray-800 dark:text-gray-100"
               >
-                <td className="border p-2">{item.activo}</td>
-                <td className="border p-2 text-center">{item.fallas}</td>
-                <td className="border p-2 text-center">
+                <td className="border border-gray-300 dark:border-gray-700 p-2">
+                  {item.activo}
+                </td>
+                <td className="border border-gray-300 dark:border-gray-700 p-2 text-center">
+                  {item.fallas}
+                </td>
+                <td className="border border-gray-300 dark:border-gray-700 p-2 text-center">
                   {item.tmef !== null ? item.tmef.toFixed(2) : 'No calculable'}
                 </td>
-                <td className="border p-2 text-center">
+                <td className="border border-gray-300 dark:border-gray-700 p-2 text-center">
                   {item.ultimaFalla
                     ? new Date(item.ultimaFalla).toLocaleDateString()
                     : '-'}
                 </td>
-                <td className="border p-2 text-sm">
+                <td className="border border-gray-300 dark:border-gray-700 p-2 text-sm">
                   {item.tiposFalla.length > 0
                     ? item.tiposFalla.join(', ')
                     : '-'}
@@ -519,7 +565,7 @@ export default function TMEFPage() {
               <tr>
                 <td
                   colSpan={5}
-                  className="border p-4 text-center text-gray-400"
+                  className="border border-gray-300 dark:border-gray-700 p-4 text-center text-gray-400 dark:text-gray-500"
                 >
                   Sin datos para los filtros seleccionados.
                 </td>
@@ -530,16 +576,17 @@ export default function TMEFPage() {
       </div>
 
       {/* Gráfico de barras */}
-      <div className="mt-8 bg-white p-4 rounded-xl shadow">
-        <h2 className="text-lg font-semibold text-gray-700 mb-4">
+      <div className="mt-8 bg-white dark:bg-[#232323] p-4 rounded-xl shadow">
+        <h2 className="text-lg font-semibold text-gray-700 dark:text-gray-200 mb-4">
           Gráfico TMEF por Activo (días)
         </h2>
         <ResponsiveContainer width="100%" height={300}>
           <BarChart data={tmefData}>
-            <CartesianGrid strokeDasharray="3 3" />
-            <XAxis dataKey="activo" />
-            <YAxis />
+            <CartesianGrid strokeDasharray="3 3" stroke={gridStroke} />
+            <XAxis dataKey="activo" tick={axisTick} />
+            <YAxis tick={axisTick} />
             <Tooltip
+              contentStyle={tooltipStyle}
               formatter={(v: number) =>
                 v !== null ? v.toFixed(2) : 'No calculable'
               }
@@ -550,18 +597,18 @@ export default function TMEFPage() {
       </div>
 
       {/* Heatmap de fallas */}
-      <div className="mt-8 bg-white p-4 rounded-xl shadow">
-        <h2 className="text-lg font-semibold text-gray-700 mb-4">
+      <div className="mt-8 bg-white dark:bg-[#232323] p-4 rounded-xl shadow">
+        <h2 className="text-lg font-semibold text-gray-700 dark:text-gray-200 mb-4">
           Historial de Fallas Correctivas
         </h2>
         {heatmapData.length === 0 ? (
-          <p className="text-gray-400 text-sm">
+          <p className="text-gray-400 dark:text-gray-500 text-sm">
             Sin fallas correctivas en el período.
           </p>
         ) : (
           <ResponsiveContainer width="100%" height={300}>
             <ScatterChart>
-              <CartesianGrid strokeDasharray="3 3" />
+              <CartesianGrid strokeDasharray="3 3" stroke={gridStroke} />
               <XAxis
                 type="number"
                 dataKey="fecha"
@@ -570,11 +617,18 @@ export default function TMEFPage() {
                   new Date(unixTime).toLocaleDateString()
                 }
                 name="Fecha"
+                tick={axisTick}
               />
-              <YAxis type="category" dataKey="tipoFalla" name="Tipo de Falla" />
+              <YAxis
+                type="category"
+                dataKey="tipoFalla"
+                name="Tipo de Falla"
+                tick={axisTick}
+              />
               <ZAxis type="number" dataKey="intensidad" range={[50, 200]} />
               <Tooltip
                 cursor={{ strokeDasharray: '3 3' }}
+                contentStyle={tooltipStyle}
                 formatter={(value: number | string, name: string) => {
                   if (name === 'fecha') {
                     return new Date(value as number).toLocaleDateString();

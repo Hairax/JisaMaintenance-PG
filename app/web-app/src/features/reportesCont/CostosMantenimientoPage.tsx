@@ -251,13 +251,19 @@ export default function CostosMantenimientoPage() {
   }
 
   return (
-    <div style={{ padding: '2rem', maxWidth: 1000, margin: '0 auto' }}>
+    <div
+      style={{
+        padding: 'clamp(1rem, 4vw, 2rem)',
+        maxWidth: 1000,
+        margin: '0 auto',
+      }}
+    >
       <div
         style={{
           background: '#fff',
           borderRadius: 12,
           boxShadow: '0 2px 8px rgba(0,0,0,0.08)',
-          padding: '2rem',
+          padding: 'clamp(1rem, 4vw, 2rem)',
         }}
       >
         <h2

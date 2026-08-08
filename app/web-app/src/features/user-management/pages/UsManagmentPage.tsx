@@ -1,6 +1,7 @@
 import React from 'react';
 import { exportUsersToExcel } from '../functions/exportExcel';
 import { useTheme } from '../../../shared/contexts/ThemeContext';
+import { usePermissions } from '../../../shared/hooks/usePermissions';
 import { UserTable } from '../components/UserTable';
 import { UserModal } from '../components/UserModal';
 import { useUserManagement } from '../hooks/useUserManagement';
@@ -17,6 +18,7 @@ export const colors = {
 
 export const UserManagementPage: React.FC = () => {
   const { theme } = useTheme();
+  const { can } = usePermissions();
   const {
     state,
     handleOpenModal,
@@ -59,6 +61,7 @@ export const UserManagementPage: React.FC = () => {
           onViewUser={(user) => handleOpenModal('view', user)}
           loading={state.loading}
           error={state.error}
+          canCreate={can('crearUsuarios')}
         />
 
         <UserModal
@@ -80,6 +83,8 @@ export const UserManagementPage: React.FC = () => {
           onEditMode={() =>
             state.selectedUser && handleOpenModal('edit', state.selectedUser)
           }
+          canEdit={can('editarUsuarios')}
+          canDelete={can('eliminarUsuarios')}
         />
       </div>
   );

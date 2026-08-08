@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import {
   FaHome,
@@ -14,15 +14,49 @@ import {
 } from 'react-icons/fa';
 import { useAuth } from '../../contexts/AuthContext';
 import { useTheme } from '../../contexts/ThemeContext';
+import { usePermissions } from '../../hooks/usePermissions';
+import { getRequiredPermission } from '../../permissions/routePermissions';
+import {
+  MANAGEMENT_ITEMS,
+  REPORTES_CONT_ITEMS,
+  KPI_ITEMS,
+} from '../../navigation/navConfig';
 import { NavItem } from './components/NavItem';
 import { ActionItem } from './components/ActionItem';
 
 export const Sidebar = () => {
   const [isCollapsed, setIsCollapsed] = useState(true);
+  // Solo un submenú (Gestión / Reportes Contables / KPIs) puede estar
+  // abierto a la vez, para que no se superpongan entre sí.
+  const [openMenu, setOpenMenu] = useState<string | null>(null);
+  const sidebarRef = useRef<HTMLDivElement>(null);
   const location = useLocation();
   const navigate = useNavigate();
   const { logout } = useAuth();
   const { theme, toggleTheme } = useTheme();
+  const { can } = usePermissions();
+  const canRoute = (to: string) => {
+    const perm = getRequiredPermission(to);
+    return !perm || can(perm);
+  };
+
+  // Cierra el submenú abierto al navegar o al hacer clic fuera del sidebar.
+  useEffect(() => {
+    setOpenMenu(null);
+  }, [location.pathname]);
+
+  useEffect(() => {
+    const handleClickOutside = (e: MouseEvent) => {
+      if (
+        sidebarRef.current &&
+        !sidebarRef.current.contains(e.target as Node)
+      ) {
+        setOpenMenu(null);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
 
   // Paleta de colores definida por el cliente
   const colors = {
@@ -42,44 +76,11 @@ export const Sidebar = () => {
     navigate('/login');
   };
 
-  const managementItems = [
-    { to: '/management/users', text: 'Usuarios' },
-    { to: '/management/cost-centers', text: 'Centros de Costos' },
-    { to: '/departamento', text: 'Departamentos' },
-    { to: '/maquina', text: 'Máquinas' },
-    { to: '/objeto', text: 'Objetos' },
-    { to: '/ot', text: 'Órdenes de Trabajo' },
-    { to: '/programacion-ot', text: 'Programación Automática de OTs' },
-    { to: '/process', text: 'Procesos' },
-    { to: '/proveedores', text: 'Proveedores' },
-    { to: '/repuestos', text: 'Repuestos' },
-    { to: '/subunidad', text: 'Subunidades' },
-    { to: '/tipo-mantenimiento', text: 'Tipos de Mantenimiento' },
-    { to: '/informes', text: 'Informes Diarios' },
-    { to: '/compras', text: 'Compras de Inventario' },
-    { to: '/salidas', text: 'Salidas de Inventario' },
-  ];
-
-  const reportesContItems = [
-    { to: '/reportes/kardex', text: 'Kardex Valorado de Repuestos' },
-    { to: '/reportes/costos', text: 'Costos de Mantenimiento' },
-    {
-      to: '/reportes/costos-ordenes-trabajo',
-      text: 'Costos por Órdenes de Trabajo',
-    },
-    { to: '/reportes/compras-materiales', text: 'Compras de Materiales' },
-    { to: '/reportes/consumo-materiales', text: 'Consumo de Materiales' },
-    { to: '/reportes/tomas-inventario', text: 'Tomas Físicas de Inventario' },
-    { to: '/reportes/mantenimiento-activo', text: 'Mantenimiento por Activo' },
-    // Puedes agregar más reportes contables aquí
-  ];
-
-  const kpis = [
-    { to: '/kpis/disponibilidad', text: 'Disponibilidad' },
-    { to: '/kpis/tmef', text: 'TMEF' },
-    { to: '/kpis/tmpr', text: 'TMPR' },
-    { to: '/kpis/costo-por-activo', text: 'Costo por Activo' },
-  ];
+  const managementItems = MANAGEMENT_ITEMS.filter((item) => canRoute(item.to));
+  const reportesContItems = REPORTES_CONT_ITEMS.filter((item) =>
+    canRoute(item.to),
+  );
+  const kpis = KPI_ITEMS.filter((item) => canRoute(item.to));
 
   // Definir colores para Sidebar basados en el tema
   const sidebarBg = theme === 'dark' ? colors.darkBg : colors.lightBg;
@@ -92,13 +93,14 @@ export const Sidebar = () => {
 
   return (
     <div
+      ref={sidebarRef}
       className={`relative h-full transition-width duration-300 ease-in-out ${
         isCollapsed ? 'w-20' : 'w-52'
       }`}
     >
       {/* Sidebar principal con posición fija y colores de tema */}
       <aside
-        className={`fixed h-full p-4 rounded-r-xl shadow-md flex flex-col transition-colors duration-300 ease-in-out ${theme === 'dark' ? 'border-r-1 border-brown shadow-lg' : 'border-r-1 border-gold shadow-lg'}`}
+        className={`fixed z-30 h-full p-4 rounded-r-xl shadow-md flex flex-col transition-colors duration-300 ease-in-out ${theme === 'dark' ? 'border-r-1 border-brown shadow-lg' : 'border-r-1 border-gold shadow-lg'}`}
         style={{ backgroundColor: sidebarBg }}
       >
         {/* Sección Perfil y Botón Colapsar */}
@@ -129,7 +131,12 @@ export const Sidebar = () => {
         </div>
 
         {/* Navegación Principal */}
-        <nav className="space-y-2 flex-1">
+        {/* El scroll solo se activa con el sidebar expandido: cuando está
+            colapsado, los submenús se muestran como flyouts posicionados
+            fuera del nav (left-full) y un overflow acá los recortaría. */}
+        <nav
+          className={`space-y-2 flex-1 min-h-0 ${isCollapsed ? '' : 'overflow-y-auto overflow-x-hidden'}`}
+        >
           {/* --- Inicio --- */}
           <NavItem
             to="/home"
@@ -140,45 +147,65 @@ export const Sidebar = () => {
             theme={theme}
           />
           {/* --- Dashboard --- */}
-          <NavItem
-            to="/dashboard"
-            icon={<FaChartBar />}
-            text="Dashboard"
-            isCollapsed={isCollapsed}
-            colors={colors}
-            theme={theme}
-          />
+          {canRoute('/dashboard') && (
+            <NavItem
+              to="/dashboard"
+              icon={<FaChartBar />}
+              text="Dashboard"
+              isCollapsed={isCollapsed}
+              colors={colors}
+              theme={theme}
+            />
+          )}
           {/* --- Gestión (con submenú) --- */}
-          <NavItem
-            icon={<FaCog />}
-            text="Gestión"
-            isCollapsed={isCollapsed}
-            isActive={location.pathname.startsWith('/management')}
-            nestedItems={managementItems}
-            colors={colors}
-            theme={theme}
-          />
+          {managementItems.length > 0 && (
+            <NavItem
+              icon={<FaCog />}
+              text="Gestión"
+              isCollapsed={isCollapsed}
+              isActive={location.pathname.startsWith('/management')}
+              nestedItems={managementItems}
+              isOpen={openMenu === 'gestion'}
+              onToggle={() =>
+                setOpenMenu((prev) => (prev === 'gestion' ? null : 'gestion'))
+              }
+              colors={colors}
+              theme={theme}
+            />
+          )}
 
           {/* --- Reportes Contables (con submenú) --- */}
-          <NavItem
-            icon={<FaChartBar />}
-            text="Reportes Contables"
-            isCollapsed={isCollapsed}
-            isActive={location.pathname.startsWith('/reportes')}
-            nestedItems={reportesContItems}
-            colors={colors}
-            theme={theme}
-          />
+          {reportesContItems.length > 0 && (
+            <NavItem
+              icon={<FaChartBar />}
+              text="Reportes Contables"
+              isCollapsed={isCollapsed}
+              isActive={location.pathname.startsWith('/reportes')}
+              nestedItems={reportesContItems}
+              isOpen={openMenu === 'reportes'}
+              onToggle={() =>
+                setOpenMenu((prev) => (prev === 'reportes' ? null : 'reportes'))
+              }
+              colors={colors}
+              theme={theme}
+            />
+          )}
           {/* --- KPIs (con submenú) --- */}
-          <NavItem
-            icon={<FaChartLine />}
-            text="KPIs"
-            isCollapsed={isCollapsed}
-            isActive={location.pathname.startsWith('/kpis')}
-            nestedItems={kpis}
-            colors={colors}
-            theme={theme}
-          />
+          {kpis.length > 0 && (
+            <NavItem
+              icon={<FaChartLine />}
+              text="KPIs"
+              isCollapsed={isCollapsed}
+              isActive={location.pathname.startsWith('/kpis')}
+              nestedItems={kpis}
+              isOpen={openMenu === 'kpis'}
+              onToggle={() =>
+                setOpenMenu((prev) => (prev === 'kpis' ? null : 'kpis'))
+              }
+              colors={colors}
+              theme={theme}
+            />
+          )}
         </nav>
 
         {/* Acciones Inferiores */}

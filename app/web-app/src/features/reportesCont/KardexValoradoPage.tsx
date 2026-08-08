@@ -480,13 +480,19 @@ export default function KardexValoradoPage() {
     );
 
   return (
-    <div style={{ padding: '2rem' }}>
+    <div
+      style={{
+        padding: 'clamp(1rem, 4vw, 2rem)',
+        maxWidth: 1200,
+        margin: '0 auto',
+      }}
+    >
       <div
         style={{
           background: bgColor,
           borderRadius: 12,
           boxShadow: '0 2px 8px rgba(0,0,0,0.08)',
-          padding: '2rem',
+          padding: 'clamp(1rem, 4vw, 2rem)',
         }}
       >
         <h2
@@ -521,10 +527,19 @@ export default function KardexValoradoPage() {
               border: `1px solid ${inputBorderColor}`,
               background: inputBgColor,
               color: textColor,
-              maxWidth: 200,
+              flex: '1 1 180px',
+              maxWidth: 260,
             }}
           />
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+          <div
+            style={{
+              display: 'flex',
+              flexDirection: 'column',
+              gap: 2,
+              flex: '1 1 130px',
+              maxWidth: 180,
+            }}
+          >
             <span style={{ fontSize: '0.72rem', color: '#888' }}>
               Fecha inicio
             </span>
@@ -538,11 +553,19 @@ export default function KardexValoradoPage() {
                 border: `1px solid ${inputBorderColor}`,
                 background: inputBgColor,
                 color: textColor,
-                maxWidth: 160,
+                width: '100%',
               }}
             />
           </div>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+          <div
+            style={{
+              display: 'flex',
+              flexDirection: 'column',
+              gap: 2,
+              flex: '1 1 130px',
+              maxWidth: 180,
+            }}
+          >
             <span style={{ fontSize: '0.72rem', color: '#888' }}>
               Fecha fin
             </span>
@@ -556,7 +579,7 @@ export default function KardexValoradoPage() {
                 border: `1px solid ${inputBorderColor}`,
                 background: inputBgColor,
                 color: textColor,
-                maxWidth: 160,
+                width: '100%',
               }}
             />
           </div>
@@ -656,48 +679,210 @@ export default function KardexValoradoPage() {
           ))}
         </div>
 
-        {/* Table */}
-        <div style={{ overflowX: 'auto' }}>
-          <table
+        {dataFiltrada.length === 0 ? (
+          <div
             style={{
-              width: '100%',
-              borderCollapse: 'collapse',
-              fontSize: '0.8rem',
+              padding: '1.5rem',
+              textAlign: 'center',
+              color: secondaryTextColor,
             }}
           >
-            <thead>
-              <tr style={{ background: theadBgColor, color: theadTextColor }}>
-                {[
-                  'CÓDIGO',
-                  'PRODUCTO',
-                  'Tipo',
-                  'Fecha',
-                  'Documento',
-                  'Detalle',
-                  'U.M.',
-                  'Ingresos',
-                  'Salidas',
-                  'Saldo',
-                  'Costo Bs',
-                  'Ingresos Val. Bs',
-                  'Salidas Val. Bs',
-                  'Saldo Val. Bs',
-                ].map((h) => (
-                  <th
-                    key={h}
-                    style={{
-                      padding: '0.4rem 0.5rem',
-                      textAlign: 'left',
-                      fontWeight: 600,
-                      whiteSpace: 'nowrap',
-                    }}
+            No se encontraron movimientos de repuestos.
+          </div>
+        ) : (
+          <>
+            {/* Tabla completa (desktop / pantallas medianas en adelante) */}
+            <div className="hidden md:block" style={{ overflowX: 'auto' }}>
+              <table
+                style={{
+                  width: '100%',
+                  borderCollapse: 'collapse',
+                  fontSize: '0.8rem',
+                }}
+              >
+                <thead>
+                  <tr
+                    style={{ background: theadBgColor, color: theadTextColor }}
                   >
-                    {h}
-                  </th>
-                ))}
-              </tr>
-            </thead>
-            <tbody>
+                    {[
+                      'CÓDIGO',
+                      'PRODUCTO',
+                      'Tipo',
+                      'Fecha',
+                      'Documento',
+                      'Detalle',
+                      'U.M.',
+                      'Ingresos',
+                      'Salidas',
+                      'Saldo',
+                      'Costo Bs',
+                      'Ingresos Val. Bs',
+                      'Salidas Val. Bs',
+                      'Saldo Val. Bs',
+                    ].map((h) => (
+                      <th
+                        key={h}
+                        style={{
+                          padding: '0.4rem 0.5rem',
+                          textAlign: 'left',
+                          fontWeight: 600,
+                          whiteSpace: 'nowrap',
+                        }}
+                      >
+                        {h}
+                      </th>
+                    ))}
+                  </tr>
+                </thead>
+                <tbody>
+                  {dataFiltrada.map((item, i) => {
+                    const rowBg =
+                      item.movimiento === 'SALDO INICIAL'
+                        ? saldoInicialBg
+                        : item.movimiento === 'ENTRADA'
+                          ? i % 2 === 0
+                            ? entradaBg1
+                            : entradaBg2
+                          : i % 2 === 0
+                            ? salidaBg1
+                            : salidaBg2;
+                    return (
+                      <tr key={i} style={{ background: rowBg }}>
+                        <td style={{ padding: '0.4rem 0.5rem', color: '#888' }}>
+                          {item.codigo}
+                        </td>
+                        <td
+                          style={{
+                            padding: '0.4rem 0.5rem',
+                            fontWeight: 500,
+                            color: textColor,
+                          }}
+                        >
+                          {item.producto}
+                        </td>
+                        <td style={{ padding: '0.4rem 0.5rem' }}>
+                          <TipoBadge tipo={item.movimiento} theme={theme} />
+                        </td>
+                        <td
+                          style={{
+                            padding: '0.4rem 0.5rem',
+                            whiteSpace: 'nowrap',
+                          }}
+                        >
+                          {fmtDate(item.fecha)}
+                        </td>
+                        <td
+                          style={{
+                            padding: '0.4rem 0.5rem',
+                            fontSize: '0.82rem',
+                            color: secondaryTextColor,
+                          }}
+                        >
+                          {item.documento}
+                        </td>
+                        <td
+                          style={{
+                            padding: '0.4rem 0.5rem',
+                            fontSize: '0.82rem',
+                            color: secondaryTextColor,
+                            maxWidth: 120,
+                            overflow: 'hidden',
+                            textOverflow: 'ellipsis',
+                            whiteSpace: 'nowrap',
+                          }}
+                        >
+                          {item.detalle}
+                        </td>
+                        <td
+                          style={{
+                            padding: '0.4rem 0.5rem',
+                            fontSize: '0.82rem',
+                            color: secondaryTextColor,
+                          }}
+                        >
+                          {item.unidad || '—'}
+                        </td>
+                        <td
+                          style={{
+                            padding: '0.4rem 0.5rem',
+                            textAlign: 'right',
+                            color: successColor,
+                            fontWeight: item.ingresos > 0 ? 600 : undefined,
+                          }}
+                        >
+                          {item.ingresos > 0 ? fmtNum(item.ingresos) : '—'}
+                        </td>
+                        <td
+                          style={{
+                            padding: '0.4rem 0.5rem',
+                            textAlign: 'right',
+                            color: errorColor,
+                            fontWeight: item.salidas > 0 ? 600 : undefined,
+                          }}
+                        >
+                          {item.salidas > 0 ? fmtNum(item.salidas) : '—'}
+                        </td>
+                        <td
+                          style={{
+                            padding: '0.4rem 0.5rem',
+                            textAlign: 'right',
+                            fontWeight: 700,
+                            color: textColor,
+                          }}
+                        >
+                          {fmtNum(item.saldo)}
+                        </td>
+                        <td
+                          style={{
+                            padding: '0.4rem 0.5rem',
+                            textAlign: 'right',
+                            color: textColor,
+                          }}
+                        >
+                          {fmtNum(item.costoBs)}
+                        </td>
+                        <td
+                          style={{
+                            padding: '0.4rem 0.5rem',
+                            textAlign: 'right',
+                            color: successColor,
+                          }}
+                        >
+                          {item.ingresosValBs > 0
+                            ? fmtNum(item.ingresosValBs)
+                            : '—'}
+                        </td>
+                        <td
+                          style={{
+                            padding: '0.4rem 0.5rem',
+                            textAlign: 'right',
+                            color: errorColor,
+                          }}
+                        >
+                          {item.salidasValBs > 0
+                            ? fmtNum(item.salidasValBs)
+                            : '—'}
+                        </td>
+                        <td
+                          style={{
+                            padding: '0.4rem 0.5rem',
+                            textAlign: 'right',
+                            fontWeight: 700,
+                            color: textColor,
+                          }}
+                        >
+                          {fmtNum(item.saldoValBs)}
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+
+            {/* Tarjetas (mobile) — misma información, reorganizada en vertical
+                en vez de forzar scroll horizontal por 14 columnas angostas. */}
+            <div className="md:hidden space-y-2">
               {dataFiltrada.map((item, i) => {
                 const rowBg =
                   item.movimiento === 'SALDO INICIAL'
@@ -710,150 +895,186 @@ export default function KardexValoradoPage() {
                         ? salidaBg1
                         : salidaBg2;
                 return (
-                  <tr key={i} style={{ background: rowBg }}>
-                    <td style={{ padding: '0.4rem 0.5rem', color: '#888' }}>
-                      {item.codigo}
-                    </td>
-                    <td
-                      style={{
-                        padding: '0.4rem 0.5rem',
-                        fontWeight: 500,
-                        color: textColor,
-                      }}
-                    >
-                      {item.producto}
-                    </td>
-                    <td style={{ padding: '0.4rem 0.5rem' }}>
-                      <TipoBadge tipo={item.movimiento} theme={theme} />
-                    </td>
-                    <td
-                      style={{
-                        padding: '0.4rem 0.5rem',
-                        whiteSpace: 'nowrap',
-                      }}
-                    >
-                      {fmtDate(item.fecha)}
-                    </td>
-                    <td
-                      style={{
-                        padding: '0.4rem 0.5rem',
-                        fontSize: '0.82rem',
-                        color: secondaryTextColor,
-                      }}
-                    >
-                      {item.documento}
-                    </td>
-                    <td
-                      style={{
-                        padding: '0.4rem 0.5rem',
-                        fontSize: '0.82rem',
-                        color: secondaryTextColor,
-                        maxWidth: 120,
-                        overflow: 'hidden',
-                        textOverflow: 'ellipsis',
-                        whiteSpace: 'nowrap',
-                      }}
-                    >
-                      {item.detalle}
-                    </td>
-                    <td
-                      style={{
-                        padding: '0.4rem 0.5rem',
-                        fontSize: '0.82rem',
-                        color: secondaryTextColor,
-                      }}
-                    >
-                      {item.unidad || '—'}
-                    </td>
-                    <td
-                      style={{
-                        padding: '0.4rem 0.5rem',
-                        textAlign: 'right',
-                        color: successColor,
-                        fontWeight: item.ingresos > 0 ? 600 : undefined,
-                      }}
-                    >
-                      {item.ingresos > 0 ? fmtNum(item.ingresos) : '—'}
-                    </td>
-                    <td
-                      style={{
-                        padding: '0.4rem 0.5rem',
-                        textAlign: 'right',
-                        color: errorColor,
-                        fontWeight: item.salidas > 0 ? 600 : undefined,
-                      }}
-                    >
-                      {item.salidas > 0 ? fmtNum(item.salidas) : '—'}
-                    </td>
-                    <td
-                      style={{
-                        padding: '0.4rem 0.5rem',
-                        textAlign: 'right',
-                        fontWeight: 700,
-                        color: textColor,
-                      }}
-                    >
-                      {fmtNum(item.saldo)}
-                    </td>
-                    <td
-                      style={{
-                        padding: '0.4rem 0.5rem',
-                        textAlign: 'right',
-                        color: textColor,
-                      }}
-                    >
-                      {fmtNum(item.costoBs)}
-                    </td>
-                    <td
-                      style={{
-                        padding: '0.4rem 0.5rem',
-                        textAlign: 'right',
-                        color: successColor,
-                      }}
-                    >
-                      {item.ingresosValBs > 0
-                        ? fmtNum(item.ingresosValBs)
-                        : '—'}
-                    </td>
-                    <td
-                      style={{
-                        padding: '0.4rem 0.5rem',
-                        textAlign: 'right',
-                        color: errorColor,
-                      }}
-                    >
-                      {item.salidasValBs > 0 ? fmtNum(item.salidasValBs) : '—'}
-                    </td>
-                    <td
-                      style={{
-                        padding: '0.4rem 0.5rem',
-                        textAlign: 'right',
-                        fontWeight: 700,
-                        color: textColor,
-                      }}
-                    >
-                      {fmtNum(item.saldoValBs)}
-                    </td>
-                  </tr>
-                );
-              })}
-              {dataFiltrada.length === 0 && (
-                <tr>
-                  <td
-                    colSpan={14}
+                  <div
+                    key={i}
                     style={{
-                      padding: '1.5rem',
-                      textAlign: 'center',
-                      color: secondaryTextColor,
+                      background: rowBg,
+                      borderRadius: 10,
+                      border: `1px solid ${inputBorderColor}`,
+                      padding: '10px 12px',
                     }}
                   >
-                    No se encontraron movimientos de repuestos.
-                  </td>
-                </tr>
-              )}
-            </tbody>
-          </table>
-        </div>
+                    <div
+                      style={{
+                        display: 'flex',
+                        justifyContent: 'space-between',
+                        alignItems: 'flex-start',
+                        gap: 8,
+                      }}
+                    >
+                      <div style={{ minWidth: 0 }}>
+                        <div
+                          style={{
+                            fontWeight: 600,
+                            color: textColor,
+                            fontSize: '0.85rem',
+                          }}
+                        >
+                          {item.producto}
+                        </div>
+                        <div style={{ fontSize: '0.72rem', color: '#888' }}>
+                          {item.codigo}
+                        </div>
+                      </div>
+                      <TipoBadge tipo={item.movimiento} theme={theme} />
+                    </div>
+
+                    <div
+                      style={{
+                        display: 'flex',
+                        justifyContent: 'space-between',
+                        flexWrap: 'wrap',
+                        gap: 8,
+                        fontSize: '0.76rem',
+                        color: secondaryTextColor,
+                        marginTop: 6,
+                      }}
+                    >
+                      <span>{fmtDate(item.fecha)}</span>
+                      <span>{item.documento}</span>
+                    </div>
+
+                    {item.detalle && (
+                      <div
+                        style={{
+                          fontSize: '0.76rem',
+                          color: secondaryTextColor,
+                          marginTop: 4,
+                        }}
+                      >
+                        {item.detalle}
+                      </div>
+                    )}
+
+                    <div
+                      style={{
+                        display: 'grid',
+                        gridTemplateColumns:
+                          'repeat(auto-fit, minmax(70px, 1fr))',
+                        gap: 6,
+                        marginTop: 10,
+                        paddingTop: 8,
+                        borderTop: `1px dashed ${inputBorderColor}`,
+                        textAlign: 'center',
+                      }}
+                    >
+                      <div>
+                        <div style={{ fontSize: '0.66rem', color: '#888' }}>
+                          Ingresos
+                        </div>
+                        <div
+                          style={{
+                            fontSize: '0.8rem',
+                            color: successColor,
+                            fontWeight: item.ingresos > 0 ? 600 : undefined,
+                          }}
+                        >
+                          {item.ingresos > 0 ? fmtNum(item.ingresos) : '—'}
+                        </div>
+                      </div>
+                      <div>
+                        <div style={{ fontSize: '0.66rem', color: '#888' }}>
+                          Salidas
+                        </div>
+                        <div
+                          style={{
+                            fontSize: '0.8rem',
+                            color: errorColor,
+                            fontWeight: item.salidas > 0 ? 600 : undefined,
+                          }}
+                        >
+                          {item.salidas > 0 ? fmtNum(item.salidas) : '—'}
+                        </div>
+                      </div>
+                      <div>
+                        <div style={{ fontSize: '0.66rem', color: '#888' }}>
+                          Saldo ({item.unidad || 'u.'})
+                        </div>
+                        <div
+                          style={{
+                            fontSize: '0.8rem',
+                            fontWeight: 700,
+                            color: textColor,
+                          }}
+                        >
+                          {fmtNum(item.saldo)}
+                        </div>
+                      </div>
+                    </div>
+
+                    <div
+                      style={{
+                        display: 'grid',
+                        gridTemplateColumns:
+                          'repeat(auto-fit, minmax(90px, 1fr))',
+                        gap: 6,
+                        marginTop: 8,
+                        paddingTop: 8,
+                        borderTop: `1px dashed ${inputBorderColor}`,
+                        textAlign: 'center',
+                      }}
+                    >
+                      <div>
+                        <div style={{ fontSize: '0.66rem', color: '#888' }}>
+                          Costo Unit. Bs
+                        </div>
+                        <div style={{ fontSize: '0.8rem', color: textColor }}>
+                          {fmtNum(item.costoBs)}
+                        </div>
+                      </div>
+                      <div>
+                        <div style={{ fontSize: '0.66rem', color: '#888' }}>
+                          Ing. Val. Bs
+                        </div>
+                        <div
+                          style={{ fontSize: '0.8rem', color: successColor }}
+                        >
+                          {item.ingresosValBs > 0
+                            ? fmtNum(item.ingresosValBs)
+                            : '—'}
+                        </div>
+                      </div>
+                      <div>
+                        <div style={{ fontSize: '0.66rem', color: '#888' }}>
+                          Sal. Val. Bs
+                        </div>
+                        <div style={{ fontSize: '0.8rem', color: errorColor }}>
+                          {item.salidasValBs > 0
+                            ? fmtNum(item.salidasValBs)
+                            : '—'}
+                        </div>
+                      </div>
+                      <div>
+                        <div style={{ fontSize: '0.66rem', color: '#888' }}>
+                          Saldo Val. Bs
+                        </div>
+                        <div
+                          style={{
+                            fontSize: '0.8rem',
+                            fontWeight: 700,
+                            color: textColor,
+                          }}
+                        >
+                          {fmtNum(item.saldoValBs)}
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </>
+        )}
       </div>
     </div>
   );

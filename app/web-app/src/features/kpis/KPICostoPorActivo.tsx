@@ -120,9 +120,9 @@ function RankingCostos({
   };
 
   return (
-    <div className="mt-10 bg-white p-4 rounded-xl shadow">
+    <div className="mt-10 bg-white dark:bg-[#232323] p-4 rounded-xl shadow">
       <div className="flex flex-col md:flex-row md:items-center gap-4 mb-4">
-        <span className="font-semibold text-gray-700">
+        <span className="font-semibold text-gray-700 dark:text-gray-200">
           Ranking de Costos por Activo
         </span>
         <button
@@ -135,14 +135,22 @@ function RankingCostos({
       <div className="overflow-x-auto">
         <table className="w-full border-collapse">
           <thead>
-            <tr className="bg-gray-100 text-gray-700">
-              <th className="border p-2 text-left">#</th>
-              <th className="border p-2 text-left">Activo</th>
-              <th className="border p-2 text-left">Tipo</th>
-              <th className="border p-2 text-center"># OTs</th>
-              <th className="border p-2 text-center">
+            <tr className="bg-gray-100 dark:bg-[#2A2A2A] text-gray-700 dark:text-gray-200">
+              <th className="border border-gray-300 dark:border-gray-700 p-2 text-left">
+                #
+              </th>
+              <th className="border border-gray-300 dark:border-gray-700 p-2 text-left">
+                Activo
+              </th>
+              <th className="border border-gray-300 dark:border-gray-700 p-2 text-left">
+                Tipo
+              </th>
+              <th className="border border-gray-300 dark:border-gray-700 p-2 text-center">
+                # OTs
+              </th>
+              <th className="border border-gray-300 dark:border-gray-700 p-2 text-center">
                 <button
-                  className="font-bold text-blue-600 hover:underline"
+                  className="font-bold text-blue-600 dark:text-blue-400 hover:underline"
                   onClick={() => setSortAsc((v) => !v)}
                   title="Ordenar por costo"
                 >
@@ -156,13 +164,21 @@ function RankingCostos({
             {sorted.map((row, i) => (
               <tr
                 key={row.id}
-                className="hover:bg-gray-50 transition-colors text-gray-800"
+                className="hover:bg-gray-50 dark:hover:bg-[#2A2A2A] transition-colors text-gray-800 dark:text-gray-100"
               >
-                <td className="border p-2">{i + 1}</td>
-                <td className="border p-2">{row.nombre}</td>
-                <td className="border p-2">{row.tipo}</td>
-                <td className="border p-2 text-center">{row.cantidad}</td>
-                <td className="border p-2 text-center">
+                <td className="border border-gray-300 dark:border-gray-700 p-2">
+                  {i + 1}
+                </td>
+                <td className="border border-gray-300 dark:border-gray-700 p-2">
+                  {row.nombre}
+                </td>
+                <td className="border border-gray-300 dark:border-gray-700 p-2">
+                  {row.tipo}
+                </td>
+                <td className="border border-gray-300 dark:border-gray-700 p-2 text-center">
+                  {row.cantidad}
+                </td>
+                <td className="border border-gray-300 dark:border-gray-700 p-2 text-center">
                   {fmtCurrency(row.costo)}
                 </td>
               </tr>
@@ -171,7 +187,7 @@ function RankingCostos({
               <tr>
                 <td
                   colSpan={5}
-                  className="border p-3 text-center text-gray-400"
+                  className="border border-gray-300 dark:border-gray-700 p-3 text-center text-gray-400 dark:text-gray-500"
                 >
                   Sin datos para el rango seleccionado.
                 </td>
@@ -301,7 +317,7 @@ export default function KPICostoPorActivo() {
 
   if (loading)
     return (
-      <div className="p-6 text-center text-gray-400">
+      <div className="p-6 text-center text-gray-400 dark:text-gray-500">
         Cargando datos de costos...
       </div>
     );
@@ -309,7 +325,7 @@ export default function KPICostoPorActivo() {
   if (error)
     return (
       <div className="p-6 text-center">
-        <p className="text-red-600 mb-3">{error}</p>
+        <p className="text-red-600 dark:text-red-400 mb-3">{error}</p>
         <button
           onClick={cargarDatos}
           className="bg-yellow-500 text-white px-4 py-2 rounded hover:bg-yellow-600"
@@ -322,7 +338,9 @@ export default function KPICostoPorActivo() {
   return (
     <div className="p-6 space-y-6">
       <div className="flex items-center justify-between flex-wrap gap-3">
-        <h1 className="text-2xl font-bold">KPI — Costo por Activo</h1>
+        <h1 className="text-2xl font-bold text-gray-900 dark:text-gray-100">
+          KPI — Costo por Activo
+        </h1>
         <button
           onClick={cargarDatos}
           className="bg-blue-700 text-white px-4 py-1.5 rounded hover:bg-blue-800 text-sm"
@@ -334,27 +352,33 @@ export default function KPICostoPorActivo() {
       {/* Filters */}
       <div className="flex items-center gap-4 flex-wrap">
         <div>
-          <label className="block text-sm text-gray-600">Fecha inicio</label>
+          <label className="block text-sm text-gray-600 dark:text-gray-400">
+            Fecha inicio
+          </label>
           <input
             type="date"
-            className="border p-1 rounded"
+            className="border border-gray-300 dark:border-gray-700 dark:bg-[#2A2A2A] dark:text-gray-100 dark:[color-scheme:dark] p-1 rounded"
             value={fechaInicio}
             onChange={(e) => setFechaInicio(e.target.value)}
           />
         </div>
         <div>
-          <label className="block text-sm text-gray-600">Fecha fin</label>
+          <label className="block text-sm text-gray-600 dark:text-gray-400">
+            Fecha fin
+          </label>
           <input
             type="date"
-            className="border p-1 rounded"
+            className="border border-gray-300 dark:border-gray-700 dark:bg-[#2A2A2A] dark:text-gray-100 dark:[color-scheme:dark] p-1 rounded"
             value={fechaFin}
             onChange={(e) => setFechaFin(e.target.value)}
           />
         </div>
         <div>
-          <label className="block text-sm text-gray-600">Modo</label>
+          <label className="block text-sm text-gray-600 dark:text-gray-400">
+            Modo
+          </label>
           <select
-            className="border p-1 rounded"
+            className="border border-gray-300 dark:border-gray-700 dark:bg-[#2A2A2A] dark:text-gray-100 p-1 rounded"
             value={modo}
             onChange={(e) => setModo(e.target.value as 'total' | 'promedio')}
           >
@@ -368,7 +392,7 @@ export default function KPICostoPorActivo() {
               setFechaInicio('');
               setFechaFin('');
             }}
-            className="text-sm text-gray-500 underline mt-4"
+            className="text-sm text-gray-500 dark:text-gray-400 underline mt-4"
           >
             Limpiar fechas
           </button>
@@ -399,54 +423,82 @@ export default function KPICostoPorActivo() {
         ].map((c) => (
           <div
             key={c.label}
-            className="bg-white rounded-xl shadow p-4 text-center"
+            className="bg-white dark:bg-[#232323] rounded-xl shadow p-4 text-center"
           >
-            <div className="text-xl font-bold text-gray-700">{c.value}</div>
-            <div className="text-xs text-gray-400 mt-1">{c.label}</div>
+            <div className="text-xl font-bold text-gray-700 dark:text-gray-100">
+              {c.value}
+            </div>
+            <div className="text-xs text-gray-400 dark:text-gray-500 mt-1">
+              {c.label}
+            </div>
           </div>
         ))}
       </div>
 
       {/* Main table */}
-      <table className="w-full border border-gray-300 rounded">
-        <thead>
-          <tr className="bg-gray-100">
-            <th className="border p-2 text-left">Activo</th>
-            <th className="border p-2 text-left">Tipo</th>
-            <th className="border p-2 text-center"># OTs</th>
-            <th className="border p-2 text-center">
-              {modo === 'total' ? 'Costo Total' : 'Costo Promedio'}
-            </th>
-          </tr>
-        </thead>
-        <tbody>
-          {datosFiltrados.map((activo) => (
-            <tr key={activo.id} className="text-center hover:bg-gray-50">
-              <td className="border p-2 text-left">{activo.nombre}</td>
-              <td className="border p-2 text-left">{activo.tipo}</td>
-              <td className="border p-2">{activo.ordenes.length}</td>
-              <td className="border p-2">
-                {fmtCurrency(
-                  modo === 'total' ? activo.costoTotal : activo.costoPromedio,
-                )}
-              </td>
+      <div className="overflow-x-auto">
+        <table className="w-full border border-gray-300 dark:border-gray-700 rounded">
+          <thead>
+            <tr className="bg-gray-100 dark:bg-[#2A2A2A] text-gray-700 dark:text-gray-200">
+              <th className="border border-gray-300 dark:border-gray-700 p-2 text-left">
+                Activo
+              </th>
+              <th className="border border-gray-300 dark:border-gray-700 p-2 text-left">
+                Tipo
+              </th>
+              <th className="border border-gray-300 dark:border-gray-700 p-2 text-center">
+                # OTs
+              </th>
+              <th className="border border-gray-300 dark:border-gray-700 p-2 text-center">
+                {modo === 'total' ? 'Costo Total' : 'Costo Promedio'}
+              </th>
             </tr>
-          ))}
-          {datosFiltrados.length === 0 && (
-            <tr>
-              <td colSpan={4} className="border p-4 text-center text-gray-400">
-                Sin activos registrados.
-              </td>
-            </tr>
-          )}
-        </tbody>
-      </table>
+          </thead>
+          <tbody>
+            {datosFiltrados.map((activo) => (
+              <tr
+                key={activo.id}
+                className="text-center text-gray-800 dark:text-gray-100 hover:bg-gray-50 dark:hover:bg-[#2A2A2A]"
+              >
+                <td className="border border-gray-300 dark:border-gray-700 p-2 text-left">
+                  {activo.nombre}
+                </td>
+                <td className="border border-gray-300 dark:border-gray-700 p-2 text-left">
+                  {activo.tipo}
+                </td>
+                <td className="border border-gray-300 dark:border-gray-700 p-2">
+                  {activo.ordenes.length}
+                </td>
+                <td className="border border-gray-300 dark:border-gray-700 p-2">
+                  {fmtCurrency(
+                    modo === 'total' ? activo.costoTotal : activo.costoPromedio,
+                  )}
+                </td>
+              </tr>
+            ))}
+            {datosFiltrados.length === 0 && (
+              <tr>
+                <td
+                  colSpan={4}
+                  className="border border-gray-300 dark:border-gray-700 p-4 text-center text-gray-400 dark:text-gray-500"
+                >
+                  Sin activos registrados.
+                </td>
+              </tr>
+            )}
+          </tbody>
+        </table>
+      </div>
 
       {/* Bar chart */}
-      <div className="mt-6 bg-white p-4 rounded-xl shadow">
-        <h2 className="text-lg font-semibold mb-4">Gráfico de costos</h2>
+      <div className="mt-6 bg-white dark:bg-[#232323] p-4 rounded-xl shadow">
+        <h2 className="text-lg font-semibold mb-4 text-gray-900 dark:text-gray-100">
+          Gráfico de costos
+        </h2>
         {datosFiltrados.filter((a) => a.ordenes.length > 0).length === 0 ? (
-          <p className="text-gray-400 text-sm">Sin datos para graficar.</p>
+          <p className="text-gray-400 dark:text-gray-500 text-sm">
+            Sin datos para graficar.
+          </p>
         ) : (
           <div className="flex items-end gap-3 mt-2 overflow-x-auto pb-2">
             {datosFiltrados
@@ -468,7 +520,7 @@ export default function KPICostoPorActivo() {
                     key={activo.id}
                     className="flex flex-col items-center min-w-[48px]"
                   >
-                    <span className="text-xs text-gray-500 mb-1">
+                    <span className="text-xs text-gray-500 dark:text-gray-400 mb-1">
                       {fmtCurrency(valor)}
                     </span>
                     <div
@@ -477,7 +529,7 @@ export default function KPICostoPorActivo() {
                       title={`${activo.nombre}: ${fmtCurrency(valor)}`}
                     />
                     <span
-                      className="text-xs mt-1 text-center max-w-[60px] leading-tight truncate"
+                      className="text-xs mt-1 text-center max-w-[60px] leading-tight truncate text-gray-700 dark:text-gray-300"
                       title={activo.nombre}
                     >
                       {activo.nombre}

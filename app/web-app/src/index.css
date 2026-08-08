@@ -1,5 +1,13 @@
 @import 'tailwindcss';
 
+/* Tailwind v4 no lee `darkMode: 'class'` de tailwind.config.js (esa opción
+   se movió de JS a CSS). Sin esto, las clases `dark:` se activan según el
+   `prefers-color-scheme` del sistema operativo, ignorando por completo el
+   selector de tema de la app — por eso "modo claro" se veía roto cuando el
+   SO está en oscuro. Esto ata `dark:` a la clase `.dark` que ThemeContext
+   ya pone en <body>. */
+@custom-variant dark (&:where(.dark, .dark *));
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;

@@ -11,6 +11,7 @@ import {
   ResponsiveContainer,
 } from 'recharts';
 import DateRangePicker from './components/DateRangePicker';
+import { useTheme } from '../../shared/contexts/ThemeContext';
 
 const API = 'http://localhost:3000';
 
@@ -94,6 +95,8 @@ function formatPercent(v: number): string {
  * Componente Gauge (simple, elegante)
  */
 function Gauge({ value }: { value: number }) {
+  const { theme } = useTheme();
+  const isDark = theme === 'dark';
   const radius = 90;
   const circumference = Math.PI * radius;
   const dash = (value / 100) * circumference;
@@ -112,7 +115,7 @@ function Gauge({ value }: { value: number }) {
         <path
           d={`M10 100 A90 90 0 0 1 190 100`}
           fill="none"
-          stroke="#e6e9ef"
+          stroke={isDark ? '#3A3A3A' : '#e6e9ef'}
           strokeWidth="18"
           strokeLinecap="round"
         />
@@ -132,7 +135,7 @@ function Gauge({ value }: { value: number }) {
           y="70"
           textAnchor="middle"
           fontSize="18"
-          fill="#111"
+          fill={isDark ? '#F5F5F5' : '#111'}
           fontWeight={700}
         >
           DISP
@@ -142,7 +145,7 @@ function Gauge({ value }: { value: number }) {
           y="96"
           textAnchor="middle"
           fontSize="20"
-          fill="#111"
+          fill={isDark ? '#F5F5F5' : '#111'}
           fontWeight={700}
         >
           {formatPercent(value)}
@@ -226,6 +229,12 @@ function buildDailyTrend(
 }
 
 export default function KPI_DISP_Page() {
+  const { theme } = useTheme();
+  const isDark = theme === 'dark';
+  const styles = getPageStyles(isDark);
+  const cards = getCardStyles(isDark);
+  const tableS = getTableStyles(isDark);
+
   const [machines, setMachines] = useState<Maquina[]>([]);
   const [allOTs, setAllOTs] = useState<OT[]>([]);
   const [allDetails, setAllDetails] = useState<WorkDetail[]>([]);
@@ -349,9 +358,24 @@ export default function KPI_DISP_Page() {
   const prettyNumber = (n: number) =>
     n.toLocaleString(undefined, { maximumFractionDigits: 2 });
 
+  const axisTick = { fill: isDark ? '#D1D5DB' : '#374151' };
+  const gridStroke = isDark ? '#3A3A3A' : '#e5e7eb';
+  const tooltipStyle = {
+    background: isDark ? '#232323' : '#fff',
+    border: `1px solid ${isDark ? '#3A3A3A' : '#e5e7eb'}`,
+    color: isDark ? '#F5F5F5' : '#111827',
+    borderRadius: 8,
+  };
+
   if (loading)
     return (
-      <div style={{ padding: 40, textAlign: 'center', color: '#888' }}>
+      <div
+        style={{
+          padding: 40,
+          textAlign: 'center',
+          color: isDark ? '#999' : '#888',
+        }}
+      >
         Cargando datos de disponibilidad...
       </div>
     );
@@ -359,7 +383,9 @@ export default function KPI_DISP_Page() {
   if (error)
     return (
       <div style={{ padding: 40, textAlign: 'center' }}>
-        <p style={{ color: '#dc2626', marginBottom: 12 }}>{error}</p>
+        <p style={{ color: isDark ? '#F87171' : '#dc2626', marginBottom: 12 }}>
+          {error}
+        </p>
         <button
           onClick={cargarDatos}
           style={{
@@ -377,23 +403,35 @@ export default function KPI_DISP_Page() {
     );
 
   return (
-    <div style={pageStyles.wrapper}>
-      <header style={pageStyles.header}>
+    <div style={styles.wrapper}>
+      <header style={styles.header}>
         <h2 style={{ margin: 0 }}>KPI — Disponibilidad (DISP) por Activo</h2>
-        <p style={{ margin: '6px 0 0', color: '#666' }}>
+        <p
+          style={{
+            margin: '6px 0 0',
+            color: isDark ? '#A0A0A0' : '#666',
+          }}
+        >
           Selecciona un activo y rango de fechas para ver DISP (tiempo operativo
           vs downtime desde órdenes/informes).
         </p>
       </header>
 
-      <section style={pageStyles.controls}>
-        <div style={{ display: 'flex', gap: 12, alignItems: 'center' }}>
+      <section style={styles.controls}>
+        <div
+          style={{
+            display: 'flex',
+            gap: 12,
+            alignItems: 'center',
+            flexWrap: 'wrap',
+          }}
+        >
           <div style={{ display: 'flex', flexDirection: 'column' }}>
-            <label style={pageStyles.label}>Activo</label>
+            <label style={styles.label}>Activo</label>
             <select
               value={selectedMachineId}
               onChange={(e) => setSelectedMachineId(Number(e.target.value))}
-              style={pageStyles.select}
+              style={styles.select}
             >
               {machines.map((m) => (
                 <option key={m.id} value={m.id}>
@@ -416,7 +454,9 @@ export default function KPI_DISP_Page() {
         </div>
 
         <div style={{ marginLeft: 'auto', textAlign: 'right' }}>
-          <div style={{ color: '#444', fontSize: 12 }}>Periodo total (hrs)</div>
+          <div style={{ color: isDark ? '#AAA' : '#444', fontSize: 12 }}>
+            Periodo total (hrs)
+          </div>
           <div
             style={{
               fontSize: 18,
@@ -437,8 +477,9 @@ export default function KPI_DISP_Page() {
               }
               onChange={(e) => setCustomTotalHours(e.target.value)}
               style={{
-                border: '1px solid #ddd',
-                background: '#fff',
+                border: `1px solid ${isDark ? '#3A3A3A' : '#ddd'}`,
+                background: isDark ? '#2A2A2A' : '#fff',
+                color: isDark ? '#F5F5F5' : '#0f172a',
                 fontSize: 18,
                 fontWeight: 700,
                 textAlign: 'right',
@@ -453,7 +494,7 @@ export default function KPI_DISP_Page() {
               style={{
                 marginLeft: 4,
                 fontSize: 13,
-                color: '#2563eb',
+                color: isDark ? '#60A5FA' : '#2563eb',
                 background: 'none',
                 border: 'none',
                 cursor: 'pointer',
@@ -467,11 +508,11 @@ export default function KPI_DISP_Page() {
         </div>
       </section>
 
-      <main style={pageStyles.main}>
-        <div style={pageStyles.leftCard}>
-          <div style={cardStyles.cardHeader}>
+      <main className="grid grid-cols-1 lg:grid-cols-[1fr_480px] gap-4 items-start">
+        <div style={styles.leftCard}>
+          <div style={cards.cardHeader}>
             <strong>Disponibilidad</strong>
-            <span style={{ color: '#777', fontSize: 13 }}>
+            <span style={{ color: isDark ? '#999' : '#777', fontSize: 13 }}>
               {' '}
               (Periodo seleccionado)
             </span>
@@ -483,51 +524,64 @@ export default function KPI_DISP_Page() {
               gap: 18,
               alignItems: 'center',
               padding: 16,
+              flexWrap: 'wrap',
             }}
           >
             <Gauge value={Math.max(0, Math.min(100, dispResult.dispo))} />
-            <div style={{ flex: 1 }}>
-              <div style={{ fontSize: 14, color: '#666', marginBottom: 8 }}>
+            <div style={{ flex: 1, minWidth: 200 }}>
+              <div
+                style={{
+                  fontSize: 14,
+                  color: isDark ? '#AAA' : '#666',
+                  marginBottom: 8,
+                }}
+              >
                 Resumen
               </div>
               <div
                 style={{
                   display: 'grid',
-                  gridTemplateColumns: '1fr 1fr',
+                  gridTemplateColumns: 'repeat(auto-fit, minmax(120px, 1fr))',
                   gap: 10,
                 }}
               >
-                <div style={cardStyles.statBox}>
-                  <div style={cardStyles.statLabel}>Downtime (hrs)</div>
-                  <div style={cardStyles.statValue}>
+                <div style={cards.statBox}>
+                  <div style={cards.statLabel}>Downtime (hrs)</div>
+                  <div style={cards.statValue}>
                     {prettyNumber(dispResult.downtimeHours)}
                   </div>
                 </div>
-                <div style={cardStyles.statBox}>
-                  <div style={cardStyles.statLabel}>DISP (%)</div>
-                  <div style={cardStyles.statValue}>
+                <div style={cards.statBox}>
+                  <div style={cards.statLabel}>DISP (%)</div>
+                  <div style={cards.statValue}>
                     {prettyNumber(dispResult.dispo)}
                   </div>
                 </div>
-                <div style={cardStyles.statBox}>
-                  <div style={cardStyles.statLabel}>Órdenes afectadas</div>
-                  <div style={cardStyles.statValue}>
+                <div style={cards.statBox}>
+                  <div style={cards.statLabel}>Órdenes afectadas</div>
+                  <div style={cards.statValue}>
                     {new Set(dispResult.details.map((d) => d.otId)).size}
                   </div>
                 </div>
-                <div style={cardStyles.statBox}>
-                  <div style={cardStyles.statLabel}>Días en rango</div>
-                  <div style={cardStyles.statValue}>{dailyTrend.length}</div>
+                <div style={cards.statBox}>
+                  <div style={cards.statLabel}>Días en rango</div>
+                  <div style={cards.statValue}>{dailyTrend.length}</div>
                 </div>
               </div>
             </div>
           </div>
         </div>
 
-        <div style={pageStyles.rightCard}>
-          <div style={cardStyles.cardHeader}>
+        <div style={styles.rightCard}>
+          <div style={cards.cardHeader}>
             <strong>Tendencia diaria de DISP</strong>
-            <span style={{ color: '#777', fontSize: 13, marginLeft: 8 }}>
+            <span
+              style={{
+                color: isDark ? '#999' : '#777',
+                fontSize: 13,
+                marginLeft: 8,
+              }}
+            >
               {' '}
               (por día)
             </span>
@@ -535,10 +589,15 @@ export default function KPI_DISP_Page() {
           <div style={{ height: 300, padding: 12 }}>
             <ResponsiveContainer width="100%" height="100%">
               <LineChart data={dailyTrend}>
-                <CartesianGrid strokeDasharray="3 3" />
-                <XAxis dataKey="date" tickFormatter={(d) => d.slice(5)} />
-                <YAxis domain={[0, 100]} />
+                <CartesianGrid strokeDasharray="3 3" stroke={gridStroke} />
+                <XAxis
+                  dataKey="date"
+                  tickFormatter={(d) => d.slice(5)}
+                  tick={axisTick}
+                />
+                <YAxis domain={[0, 100]} tick={axisTick} />
                 <Tooltip
+                  contentStyle={tooltipStyle}
                   formatter={(value: number) => `${Number(value).toFixed(2)} %`}
                 />
                 <Line
@@ -555,28 +614,31 @@ export default function KPI_DISP_Page() {
       </main>
 
       <section style={{ marginTop: 16 }}>
-        <div style={cardStyles.cardHeader}>
+        <div style={cards.cardHeader}>
           <strong>Detalles de downtime (registros)</strong>
         </div>
         <div
           style={{
             marginTop: 8,
             borderRadius: 8,
-            overflow: 'hidden',
-            border: '1px solid #eee',
+            overflowX: 'auto',
+            border: `1px solid ${isDark ? '#3A3A3A' : '#eee'}`,
           }}
         >
           <table style={{ width: '100%', borderCollapse: 'collapse' }}>
             <thead
-              style={{ background: '#fafafa', borderBottom: '1px solid #eee' }}
+              style={{
+                background: isDark ? '#2A2A2A' : '#fafafa',
+                borderBottom: `1px solid ${isDark ? '#3A3A3A' : '#eee'}`,
+              }}
             >
               <tr>
-                <th style={tableStyles.th}>Fecha</th>
-                <th style={tableStyles.th}>Orden</th>
-                <th style={tableStyles.th}>Inicio</th>
-                <th style={tableStyles.th}>Fin</th>
-                <th style={tableStyles.th}>Dur (hrs)</th>
-                <th style={tableStyles.th}>Descripción</th>
+                <th style={tableS.th}>Fecha</th>
+                <th style={tableS.th}>Orden</th>
+                <th style={tableS.th}>Inicio</th>
+                <th style={tableS.th}>Fin</th>
+                <th style={tableS.th}>Dur (hrs)</th>
+                <th style={tableS.th}>Descripción</th>
               </tr>
             </thead>
             <tbody>
@@ -584,7 +646,11 @@ export default function KPI_DISP_Page() {
                 <tr>
                   <td
                     colSpan={6}
-                    style={{ padding: 18, textAlign: 'center', color: '#888' }}
+                    style={{
+                      padding: 18,
+                      textAlign: 'center',
+                      color: isDark ? '#999' : '#888',
+                    }}
                   >
                     No hay registros en este rango
                   </td>
@@ -595,12 +661,12 @@ export default function KPI_DISP_Page() {
                 const hrs = mins / 60;
                 return (
                   <tr key={d.id}>
-                    <td style={tableStyles.td}>{d.fecha}</td>
-                    <td style={tableStyles.td}>{d.otId}</td>
-                    <td style={tableStyles.td}>{d.horaInicio}</td>
-                    <td style={tableStyles.td}>{d.horaFin}</td>
-                    <td style={tableStyles.td}>{hrs.toFixed(2)}</td>
-                    <td style={tableStyles.td}>{d.observaciones ?? '-'}</td>
+                    <td style={tableS.td}>{d.fecha}</td>
+                    <td style={tableS.td}>{d.otId}</td>
+                    <td style={tableS.td}>{d.horaInicio}</td>
+                    <td style={tableS.td}>{d.horaFin}</td>
+                    <td style={tableS.td}>{hrs.toFixed(2)}</td>
+                    <td style={tableS.td}>{d.observaciones ?? '-'}</td>
                   </tr>
                 );
               })}
@@ -611,7 +677,7 @@ export default function KPI_DISP_Page() {
 
       {/* === Ranking DISP por activo === */}
       <section style={{ marginTop: 32 }}>
-        <div style={cardStyles.cardHeader}>
+        <div style={cards.cardHeader}>
           <strong>Ranking de Disponibilidad (DISP) por Activo</strong>
           <RankingTable
             machines={machines}
@@ -643,6 +709,10 @@ function RankingTable({
   allDetails,
   allOTs,
 }: RankingTableProps) {
+  const { theme } = useTheme();
+  const isDark = theme === 'dark';
+  const tableS = getTableStyles(isDark);
+
   const [sortAsc, setSortAsc] = useState(false);
   const [localFrom, setLocalFrom] = useState(from);
   const [localTo, setLocalTo] = useState(to);
@@ -698,14 +768,20 @@ function RankingTable({
       style={{
         marginTop: 8,
         borderRadius: 8,
-        overflow: 'hidden',
-        border: '1px solid #eee',
+        overflowX: 'auto',
+        border: `1px solid ${isDark ? '#3A3A3A' : '#eee'}`,
       }}
     >
       <div
-        style={{ padding: 16, display: 'flex', alignItems: 'center', gap: 16 }}
+        style={{
+          padding: 16,
+          display: 'flex',
+          alignItems: 'center',
+          gap: 16,
+          flexWrap: 'wrap',
+        }}
       >
-        <span style={{ fontWeight: 500, color: '#333' }}>
+        <span style={{ fontWeight: 500, color: isDark ? '#DDD' : '#333' }}>
           Rango para ranking:
         </span>
         <DateRangePicker
@@ -736,20 +812,23 @@ function RankingTable({
       </div>
       <table style={{ width: '100%', borderCollapse: 'collapse' }}>
         <thead
-          style={{ background: '#fafafa', borderBottom: '1px solid #eee' }}
+          style={{
+            background: isDark ? '#2A2A2A' : '#fafafa',
+            borderBottom: `1px solid ${isDark ? '#3A3A3A' : '#eee'}`,
+          }}
         >
           <tr>
-            <th style={tableStyles.th}>#</th>
-            <th style={tableStyles.th}>Activo</th>
-            <th style={tableStyles.th}>Downtime (hrs)</th>
-            <th style={tableStyles.th}>Total (hrs)</th>
-            <th style={tableStyles.th}>
+            <th style={tableS.th}>#</th>
+            <th style={tableS.th}>Activo</th>
+            <th style={tableS.th}>Downtime (hrs)</th>
+            <th style={tableS.th}>Total (hrs)</th>
+            <th style={tableS.th}>
               <button
                 style={{
                   background: 'none',
                   border: 'none',
                   cursor: 'pointer',
-                  color: '#2563eb',
+                  color: isDark ? '#60A5FA' : '#2563eb',
                   fontWeight: 700,
                 }}
                 onClick={() => setSortAsc((v) => !v)}
@@ -764,13 +843,21 @@ function RankingTable({
           {sorted.map((row, i) => (
             <tr
               key={row.id}
-              style={{ background: i % 2 === 0 ? '#fff' : '#f8fafc' }}
+              style={{
+                background: isDark
+                  ? i % 2 === 0
+                    ? '#1D1D1D'
+                    : '#232323'
+                  : i % 2 === 0
+                    ? '#fff'
+                    : '#f8fafc',
+              }}
             >
-              <td style={tableStyles.td}>{i + 1}</td>
-              <td style={tableStyles.td}>{row.nombre}</td>
-              <td style={tableStyles.td}>{row.downtime}</td>
-              <td style={tableStyles.td}>{row.total}</td>
-              <td style={tableStyles.td}>{row.dispo}</td>
+              <td style={tableS.td}>{i + 1}</td>
+              <td style={tableS.td}>{row.nombre}</td>
+              <td style={tableS.td}>{row.downtime}</td>
+              <td style={tableS.td}>{row.total}</td>
+              <td style={tableS.td}>{row.dispo}</td>
             </tr>
           ))}
         </tbody>
@@ -779,71 +866,93 @@ function RankingTable({
   );
 }
 
-/* ====== Estilos simples (puedes mover a CSS) ====== */
-const pageStyles = {
-  wrapper: {
-    padding: 20,
-    fontFamily:
-      "Inter, Roboto, system-ui, -apple-system, 'Segoe UI', sans-serif",
-    color: '#0f172a',
-  },
-  header: { marginBottom: 18 },
-  controls: {
-    display: 'flex',
-    gap: 16,
-    alignItems: 'center',
-    marginBottom: 12,
-  },
-  label: { fontSize: 12, color: '#666', marginBottom: 6 },
-  select: {
-    padding: '8px 10px',
-    borderRadius: 8,
-    border: '1px solid #ddd',
-    minWidth: 220,
-  },
-  main: {
-    display: 'grid',
-    gridTemplateColumns: '1fr 480px',
-    gap: 16,
-    alignItems: 'start',
-  },
-  leftCard: {
-    background: '#fff',
-    borderRadius: 12,
-    boxShadow: '0 4px 18px rgba(12, 17, 43, 0.06)',
-    overflow: 'hidden',
-  },
-  rightCard: {
-    background: '#fff',
-    borderRadius: 12,
-    boxShadow: '0 4px 18px rgba(12,17,43,0.06)',
-    overflow: 'hidden',
-  },
-};
+/* ====== Estilos (theme-aware) ====== */
+function getPageStyles(isDark: boolean) {
+  return {
+    wrapper: {
+      padding: 20,
+      fontFamily:
+        "Inter, Roboto, system-ui, -apple-system, 'Segoe UI', sans-serif",
+      color: isDark ? '#F5F5F5' : '#0f172a',
+    },
+    header: { marginBottom: 18 },
+    controls: {
+      display: 'flex' as const,
+      gap: 16,
+      alignItems: 'center' as const,
+      marginBottom: 12,
+      flexWrap: 'wrap' as const,
+    },
+    label: { fontSize: 12, color: isDark ? '#AAA' : '#666', marginBottom: 6 },
+    select: {
+      padding: '8px 10px',
+      borderRadius: 8,
+      border: `1px solid ${isDark ? '#3A3A3A' : '#ddd'}`,
+      background: isDark ? '#2A2A2A' : '#fff',
+      color: isDark ? '#F5F5F5' : '#0f172a',
+      minWidth: 220,
+    },
+    leftCard: {
+      background: isDark ? '#232323' : '#fff',
+      borderRadius: 12,
+      boxShadow: isDark
+        ? '0 4px 18px rgba(0,0,0,0.35)'
+        : '0 4px 18px rgba(12, 17, 43, 0.06)',
+      overflow: 'hidden',
+    },
+    rightCard: {
+      background: isDark ? '#232323' : '#fff',
+      borderRadius: 12,
+      boxShadow: isDark
+        ? '0 4px 18px rgba(0,0,0,0.35)'
+        : '0 4px 18px rgba(12,17,43,0.06)',
+      overflow: 'hidden',
+    },
+  };
+}
 
-const cardStyles = {
-  cardHeader: {
-    padding: '14px 18px',
-    borderBottom: '1px solid #f0f2f7',
-    background: 'linear-gradient(180deg,#fff,#fbfdff)',
-    fontSize: 15,
-  },
-  statBox: {
-    padding: 12,
-    background: '#fbfcfe',
-    borderRadius: 8,
-    boxShadow: 'inset 0 0 0 1px rgba(7,11,27,0.02)',
-  },
-  statLabel: { fontSize: 12, color: '#666' },
-  statValue: { fontSize: 18, fontWeight: 700, marginTop: 6 },
-};
+function getCardStyles(isDark: boolean) {
+  return {
+    cardHeader: {
+      padding: '14px 18px',
+      borderBottom: `1px solid ${isDark ? '#3A3A3A' : '#f0f2f7'}`,
+      background: isDark
+        ? 'linear-gradient(180deg,#232323,#1F1F1F)'
+        : 'linear-gradient(180deg,#fff,#fbfdff)',
+      color: isDark ? '#F5F5F5' : '#0f172a',
+      fontSize: 15,
+    },
+    statBox: {
+      padding: 12,
+      background: isDark ? '#1D1D1D' : '#fbfcfe',
+      borderRadius: 8,
+      boxShadow: isDark
+        ? 'inset 0 0 0 1px rgba(255,255,255,0.06)'
+        : 'inset 0 0 0 1px rgba(7,11,27,0.02)',
+    },
+    statLabel: { fontSize: 12, color: isDark ? '#AAA' : '#666' },
+    statValue: {
+      fontSize: 18,
+      fontWeight: 700,
+      marginTop: 6,
+      color: isDark ? '#F5F5F5' : '#0f172a',
+    },
+  };
+}
 
-const tableStyles = {
-  th: {
-    textAlign: 'left' as const,
-    padding: '10px 12px',
-    fontSize: 13,
-    color: '#444',
-  },
-  td: { padding: '10px 12px', borderTop: '1px solid #f6f7fb', fontSize: 13 },
-};
+function getTableStyles(isDark: boolean) {
+  return {
+    th: {
+      textAlign: 'left' as const,
+      padding: '10px 12px',
+      fontSize: 13,
+      color: isDark ? '#CCC' : '#444',
+    },
+    td: {
+      padding: '10px 12px',
+      borderTop: `1px solid ${isDark ? '#2E2E2E' : '#f6f7fb'}`,
+      fontSize: 13,
+      color: isDark ? '#E5E5E5' : '#1a1a1a',
+    },
+  };
+}

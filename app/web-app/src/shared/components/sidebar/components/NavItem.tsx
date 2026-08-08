@@ -10,6 +10,10 @@ interface NavItemProps {
   isCollapsed: boolean;
   isActive?: boolean;
   nestedItems?: { to: string; text: string }[];
+  // Controla el submenú desde afuera (ej. para que abrir uno cierre los demás).
+  // Si no se pasan, el item maneja su propio estado internamente.
+  isOpen?: boolean;
+  onToggle?: () => void;
   colors: {
     brown: string;
     beige: string;
@@ -32,11 +36,15 @@ export const NavItem = ({
   isCollapsed,
   isActive: isActiveProp,
   nestedItems,
+  isOpen,
+  onToggle,
   colors,
   theme,
 }: NavItemProps) => {
   const location = useLocation();
-  const [showNested, setShowNested] = useState(false);
+  const [internalOpen, setInternalOpen] = useState(false);
+  const showNested = isOpen ?? internalOpen;
+  const toggleNested = onToggle ?? (() => setInternalOpen((v) => !v));
 
   // Calcular isActive si no se proporciona y 'to' existe
   const isActive =
@@ -59,7 +67,7 @@ export const NavItem = ({
 
   const handleItemClick = () => {
     if (nestedItems) {
-      setShowNested(!showNested);
+      toggleNested();
     }
     if (onClick) {
       onClick();
@@ -138,17 +146,17 @@ export const NavItem = ({
       {/* Menú Anidado */}
       {nestedItems && (
         <div
-          className={`transition-all duration-300 ease-in-out overflow-hidden ${
+          className={`transition-all duration-300 ease-in-out ${
             showNested
               ? isCollapsed
-                ? 'opacity-100 visible'
-                : 'max-h-96'
+                ? 'opacity-100 visible overflow-y-auto'
+                : 'max-h-[50vh] overflow-y-auto'
               : isCollapsed
-                ? 'opacity-0 invisible'
-                : 'max-h-0'
+                ? 'opacity-0 invisible overflow-hidden'
+                : 'max-h-0 overflow-hidden'
           } ${
             isCollapsed
-              ? 'absolute left-full top-0 ml-2 z-20 min-w-[200px] rounded-md shadow-lg border'
+              ? 'absolute left-full top-0 ml-2 z-30 min-w-[200px] max-h-[70vh] rounded-md shadow-lg border'
               : 'relative w-full pl-6 mt-1'
           }`}
           style={{
@@ -160,27 +168,42 @@ export const NavItem = ({
           }}
         >
           <div className={`${isCollapsed ? 'p-2 space-y-1' : 'space-y-1'}`}>
-            {nestedItems.map((item) => (
-              <NavLink
-                key={item.to}
-                to={item.to}
-                className="flex items-center w-full h-[36px] rounded-md px-3 transition-colors duration-150 ease-in-out text-sm"
-                style={(props) => ({
-                  color: textColor,
-                  backgroundColor: props.isActive
-                    ? theme === 'dark'
-                      ? `${colors.brown}50`
-                      : `${colors.gold}50`
-                    : 'transparent',
-                  ':hover': {
-                    backgroundColor: nestedItemHoverBg,
-                  },
-                })}
-                onClick={() => setShowNested(false)}
-              >
-                {item.text}
-              </NavLink>
-            ))}
+            {nestedItems.map((item) => {
+              const restingBg = (isActiveNested: boolean) =>
+                isActiveNested
+                  ? theme === 'dark'
+                    ? `${colors.brown}50`
+                    : `${colors.gold}50`
+                  : 'transparent';
+              return (
+                <NavLink
+                  key={item.to}
+                  to={item.to}
+                  className="flex items-center w-full h-[36px] rounded-md px-3 transition-colors duration-150 ease-in-out text-sm"
+                  style={({ isActive: linkActive }) => ({
+                    color: textColor,
+                    backgroundColor: restingBg(linkActive),
+                  })}
+                  onMouseEnter={(e) => {
+                    e.currentTarget.style.backgroundColor = nestedItemHoverBg;
+                  }}
+                  onMouseLeave={(e) => {
+                    e.currentTarget.style.backgroundColor = restingBg(
+                      location.pathname === item.to,
+                    );
+                  }}
+                  onClick={() => {
+                    if (isOpen !== undefined) {
+                      if (showNested) toggleNested();
+                    } else {
+                      setInternalOpen(false);
+                    }
+                  }}
+                >
+                  {item.text}
+                </NavLink>
+              );
+            })}
           </div>
         </div>
       )}

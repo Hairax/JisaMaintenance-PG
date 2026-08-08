@@ -20,6 +20,7 @@ interface UserTableProps {
   onViewUser: (user: User) => void;
   loading: boolean;
   error: string | null;
+  canCreate?: boolean;
 }
 
 export const UserTable: React.FC<UserTableProps> = ({
@@ -29,6 +30,7 @@ export const UserTable: React.FC<UserTableProps> = ({
   onViewUser,
   loading,
   error,
+  canCreate = true,
 }) => {
   // Colores basados en el tema
   const textColor = theme === 'dark' ? colors.lightText : colors.darkText;
@@ -62,22 +64,24 @@ export const UserTable: React.FC<UserTableProps> = ({
         <h1 style={{ color: textColor }} className="text-2xl font-bold">
           Gestión de Usuarios
         </h1>
-        <button
-          onClick={onAddUser}
-          style={{
-            backgroundColor: buttonBgColor,
-            color: colors.darkText,
-          }}
-          className="ml-auto flex items-center gap-2 px-4 py-2 rounded-lg shadow transition duration-150 ease-in-out"
-          onMouseOver={(e) => {
-            e.currentTarget.style.backgroundColor = buttonHoverColor;
-          }}
-          onMouseOut={(e) => {
-            e.currentTarget.style.backgroundColor = buttonBgColor;
-          }}
-        >
-          <FaPlus /> Nuevo Usuario
-        </button>
+        {canCreate && (
+          <button
+            onClick={onAddUser}
+            style={{
+              backgroundColor: buttonBgColor,
+              color: colors.darkText,
+            }}
+            className="ml-auto flex items-center gap-2 px-4 py-2 rounded-lg shadow transition duration-150 ease-in-out"
+            onMouseOver={(e) => {
+              e.currentTarget.style.backgroundColor = buttonHoverColor;
+            }}
+            onMouseOut={(e) => {
+              e.currentTarget.style.backgroundColor = buttonBgColor;
+            }}
+          >
+            <FaPlus /> Nuevo Usuario
+          </button>
+        )}
       </div>
 
       {error && !loading && (

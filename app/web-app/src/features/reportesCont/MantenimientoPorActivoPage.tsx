@@ -466,8 +466,8 @@ export default function MantenimientoPorActivoPage() {
   }
 
   return (
-    <div className="p-8 max-w-7xl mx-auto bg-[#F9FAFB]">
-      <div className="bg-white rounded-2xl shadow-lg p-8">
+    <div className="p-4 md:p-8 max-w-7xl mx-auto bg-[#F9FAFB]">
+      <div className="bg-white rounded-2xl shadow-lg p-4 md:p-8">
         <h2 className="text-2xl font-bold mb-6 text-[#2D3748]">
           Reporte de Mantenimiento por Activo
         </h2>
@@ -586,7 +586,7 @@ export default function MantenimientoPorActivoPage() {
               >
                 {/* Maquina header row */}
                 <div
-                  className="flex items-center gap-4 p-4 bg-yellow-50 cursor-pointer hover:bg-yellow-100 transition"
+                  className="flex items-center gap-4 p-4 bg-yellow-50 cursor-pointer hover:bg-yellow-100 transition flex-wrap"
                   onClick={() => {
                     setExpandedMaq(isMaqExp ? null : r.maquina.id);
                     setExpandedOT(null);
@@ -595,7 +595,7 @@ export default function MantenimientoPorActivoPage() {
                   <span className="text-gray-400 w-4 shrink-0">
                     {isMaqExp ? '▼' : '▶'}
                   </span>
-                  <div className="flex-1 grid grid-cols-2 md:grid-cols-4 gap-2">
+                  <div className="flex-1 min-w-[200px] grid grid-cols-2 md:grid-cols-4 gap-2">
                     <div>
                       <div className="text-xs text-gray-400">Activo</div>
                       <div className="font-bold text-[#2D3748]">
@@ -625,7 +625,7 @@ export default function MantenimientoPorActivoPage() {
                     </div>
                   </div>
                   {/* KPIs */}
-                  <div className="flex gap-4 shrink-0 text-center">
+                  <div className="flex gap-4 flex-wrap shrink-0 text-center">
                     <div>
                       <div className="text-xs text-gray-400">OTs</div>
                       <div className="font-bold text-blue-700">
@@ -717,7 +717,7 @@ export default function MantenimientoPorActivoPage() {
                           >
                             {/* OT summary row */}
                             <div
-                              className="flex items-center gap-3 px-4 py-3 bg-gray-50 cursor-pointer hover:bg-gray-100 transition text-sm"
+                              className="flex items-center gap-3 gap-y-1 px-4 py-3 bg-gray-50 cursor-pointer hover:bg-gray-100 transition text-sm flex-wrap"
                               onClick={() =>
                                 setExpandedOT(isOTExp ? null : otRow.ot.id)
                               }
@@ -728,7 +728,7 @@ export default function MantenimientoPorActivoPage() {
                               <span className="font-bold text-[#5D3312] w-12 shrink-0">
                                 #{otRow.ot.id}
                               </span>
-                              <span className="flex-1 truncate">
+                              <span className="flex-1 min-w-[140px] truncate">
                                 {otRow.ot.descripcionTarea}
                               </span>
                               <span className="shrink-0">

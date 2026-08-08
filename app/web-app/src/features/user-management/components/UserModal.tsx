@@ -44,6 +44,8 @@ interface UserModalProps {
   onDeleteClick: () => void;
   onDelete: () => void;
   onEditMode: () => void;
+  canEdit?: boolean;
+  canDelete?: boolean;
 }
 
 export const UserModal: React.FC<UserModalProps> = ({
@@ -63,6 +65,8 @@ export const UserModal: React.FC<UserModalProps> = ({
   onDeleteClick,
   onDelete,
   onEditMode,
+  canEdit = true,
+  canDelete = true,
 }) => {
   if (!isOpen) return null;
 
@@ -329,32 +333,36 @@ export const UserModal: React.FC<UserModalProps> = ({
         >
           {mode === 'view' && !showDeleteConfirm && (
             <>
-              <button
-                onClick={onEditMode}
-                style={{ color: editColor }}
-                onMouseOver={(e) => {
-                  e.currentTarget.style.color = editHoverColor;
-                }}
-                onMouseOut={(e) => {
-                  e.currentTarget.style.color = editColor;
-                }}
-                className="flex items-center gap-1.5 text-sm transition duration-150 ease-in-out"
-              >
-                <FaEdit /> Editar
-              </button>
-              <button
-                onClick={onDeleteClick}
-                style={{ color: deleteColor }}
-                onMouseOver={(e) => {
-                  e.currentTarget.style.color = deleteHoverColor;
-                }}
-                onMouseOut={(e) => {
-                  e.currentTarget.style.color = deleteColor;
-                }}
-                className="flex items-center gap-1.5 text-sm transition duration-150 ease-in-out"
-              >
-                <FaTrash /> Eliminar
-              </button>
+              {canEdit && (
+                <button
+                  onClick={onEditMode}
+                  style={{ color: editColor }}
+                  onMouseOver={(e) => {
+                    e.currentTarget.style.color = editHoverColor;
+                  }}
+                  onMouseOut={(e) => {
+                    e.currentTarget.style.color = editColor;
+                  }}
+                  className="flex items-center gap-1.5 text-sm transition duration-150 ease-in-out"
+                >
+                  <FaEdit /> Editar
+                </button>
+              )}
+              {canDelete && (
+                <button
+                  onClick={onDeleteClick}
+                  style={{ color: deleteColor }}
+                  onMouseOver={(e) => {
+                    e.currentTarget.style.color = deleteHoverColor;
+                  }}
+                  onMouseOut={(e) => {
+                    e.currentTarget.style.color = deleteColor;
+                  }}
+                  className="flex items-center gap-1.5 text-sm transition duration-150 ease-in-out"
+                >
+                  <FaTrash /> Eliminar
+                </button>
+              )}
             </>
           )}
           {mode === 'edit' && (

@@ -1,7 +1,8 @@
 /** @type {import('tailwindcss').Config} */
 export default {
   content: ['./index.html', './src/**/*.{js,ts,jsx,tsx}'],
-  darkMode: 'class',
+  // La estrategia de dark mode se define en src/index.css con
+  // @custom-variant (Tailwind v4 ya no lee `darkMode` desde este archivo).
   theme: {
     extend: {
       colors: {
