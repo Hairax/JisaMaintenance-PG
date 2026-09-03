@@ -4,12 +4,14 @@ import {
   PrimaryGeneratedColumn,
   ManyToOne,
   JoinColumn,
+  Unique,
 } from 'typeorm';
 import { CostCenter } from '../../cost-centers/entities/cost-center.entity';
 import { Process } from '../../process/entities/process.entity';
 import { Proveedor } from '../../proveedor/entities/proveedor.entity';
 
 @Entity()
+@Unique(['process', 'correlativo'])
 export class Maquina {
   @PrimaryGeneratedColumn()
   id: number;

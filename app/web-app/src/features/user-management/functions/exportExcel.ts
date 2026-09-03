@@ -1,4 +1,4 @@
-import { User } from '../types/user.types';
+import { User } from '../../../shared/types/user.types';
 import * as XLSX from 'xlsx';
 
 export function exportUsersToExcel(users: User[], fileName = 'users.xlsx') {

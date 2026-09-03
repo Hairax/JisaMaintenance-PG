@@ -12,6 +12,7 @@ import {
   FaCogs,
   FaFileInvoiceDollar,
   FaChartLine,
+  FaUserCircle,
 } from 'react-icons/fa';
 import { useTheme } from '../../shared/contexts/ThemeContext';
 import { useAuth } from '../../shared/contexts/AuthContext';
@@ -59,6 +60,14 @@ export const BottomNav = () => {
   const kpis = KPI_ITEMS.filter((item) => canRoute(item.to));
 
   const settingsItems = [
+    {
+      icon: <FaUserCircle size={16} />,
+      text: 'Mi Perfil',
+      onClick: () => {
+        navigate('/profile');
+        setOpenMenu(null);
+      },
+    },
     {
       icon: isDark ? <FaSun size={16} /> : <FaMoon size={16} />,
       text: isDark ? 'Modo Claro' : 'Modo Oscuro',

@@ -2,11 +2,9 @@ import React, { useEffect, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { useTheme } from '../../../shared/contexts/ThemeContext';
 import { salidaService } from '../services/salida.service';
-import {
-  SearchableSelect,
-  SearchableOption,
-} from '../../../shared/components/SearchableSelect';
-import { FaPlus, FaSave, FaTrash } from 'react-icons/fa';
+import { SearchableSelect } from '../../../shared/components/SearchableSelect';
+import { FaSave, FaTrash } from 'react-icons/fa';
+import { API_URL } from '../../../shared/config/api';
 
 interface Usuario {
   id: number;
@@ -64,14 +62,6 @@ interface SubUnidad {
   descripcion: string;
 }
 
-interface RowFilter {
-  ccId: string;
-  procId: string;
-  maqId: string;
-  subId: string;
-  search: string;
-}
-
 interface Producto {
   repuestoId: string;
   codigo: string;
@@ -109,14 +99,6 @@ const colors = {
   gold: '#FBAF11',
   darkText: '#000000',
   lightText: '#FFFFFF',
-};
-
-const EMPTY_FILTER: RowFilter = {
-  ccId: '',
-  procId: '',
-  maqId: '',
-  subId: '',
-  search: '',
 };
 
 function padId(n: number, digits: number) {
@@ -178,8 +160,6 @@ export default function SalidaPage() {
   const errorColor = '#E53E3E';
   const buttonBgColor = '#2196F3';
   const buttonHoverColor = '#0b7dda';
-  const addButtonBg = colors.gold;
-  const addButtonHover = '#E69D00';
 
   const [usuarioId, setUsuarioId] = useState('');
   const [otId, setOtId] = useState('');
@@ -222,18 +202,10 @@ export default function SalidaPage() {
           salidaService.getUsers(),
           salidaService.getOts(),
           salidaService.getRepuestos(),
-          fetch('http://localhost:3000/cost-centers').then((r) =>
-            r.ok ? r.json() : [],
-          ),
-          fetch('http://localhost:3000/process').then((r) =>
-            r.ok ? r.json() : [],
-          ),
-          fetch('http://localhost:3000/maquinas').then((r) =>
-            r.ok ? r.json() : [],
-          ),
-          fetch('http://localhost:3000/subunidades').then((r) =>
-            r.ok ? r.json() : [],
-          ),
+          fetch(`${API_URL}/cost-centers`).then((r) => (r.ok ? r.json() : [])),
+          fetch(`${API_URL}/process`).then((r) => (r.ok ? r.json() : [])),
+          fetch(`${API_URL}/maquinas`).then((r) => (r.ok ? r.json() : [])),
+          fetch(`${API_URL}/subunidades`).then((r) => (r.ok ? r.json() : [])),
         ]);
 
         setUsuarios(Array.isArray(usrs) ? (usrs as Usuario[]) : []);
@@ -440,7 +412,12 @@ export default function SalidaPage() {
         errorMsg = err.message;
       } else if (typeof err === 'object' && err !== null) {
         // Si es un objeto, buscar propiedades comunes
-        const errObj = err as any;
+        const errObj = err as {
+          error?: { message?: string };
+          message?: string;
+          status?: string;
+          details?: string;
+        };
         if (errObj.error?.message) {
           errorMsg = errObj.error.message;
         } else if (errObj.message) {

@@ -1,4 +1,6 @@
-const API_BASE_URL = 'http://localhost:3000';
+import { API_URL } from '../../../shared/config/api';
+
+const API_BASE_URL = API_URL;
 
 export const salidaService = {
   async getSalidas() {
@@ -27,7 +29,7 @@ export const salidaService = {
     }
   },
 
-  async createSalida(salidasData: any) {
+  async createSalida(salidasData: Record<string, unknown>) {
     try {
       const response = await fetch(`${API_BASE_URL}/salidas`, {
         method: 'POST',
@@ -49,7 +51,7 @@ export const salidaService = {
     }
   },
 
-  async updateSalida(id: number, salidaData: any) {
+  async updateSalida(id: number, salidaData: Record<string, unknown>) {
     try {
       const response = await fetch(`${API_BASE_URL}/salidas/${id}`, {
         method: 'PUT',

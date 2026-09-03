@@ -7,6 +7,7 @@ interface AuthContextType {
   isAuthenticated: boolean;
   login: (token: string, user: User) => void;
   logout: () => void;
+  updateUser: (user: User) => void;
   // Opcional: Añadir un estado de carga si la lógica se vuelve más compleja
   // isLoading: boolean;
 }
@@ -97,12 +98,19 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
     setUser(null);
   };
 
+  // Actualiza el usuario en sesión (ej. tras editar el propio perfil) sin
+  // pasar por login/logout.
+  const updateUser = (updatedUser: User) => {
+    localStorage.setItem('user', JSON.stringify(updatedUser));
+    setUser(updatedUser);
+  };
+
   // isAuthenticated ahora debería ser correcto desde la primera renderización
   const isAuthenticated = !!token && !!user;
 
   return (
     <AuthContext.Provider
-      value={{ token, user, isAuthenticated, login, logout }}
+      value={{ token, user, isAuthenticated, login, logout, updateUser }}
     >
       {children}
     </AuthContext.Provider>

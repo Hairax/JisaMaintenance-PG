@@ -1,6 +1,7 @@
 import type { ProgramacionOt } from '../types/programacionOt.types';
+import { API_URL } from '../../../shared/config/api';
 
-const API_BASE_URL = 'http://localhost:3000';
+const API_BASE_URL = API_URL;
 
 async function handle<T>(res: Response, fallback: string): Promise<T> {
   if (!res.ok) {

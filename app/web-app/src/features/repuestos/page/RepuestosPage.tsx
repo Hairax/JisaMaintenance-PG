@@ -1,8 +1,9 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useTheme } from '../../../shared/contexts/ThemeContext';
 import * as XLSX from 'xlsx';
+import { API_URL } from '../../../shared/config/api';
 
-const API = 'http://localhost:3000';
+const API = API_URL;
 
 const colors = {
   brown: '#9E5533',
@@ -135,13 +136,9 @@ const EMPTY_FORM = {
   stockCritico: '',
 };
 
-function padId(n: number, digits: number) {
-  return String(n).padStart(digits, '0');
-}
-
 function buildRepuestoCompositeId(
   r: Repuesto,
-  costCenters: CostCenter[],
+  _costCenters: CostCenter[],
   processes: Process[],
   maquinas: Maquina[],
   subUnidades: SubUnidad[],
@@ -369,7 +366,7 @@ function exportRepuestoKardexToExcel(
       saldoValor += ingresosBs - salidasBs;
 
       // Definimos los valores por defecto
-      let nroDocumento = m.referencia || '—';
+      const nroDocumento = m.referencia || '—';
       let otNumero: number | string = '—';
 
       // Si es una salida, extraemos la información de la OT procesada en el Paso 2
@@ -1033,29 +1030,36 @@ export default function RepuestosPage() {
           })),
       );
 
-      const movimientosSalida: MovimientoRepuesto[] = salidasHist.flatMap((s) =>
-        (s.detalles ?? [])
-          .filter((d) => Number(d.repuestoId ?? d.productoId) === repuestoId)
-          .map((d) => ({
-            tipo: 'SALIDA' as const,
-            fecha: s.fecha,
-            referencia: s.nroSalida || `Salida #${s.id}`,
-            codigo: d.codigo || '',
-            nombre: d.nombre || '',
-            cantidad: Number(d.cantidad) || 0,
-            precioUnitario: Number(d.precioUnitario) || 0,
-            subtotal:
-              Number(d.subtotal) ||
-              (Number(d.cantidad) || 0) * (Number(d.precioUnitario) || 0),
-            // --- AQUÍ EXTRAEMOS LOS DATOS DE LA OT (Adapta los nombres si tu API usa otros) ---
-            otNumero:
-              (s as any).otNumero || (s as any).nroOt || (s as any).otId || '',
-            otNombre:
-              (s as any).otNombre ||
-              (s as any).destino ||
-              (s as any).descripcionOt ||
-              '',
-          })),
+      const movimientosSalida: MovimientoRepuesto[] = salidasHist.flatMap(
+        (s) => {
+          // La API puede devolver estos campos con distintos nombres según
+          // el endpoint; los cubrimos todos acá en vez de castear a `any`.
+          const sOt = s as {
+            otNumero?: string | number;
+            nroOt?: string | number;
+            otId?: string | number;
+            otNombre?: string;
+            destino?: string;
+            descripcionOt?: string;
+          };
+          return (s.detalles ?? [])
+            .filter((d) => Number(d.repuestoId ?? d.productoId) === repuestoId)
+            .map((d) => ({
+              tipo: 'SALIDA' as const,
+              fecha: s.fecha,
+              referencia: s.nroSalida || `Salida #${s.id}`,
+              codigo: d.codigo || '',
+              nombre: d.nombre || '',
+              cantidad: Number(d.cantidad) || 0,
+              precioUnitario: Number(d.precioUnitario) || 0,
+              subtotal:
+                Number(d.subtotal) ||
+                (Number(d.cantidad) || 0) * (Number(d.precioUnitario) || 0),
+              // --- AQUÍ EXTRAEMOS LOS DATOS DE LA OT (Adapta los nombres si tu API usa otros) ---
+              otNumero: sOt.otNumero || sOt.nroOt || sOt.otId || '',
+              otNombre: sOt.otNombre || sOt.destino || sOt.descripcionOt || '',
+            }));
+        },
       );
 
       return [...movimientosCompra, ...movimientosSalida].sort((a, b) => {

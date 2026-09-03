@@ -4,8 +4,9 @@ import {
   CreateDepartamentoDto,
   UpdateDepartamentoDto,
 } from '../types/departamento.types';
+import { API_URL } from '../../../shared/config/api';
 
-const API_BASE_URL = 'http://localhost:3000/departamentos';
+const API_BASE_URL = `${API_URL}/departamentos`;
 
 interface UseDepartamentoState {
   departamentos: Departamento[];

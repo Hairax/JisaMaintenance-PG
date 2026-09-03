@@ -1,8 +1,9 @@
 import { useState, useCallback, useRef, useEffect } from 'react';
 import { User } from '../../../shared/types/user.types';
 import { UserManagementState, ModalMode } from '../types/user.types';
+import { API_URL } from '../../../shared/config/api';
 
-const API_BASE_URL = 'http://localhost:3000';
+const API_BASE_URL = API_URL;
 
 export const useUserManagement = () => {
   const [state, setState] = useState<UserManagementState>({

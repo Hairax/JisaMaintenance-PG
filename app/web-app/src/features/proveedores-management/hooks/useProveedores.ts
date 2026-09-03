@@ -3,10 +3,10 @@ import { Proveedor } from '../../../shared/types/proveedor.types';
 import {
   ProveedorManagementState,
   ModalMode,
-  ProveedorFormData,
 } from '../types/proveedores.types';
+import { API_URL } from '../../../shared/config/api';
 
-const API_BASE_URL = 'http://localhost:3000/proveedores';
+const API_BASE_URL = `${API_URL}/proveedores`;
 
 export function useProveedores() {
   const [state, setState] = useState<ProveedorManagementState>({

@@ -17,7 +17,7 @@ interface ProveedoresModalProps {
   isOpen: boolean;
   mode: ModalMode;
   selectedProveedor: Proveedor | null;
-  formData: ProveedorFormData;
+  formData: Partial<ProveedorFormData>;
   theme: string;
   showDeleteConfirm: boolean;
   deleteCountdown: number;

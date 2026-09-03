@@ -1,7 +1,13 @@
 import { useState, useCallback, useRef, useEffect } from 'react';
-import { OrdenTrabajo, OTManagementState, ModalMode } from '../types/ot.types';
+import {
+  OrdenTrabajo,
+  OrdenTrabajoFormData,
+  OTManagementState,
+  ModalMode,
+} from '../types/ot.types';
+import { API_URL } from '../../../shared/config/api';
 
-const API_BASE_URL = 'http://localhost:3000/ots';
+const API_BASE_URL = `${API_URL}/ots`;
 
 export function useOt() {
   // Estado principal
@@ -58,33 +64,44 @@ export function useOt() {
     const loadCatalogs = async () => {
       try {
         // Cargar Tipos de Mantenimiento
-        const resTypes = await fetch(
-          'http://localhost:3000/tipo-mantenimientos',
-        );
+        const resTypes = await fetch(`${API_URL}/tipo-mantenimientos`);
         if (resTypes.ok) {
           const dataTypes = await resTypes.json();
           setTiposMantenimiento(Array.isArray(dataTypes) ? dataTypes : []);
         }
 
         // Cargar Centros de Costo
-        const resCenters = await fetch('http://localhost:3000/cost-centers');
+        const resCenters = await fetch(`${API_URL}/cost-centers`);
         if (resCenters.ok) {
           const dataCenters = await resCenters.json();
           const centrosFormateados = Array.isArray(dataCenters)
-            ? dataCenters.map((center: any) => ({
-                id: center.id,
-                nombre: center.name || 'Sin nombre',
-              }))
+            ? (dataCenters as { id: number; name?: string }[]).map(
+                (center) => ({
+                  id: center.id,
+                  nombre: center.name || 'Sin nombre',
+                }),
+              )
             : [];
           setCentrosCosto(centrosFormateados);
         }
 
         // Cargar Procesos
-        const resProcess = await fetch('http://localhost:3000/process');
+        const resProcess = await fetch(`${API_URL}/process`);
         if (resProcess.ok) {
           const dataProcess = await resProcess.json();
           const procesosFormateados = Array.isArray(dataProcess)
-            ? dataProcess.map((process: any) => ({
+            ? (
+                dataProcess as {
+                  id: number;
+                  name?: string;
+                  nombre?: string;
+                  centroCosto?: number;
+                  centroCosto_id?: number;
+                  centroCostoId?: number;
+                  costCenter_id?: number;
+                  costCenterId?: number;
+                }[]
+              ).map((process) => ({
                 id: process.id,
                 nombre: process.name || process.nombre || 'Sin nombre',
                 centroCosto_id:
@@ -99,11 +116,24 @@ export function useOt() {
         }
 
         // Cargar Máquinas
-        const resMachines = await fetch('http://localhost:3000/maquinas');
+        const resMachines = await fetch(`${API_URL}/maquinas`);
         if (resMachines.ok) {
           const dataMachines = await resMachines.json();
           const maquinasFormateadas = Array.isArray(dataMachines)
-            ? dataMachines.map((maquina: any) => ({
+            ? (
+                dataMachines as {
+                  id: number;
+                  name?: string;
+                  nombre?: string;
+                  proceso_id?: number;
+                  procesoId?: number;
+                  process_id?: number;
+                  centroCosto_id?: number;
+                  centroCostoId?: number;
+                  costCenter_id?: number;
+                  costCenterId?: number;
+                }[]
+              ).map((maquina) => ({
                 id: maquina.id,
                 nombre: maquina.name || maquina.nombre || 'Sin nombre',
                 proceso_id:
@@ -119,12 +149,14 @@ export function useOt() {
         }
 
         // Cargar Usuarios/Técnicos
-        const resUsers = await fetch('http://localhost:3000/users');
+        const resUsers = await fetch(`${API_URL}/users`);
         if (resUsers.ok) {
           const dataUsers = await resUsers.json();
           // Mapear campos de User a { id, nombre }
           const tecnicosFormateados = Array.isArray(dataUsers)
-            ? dataUsers.map((user: any) => ({
+            ? (
+                dataUsers as { id: number; name?: string; lastName?: string }[]
+              ).map((user) => ({
                 id: user.id,
                 nombre: `${user.name} ${user.lastName}`.trim(),
               }))
@@ -135,11 +167,13 @@ export function useOt() {
         }
 
         // Cargar Departamentos
-        const resDepts = await fetch('http://localhost:3000/departamentos');
+        const resDepts = await fetch(`${API_URL}/departamentos`);
         if (resDepts.ok) {
           const dataDepts = await resDepts.json();
           const deptsFormateados = Array.isArray(dataDepts)
-            ? dataDepts.map((dept: any) => ({
+            ? (
+                dataDepts as { id: number; nombre?: string; name?: string }[]
+              ).map((dept) => ({
                 id: dept.id,
                 nombre: dept.nombre || dept.name || 'Sin nombre',
               }))
@@ -148,11 +182,13 @@ export function useOt() {
         }
 
         // Cargar Objetos
-        const resObjetos = await fetch('http://localhost:3000/objetos');
+        const resObjetos = await fetch(`${API_URL}/objetos`);
         if (resObjetos.ok) {
           const dataObjetos = await resObjetos.json();
           const objetosFormateados = Array.isArray(dataObjetos)
-            ? dataObjetos.map((obj: any) => ({
+            ? (
+                dataObjetos as { id: number; nombre?: string; name?: string }[]
+              ).map((obj) => ({
                 id: obj.id,
                 nombre: obj.nombre || obj.name || 'Sin nombre',
               }))
@@ -161,11 +197,20 @@ export function useOt() {
         }
 
         // Cargar SubUnidades
-        const resSubUnidades = await fetch('http://localhost:3000/subunidades');
+        const resSubUnidades = await fetch(`${API_URL}/subunidades`);
         if (resSubUnidades.ok) {
           const dataSubUnidades = await resSubUnidades.json();
           const subUnidadesFormateadas = Array.isArray(dataSubUnidades)
-            ? dataSubUnidades.map((su: any) => ({
+            ? (
+                dataSubUnidades as {
+                  id: number;
+                  descripcion?: string;
+                  name?: string;
+                  maquina_id?: number;
+                  maquinaId?: number;
+                  machine_id?: number;
+                }[]
+              ).map((su) => ({
                 id: su.id,
                 nombre: su.descripcion || su.name || 'Sin nombre',
                 maquina_id: su.maquina_id ?? su.maquinaId ?? su.machine_id,
@@ -259,7 +304,7 @@ export function useOt() {
       | React.ChangeEvent<
           HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement
         >
-      | { target: { name: string; value: any } },
+      | { target: { name: string; value: string | number } },
   ) => {
     const { name, value } = e.target;
     const numericFields = new Set([
@@ -282,10 +327,10 @@ export function useOt() {
       : value;
 
     setState((prev) => {
-      const updatedFormData: any = {
+      const updatedFormData = {
         ...prev.formData,
         [name]: parsedValue,
-      };
+      } as Partial<OrdenTrabajoFormData>;
 
       if (name === 'centroCosto_id') {
         updatedFormData.proceso_id = undefined;

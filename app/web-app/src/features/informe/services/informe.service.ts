@@ -1,4 +1,6 @@
-const API_BASE_URL = 'http://localhost:3000';
+import { API_URL } from '../../../shared/config/api';
+
+const API_BASE_URL = API_URL;
 
 export const informeService = {
   async getInformes() {
@@ -27,7 +29,7 @@ export const informeService = {
     }
   },
 
-  async createInforme(informeData: any) {
+  async createInforme(informeData: Record<string, unknown>) {
     try {
       const response = await fetch(`${API_BASE_URL}/informes`, {
         method: 'POST',
@@ -49,7 +51,7 @@ export const informeService = {
     }
   },
 
-  async updateInforme(id: number, informeData: any) {
+  async updateInforme(id: number, informeData: Record<string, unknown>) {
     try {
       const response = await fetch(`${API_BASE_URL}/informes/${id}`, {
         method: 'PUT',

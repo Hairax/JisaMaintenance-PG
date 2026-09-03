@@ -3,6 +3,7 @@ import { useSearchParams } from 'react-router-dom';
 import { useTheme } from '../../../shared/contexts/ThemeContext';
 import { compraService } from '../services/compra.service';
 import { FaPlus, FaTrash, FaSave } from 'react-icons/fa';
+import { API_URL } from '../../../shared/config/api';
 
 interface Proveedor {
   id: number;
@@ -17,6 +18,7 @@ interface Repuesto {
   nombre: string;
   uMedida: string;
   costoUnitario: number;
+  cantidad: number;
   correlativo: number;
   centroCosto_id: number;
   proceso_id: number;
@@ -151,8 +153,6 @@ export default function CompraInventarioPage() {
   const errorColor = '#E53E3E';
   const buttonBgColor = '#2196F3';
   const buttonHoverColor = '#0b7dda';
-  const addButtonBg = colors.gold;
-  const addButtonHover = '#E69D00';
 
   const [nroDocumento, setNroDocumento] = useState('');
   const [tipoDocumento, setTipoDocumento] = useState('Factura');
@@ -195,18 +195,10 @@ export default function CompraInventarioPage() {
         const [prov, rep, cc, proc, maq, sub] = await Promise.all([
           compraService.getProveedores(),
           compraService.getRepuestos(),
-          fetch('http://localhost:3000/cost-centers').then((r) =>
-            r.ok ? r.json() : [],
-          ),
-          fetch('http://localhost:3000/process').then((r) =>
-            r.ok ? r.json() : [],
-          ),
-          fetch('http://localhost:3000/maquinas').then((r) =>
-            r.ok ? r.json() : [],
-          ),
-          fetch('http://localhost:3000/subunidades').then((r) =>
-            r.ok ? r.json() : [],
-          ),
+          fetch(`${API_URL}/cost-centers`).then((r) => (r.ok ? r.json() : [])),
+          fetch(`${API_URL}/process`).then((r) => (r.ok ? r.json() : [])),
+          fetch(`${API_URL}/maquinas`).then((r) => (r.ok ? r.json() : [])),
+          fetch(`${API_URL}/subunidades`).then((r) => (r.ok ? r.json() : [])),
         ]);
         setProveedores(Array.isArray(prov) ? (prov as Proveedor[]) : []);
         const repArray: Repuesto[] = Array.isArray(rep)
@@ -371,9 +363,6 @@ export default function CompraInventarioPage() {
     setProductos(next);
   };
 
-  const addProducto = () => {
-    setProductos([...productos, { ...EMPTY_PRODUCTO }]);
-  };
   const removeProducto = (index: number) => {
     setProductos(productos.filter((_, i) => i !== index));
   };

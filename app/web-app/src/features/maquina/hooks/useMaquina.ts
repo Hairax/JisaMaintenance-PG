@@ -4,8 +4,9 @@ import {
   MaquinaManagementState,
   ModalMode,
 } from '../types/maquina.types';
+import { API_URL } from '../../../shared/config/api';
 
-const API_BASE_URL = 'http://localhost:3000';
+const API_BASE_URL = API_URL;
 
 export interface SelectOption {
   id: number;
@@ -78,7 +79,10 @@ export const useMaquina = () => {
     }
   }, []);
 
-  const formatProcessName = (process: any) => {
+  const formatProcessName = (process: {
+    correlativo?: number;
+    name: string;
+  }) => {
     const correlativo = process.correlativo;
     const prefix =
       correlativo !== undefined && correlativo !== null
@@ -93,7 +97,14 @@ export const useMaquina = () => {
       const res = await fetch(`${API_BASE_URL}/process`);
       if (!res.ok) throw new Error('Error al cargar procesos');
       const data = await res.json();
-      const procesos = data.map((process: any) => ({
+      const procesos = (
+        data as {
+          id: number;
+          name: string;
+          centroCosto: number;
+          correlativo?: number;
+        }[]
+      ).map((process) => ({
         id: process.id,
         name: formatProcessName(process),
         centroCosto: process.centroCosto,
@@ -112,10 +123,12 @@ export const useMaquina = () => {
       if (!res.ok) throw new Error('Error al cargar proveedores');
       const data = await res.json();
       // Transformar 'nombre' a 'name' para compatibilidad con SearchableSelect
-      const transformedData = data.map((proveedor: any) => ({
-        id: proveedor.id,
-        name: proveedor.nombre,
-      }));
+      const transformedData = (data as { id: number; nombre: string }[]).map(
+        (proveedor) => ({
+          id: proveedor.id,
+          name: proveedor.nombre,
+        }),
+      );
       setState((prev) => ({ ...prev, proveedores: transformedData }));
     } catch (err) {
       console.error('Error loading providers:', err);

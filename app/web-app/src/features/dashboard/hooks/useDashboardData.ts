@@ -17,8 +17,9 @@ import type {
   RankingActivo,
   RankingTecnico,
 } from '../types/dashboard.types';
+import { API_URL } from '../../../shared/config/api';
 
-const API = 'http://localhost:3000';
+const API = API_URL;
 
 export type PeriodoFiltro = '3m' | '6m' | '12m' | 'anio' | 'todo';
 

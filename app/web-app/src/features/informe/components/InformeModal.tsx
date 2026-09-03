@@ -1,10 +1,14 @@
 import React from 'react';
-import { InformeDiarioFormData, ModalMode } from '../types/informe.types';
+import {
+  InformeDiarioFormData,
+  InformeDiarioTrabajo,
+  ModalMode,
+} from '../types/informe.types';
 
 interface InformeModalProps {
   isOpen: boolean;
   mode: ModalMode;
-  selectedInforme: unknown;
+  selectedInforme: InformeDiarioTrabajo | null;
   formData: Partial<InformeDiarioFormData>;
   theme: string;
   loading: boolean;

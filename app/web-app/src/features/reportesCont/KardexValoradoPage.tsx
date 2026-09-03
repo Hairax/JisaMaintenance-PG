@@ -1,8 +1,9 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import * as XLSX from 'xlsx';
 import { useTheme } from '../../shared/contexts/ThemeContext';
+import { API_URL } from '../../shared/config/api';
 
-const API = 'http://localhost:3000';
+const API = API_URL;
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -156,8 +157,10 @@ function buildKardex(
     const entradas = compras.flatMap((c) =>
       (c.detalles ?? [])
         .filter((d) => {
-          const detalleId = Number(d.repuestoId ?? (d as any).productoId);
-          const detalleTipo = (d as any).tipoProducto;
+          const detalleId = Number(
+            d.repuestoId ?? (d as { productoId?: number }).productoId,
+          );
+          const detalleTipo = d.tipoProducto;
           return (
             (!detalleTipo || detalleTipo === 'repuesto') && detalleId === rep.id
           );
@@ -176,7 +179,9 @@ function buildKardex(
     const exits = salidas.flatMap((s) =>
       (s.detalles ?? [])
         .filter((d) => {
-          const detalleId = Number(d.repuestoId ?? (d as any).productoId);
+          const detalleId = Number(
+            d.repuestoId ?? (d as { productoId?: number }).productoId,
+          );
           return d.tipoProducto === 'repuesto' && detalleId === rep.id;
         })
         .map((d) => ({
@@ -292,7 +297,7 @@ const TIPO_STYLE: Record<string, { bg: string; color: string }> = {
   SALIDA: { bg: '#F8D7DA', color: '#721C24' },
 };
 
-function TipoBadge({ tipo, theme }: { tipo: string; theme: string }) {
+function TipoBadge({ tipo }: { tipo: string; theme: string }) {
   const s = TIPO_STYLE[tipo] ?? { bg: '#E1CD9B', color: '#5D3312' };
   // For dark mode, adjust colors if needed, but for now keep as is
   return (
@@ -323,7 +328,6 @@ export default function KardexValoradoPage() {
   const inputBorderColor = theme === 'dark' ? '#3A3A3A' : '#D6D6D6';
   const theadBgColor = theme === 'dark' ? colors.brown : colors.gold;
   const theadTextColor = theme === 'dark' ? colors.lightText : colors.darkText;
-  const tbodyBgColor = theme === 'dark' ? '#232323' : '#FAFAFA';
   const successColor = theme === 'dark' ? '#4ADE80' : '#22863a';
   const errorColor = theme === 'dark' ? '#EF4444' : '#C62828';
   const buttonPrimaryBg = theme === 'dark' ? '#1565C0' : '#1565C0';

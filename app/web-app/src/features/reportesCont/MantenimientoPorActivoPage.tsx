@@ -1,8 +1,9 @@
 import { useCallback, useEffect, useState } from 'react';
 import * as XLSX from 'xlsx';
 import { minutosTrabajados, costoManoObra } from '../../shared/utils/laborCost';
+import { API_URL } from '../../shared/config/api';
 
-const API = 'http://localhost:3000';
+const API = API_URL;
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 

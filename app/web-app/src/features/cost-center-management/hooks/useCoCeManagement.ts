@@ -1,8 +1,9 @@
 import { useState, useCallback, useRef, useEffect } from 'react';
 import { CostCenter } from '../../../shared/types/cost-center.types';
 import { CostCenterManagementState, ModalMode } from '../types/coce.types';
+import { API_URL } from '../../../shared/config/api';
 
-const API_BASE_URL = 'http://localhost:3000';
+const API_BASE_URL = API_URL;
 
 export const useCoCeManagement = () => {
   const [state, setState] = useState<CostCenterManagementState>({

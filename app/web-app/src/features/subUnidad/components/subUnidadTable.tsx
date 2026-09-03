@@ -42,7 +42,6 @@ interface SubUnidadTableProps {
 
 export const SubUnidadTable: React.FC<SubUnidadTableProps> = ({
   subUnidades,
-  centrosCosto,
   procesos,
   maquinas,
   theme,

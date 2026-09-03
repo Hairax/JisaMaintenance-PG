@@ -35,6 +35,7 @@ import SalidaPage from '../features/Salida/page/salidaPage';
 import { ListSalidaPage } from '../features/Salida/page/listSalidaPage';
 import RepuestosPage from '../features/repuestos/page/RepuestosPage';
 import ProgramacionOtPage from '../features/programacion-ot/page/ProgramacionOtPage';
+import ProfilePage from '../features/profile/pages/ProfilePage';
 
 export const AppRoutes = () => {
   return (
@@ -54,6 +55,7 @@ export const AppRoutes = () => {
       >
         <Route path="/home" element={<HomePage />} />
         <Route path="/" element={<Navigate to="/home" replace />} />
+        <Route path="/profile" element={<ProfilePage />} />
         <Route path="/dashboard" element={<DashboardPage />} />
         <Route path="/management/users" element={<UserManagementPage />} />
         <Route path="/management/cost-centers" element={<CoCeManagement />} />

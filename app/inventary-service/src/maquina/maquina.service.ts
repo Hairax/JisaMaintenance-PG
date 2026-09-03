@@ -1,9 +1,10 @@
 import { Inject, Injectable } from '@nestjs/common';
-import { Repository } from 'typeorm';
+import { EntityManager, Repository } from 'typeorm';
 import { Maquina } from './entities/maquina.entity';
 import { CreateMaquinaDto } from './dto/create-maquina.dtop';
 import { UpdateMaquinaDto } from './dto/update-maquina.dtop';
 import { ResponseMaquinaDto } from './dto/response-maquina.dtop';
+import { runWithDuplicateRetry } from '../common/concurrency.util';
 
 @Injectable()
 export class MaquinaService {
@@ -12,10 +13,17 @@ export class MaquinaService {
     private maquinaRepository: Repository<Maquina>,
   ) {}
 
-  private async getNextCorrelativo(procesoId: number): Promise<number> {
-    const latest = await this.maquinaRepository.findOne({
+  // Lockea las máquinas existentes del proceso mientras calcula el próximo
+  // correlativo, para que una segunda transacción concurrente espere a que
+  // esta termine en vez de leer el mismo "último" valor y duplicarlo.
+  private async getNextCorrelativo(
+    manager: EntityManager,
+    procesoId: number,
+  ): Promise<number> {
+    const latest = await manager.findOne(Maquina, {
       where: { process: { id: procesoId } },
       order: { correlativo: 'DESC' },
+      lock: { mode: 'pessimistic_write' },
     });
     return latest?.correlativo && latest.correlativo > 0
       ? latest.correlativo + 1
@@ -39,34 +47,54 @@ export class MaquinaService {
   }
 
   async create(dto: CreateMaquinaDto): Promise<ResponseMaquinaDto> {
-    const correlativo =
-      dto.correlativo != null && dto.correlativo > 0
-        ? dto.correlativo
-        : await this.getNextCorrelativo(dto.proceso_id);
-
     if (dto.correlativo != null && dto.correlativo > 0) {
       await this.assertCorrelativoUnique(dto.proceso_id, dto.correlativo);
+      const maquina = this.maquinaRepository.create({
+        name: dto.name,
+        fabricante: dto.fabricante,
+        tipoDeMaquina: dto.tipoDeMaquina,
+        numeroDeSerie: dto.numeroDeSerie,
+        fechaDeFabricacion: dto.fechaDeFabricacion,
+        fechaDeMontaje: dto.fechaDeMontaje,
+        costo: dto.costo,
+        horasTrabajadas: dto.horasTrabajadas,
+        costCenter: { id: dto.centroCosto_id },
+        process: { id: dto.proceso_id },
+        proveedor: { id: dto.proveedor_id },
+        correlativo: dto.correlativo,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      });
+      const saved = await this.maquinaRepository.save(maquina);
+      return this.toResponseDto(saved);
     }
 
-    const maquina = this.maquinaRepository.create({
-      name: dto.name,
-      fabricante: dto.fabricante,
-      tipoDeMaquina: dto.tipoDeMaquina,
-      numeroDeSerie: dto.numeroDeSerie,
-      fechaDeFabricacion: dto.fechaDeFabricacion,
-      fechaDeMontaje: dto.fechaDeMontaje,
-      costo: dto.costo,
-      horasTrabajadas: dto.horasTrabajadas,
-      costCenter: { id: dto.centroCosto_id },
-      process: { id: dto.proceso_id },
-      proveedor: { id: dto.proveedor_id },
-      correlativo,
-      createdAt: new Date(),
-      updatedAt: new Date(),
-    });
-
-    const saved = await this.maquinaRepository.save(maquina);
-    return this.toResponseDto(saved);
+    return runWithDuplicateRetry(() =>
+      this.maquinaRepository.manager.transaction(async (manager) => {
+        const correlativo = await this.getNextCorrelativo(
+          manager,
+          dto.proceso_id,
+        );
+        const maquina = manager.create(Maquina, {
+          name: dto.name,
+          fabricante: dto.fabricante,
+          tipoDeMaquina: dto.tipoDeMaquina,
+          numeroDeSerie: dto.numeroDeSerie,
+          fechaDeFabricacion: dto.fechaDeFabricacion,
+          fechaDeMontaje: dto.fechaDeMontaje,
+          costo: dto.costo,
+          horasTrabajadas: dto.horasTrabajadas,
+          costCenter: { id: dto.centroCosto_id },
+          process: { id: dto.proceso_id },
+          proveedor: { id: dto.proveedor_id },
+          correlativo,
+          createdAt: new Date(),
+          updatedAt: new Date(),
+        });
+        const saved = await manager.save(maquina);
+        return this.toResponseDto(saved);
+      }),
+    );
   }
 
   async findAll(): Promise<ResponseMaquinaDto[]> {
@@ -86,47 +114,56 @@ export class MaquinaService {
   }
 
   async update(id: number, dto: UpdateMaquinaDto): Promise<ResponseMaquinaDto> {
-    const maquina = await this.maquinaRepository.findOne({
-      where: { id },
-      relations: ['costCenter', 'process', 'proveedor'],
-    });
-    if (!maquina) throw new Error('Maquina not found');
+    return runWithDuplicateRetry(() =>
+      this.maquinaRepository.manager.transaction(async (manager) => {
+        const maquina = await manager.findOne(Maquina, {
+          where: { id },
+          relations: ['costCenter', 'process', 'proveedor'],
+        });
+        if (!maquina) throw new Error('Maquina not found');
 
-    const targetProcesoId = dto.proceso_id ?? maquina.process?.id;
+        const targetProcesoId = dto.proceso_id ?? maquina.process?.id;
 
-    const correlativo =
-      dto.correlativo != null && dto.correlativo > 0
-        ? dto.correlativo
-        : dto.proceso_id && dto.proceso_id !== maquina.process?.id
-          ? await this.getNextCorrelativo(dto.proceso_id)
-          : maquina.correlativo;
+        const correlativo =
+          dto.correlativo != null && dto.correlativo > 0
+            ? dto.correlativo
+            : dto.proceso_id && dto.proceso_id !== maquina.process?.id
+              ? await this.getNextCorrelativo(manager, dto.proceso_id)
+              : maquina.correlativo;
 
-    if (dto.correlativo != null && dto.correlativo > 0) {
-      await this.assertCorrelativoUnique(targetProcesoId, dto.correlativo, id);
-    }
+        if (dto.correlativo != null && dto.correlativo > 0) {
+          await this.assertCorrelativoUnique(
+            targetProcesoId,
+            dto.correlativo,
+            id,
+          );
+        }
 
-    const updated = this.maquinaRepository.merge(maquina, {
-      name: dto.name ?? maquina.name,
-      fabricante: dto.fabricante ?? maquina.fabricante,
-      tipoDeMaquina: dto.tipoDeMaquina ?? maquina.tipoDeMaquina,
-      numeroDeSerie: dto.numeroDeSerie ?? maquina.numeroDeSerie,
-      fechaDeFabricacion: dto.fechaDeFabricacion ?? maquina.fechaDeFabricacion,
-      fechaDeMontaje: dto.fechaDeMontaje ?? maquina.fechaDeMontaje,
-      costo: dto.costo ?? maquina.costo,
-      horasTrabajadas: dto.horasTrabajadas ?? maquina.horasTrabajadas,
-      costCenter: dto.centroCosto_id
-        ? { id: dto.centroCosto_id }
-        : maquina.costCenter,
-      process: dto.proceso_id ? { id: dto.proceso_id } : maquina.process,
-      proveedor: dto.proveedor_id
-        ? { id: dto.proveedor_id }
-        : maquina.proveedor,
-      correlativo,
-      updatedAt: new Date(),
-    });
+        const updated = manager.merge(Maquina, maquina, {
+          name: dto.name ?? maquina.name,
+          fabricante: dto.fabricante ?? maquina.fabricante,
+          tipoDeMaquina: dto.tipoDeMaquina ?? maquina.tipoDeMaquina,
+          numeroDeSerie: dto.numeroDeSerie ?? maquina.numeroDeSerie,
+          fechaDeFabricacion:
+            dto.fechaDeFabricacion ?? maquina.fechaDeFabricacion,
+          fechaDeMontaje: dto.fechaDeMontaje ?? maquina.fechaDeMontaje,
+          costo: dto.costo ?? maquina.costo,
+          horasTrabajadas: dto.horasTrabajadas ?? maquina.horasTrabajadas,
+          costCenter: dto.centroCosto_id
+            ? { id: dto.centroCosto_id }
+            : maquina.costCenter,
+          process: dto.proceso_id ? { id: dto.proceso_id } : maquina.process,
+          proveedor: dto.proveedor_id
+            ? { id: dto.proveedor_id }
+            : maquina.proveedor,
+          correlativo,
+          updatedAt: new Date(),
+        });
 
-    const saved = await this.maquinaRepository.save(updated);
-    return this.toResponseDto(saved);
+        const saved = await manager.save(updated);
+        return this.toResponseDto(saved);
+      }),
+    );
   }
 
   async remove(id: number): Promise<void> {

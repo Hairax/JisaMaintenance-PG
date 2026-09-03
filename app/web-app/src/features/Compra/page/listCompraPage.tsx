@@ -9,6 +9,7 @@ import {
   FaEdit,
   FaSearch,
 } from 'react-icons/fa';
+import { API_URL } from '../../../shared/config/api';
 
 const colors = {
   brown: '#9E5533',
@@ -69,7 +70,7 @@ export const ListCompraPage: React.FC = () => {
   const fetchCompras = async () => {
     try {
       setLoading(true);
-      const response = await fetch('http://localhost:3000/compras');
+      const response = await fetch(`${API_URL}/compras`);
       if (!response.ok) throw new Error('Error al cargar compras');
       const data = await response.json();
       // Convertir valores numéricos que vienen como strings
@@ -134,7 +135,7 @@ export const ListCompraPage: React.FC = () => {
     if (selectedCompra) {
       try {
         const response = await fetch(
-          `http://localhost:3000/compras/${selectedCompra.id}`,
+          `${API_URL}/compras/${selectedCompra.id}`,
           {
             method: 'DELETE',
           },

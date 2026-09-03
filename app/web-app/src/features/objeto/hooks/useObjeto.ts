@@ -1,12 +1,12 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import {
   Objeto,
-  ObjetoFormData,
   ModalMode,
   ObjetoManagementState,
 } from '../types/objeto.types';
+import { API_URL } from '../../../shared/config/api';
 
-const API_BASE_URL = 'http://localhost:3000/objetos';
+const API_BASE_URL = `${API_URL}/objetos`;
 
 export function useObjeto() {
   const [state, setState] = useState<ObjetoManagementState>({

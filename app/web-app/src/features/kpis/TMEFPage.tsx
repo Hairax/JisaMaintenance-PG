@@ -14,8 +14,9 @@ import {
   ZAxis,
 } from 'recharts';
 import { useTheme } from '../../shared/contexts/ThemeContext';
+import { API_URL } from '../../shared/config/api';
 
-const API = 'http://localhost:3000';
+const API = API_URL;
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 

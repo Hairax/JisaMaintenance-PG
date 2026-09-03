@@ -13,8 +13,8 @@ import { ProgramacionOtHttpController } from './programacion-ot/programacion-ot.
         name: 'OT_MICROSERVICE',
         transport: Transport.TCP,
         options: {
-          host: 'localhost',
-          port: 3004,
+          host: process.env.OT_SERVICE_HOST || 'localhost',
+          port: parseInt(process.env.OT_SERVICE_PORT || '3004'),
         },
       },
     ]),

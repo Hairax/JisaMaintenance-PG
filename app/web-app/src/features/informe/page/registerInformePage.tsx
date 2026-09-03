@@ -2,8 +2,9 @@ import { useState, useEffect, useRef } from 'react';
 import { useTheme } from '../../../shared/contexts/ThemeContext';
 import { informeService } from '../services/informe.service';
 import { FaPlus, FaTrash, FaSave, FaChevronDown } from 'react-icons/fa';
+import { API_URL } from '../../../shared/config/api';
 
-const API = 'http://localhost:3000';
+const API = API_URL;
 
 const colors = {
   brown: '#9E5533',

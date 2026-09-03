@@ -9,8 +9,8 @@ import { UserController } from './user.controller';
         name: 'USER_SERVICE',
         transport: Transport.TCP,
         options: {
-          host: 'localhost',
-          port: 3002,
+          host: process.env.USER_SERVICE_HOST || 'localhost',
+          port: parseInt(process.env.USER_SERVICE_PORT || '3002'),
         },
       },
     ]),

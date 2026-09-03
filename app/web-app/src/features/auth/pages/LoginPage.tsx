@@ -5,6 +5,7 @@ import { useTheme } from '../../../shared/contexts/ThemeContext';
 import { LocationState } from '../../../shared/types/navigation';
 import { FaSun, FaMoon, FaEye, FaEyeSlash } from 'react-icons/fa';
 import Logo from '../../../assets/logoJacha.png';
+import { API_URL } from '../../../shared/config/api';
 
 export const LoginPage = () => {
   const [email, setEmail] = useState('');
@@ -21,7 +22,7 @@ export const LoginPage = () => {
     setError('');
 
     try {
-      const response = await fetch('http://localhost:3000/auth/login', {
+      const response = await fetch(`${API_URL}/auth/login`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

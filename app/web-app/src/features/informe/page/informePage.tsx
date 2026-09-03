@@ -12,7 +12,6 @@ export const InformePage: React.FC = () => {
     handleCloseModal,
     handleInputChange,
     handleCreateInforme,
-    fetchInformes,
   } = useInforme();
 
   const pageStyle = {

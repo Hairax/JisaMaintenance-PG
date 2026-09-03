@@ -1,17 +1,14 @@
 import { useState, useCallback, useEffect } from 'react';
 import {
   InformeDiarioTrabajo,
-  InformeDetalleTrabajo,
   InformeManagementState,
   ModalMode,
-  InformeDiarioFormData,
-  InformeDetalleFormData,
 } from '../types/informe.types';
+import { API_URL } from '../../../shared/config/api';
 
-const API_DIARIO_CREATE_URL = 'http://localhost:3000/informe/diario.create';
-const API_DIARIO_FINDALL_URL = 'http://localhost:3000/informe/diario.findAll';
-const API_DETALLE_CREATE_URL = 'http://localhost:3000/informe/detalle.create';
-const API_DETALLE_FINDALL_URL = 'http://localhost:3000/informe/detalle.findAll';
+const API_DIARIO_CREATE_URL = `${API_URL}/informe/diario.create`;
+const API_DIARIO_FINDALL_URL = `${API_URL}/informe/diario.findAll`;
+const API_DETALLE_FINDALL_URL = `${API_URL}/informe/detalle.findAll`;
 
 export function useInforme() {
   const [state, setState] = useState<InformeManagementState>({

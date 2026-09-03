@@ -4,12 +4,16 @@ import {
   PrimaryGeneratedColumn,
   ManyToOne,
   JoinColumn,
+  Unique,
 } from 'typeorm';
 import { CostCenter } from './cost-center.entity';
 import { Process } from './process.entity';
 import { Proveedor } from './proveedor.entity';
 
+// Copia liviana de la entidad de inventary-service (ver nota en
+// process.entity.ts de este mismo servicio).
 @Entity()
+@Unique(['process', 'correlativo'])
 export class Maquina {
   @PrimaryGeneratedColumn()
   id: number;
@@ -24,6 +28,9 @@ export class Maquina {
 
   @Column()
   name: string;
+
+  @Column({ nullable: true, type: 'int' })
+  correlativo?: number;
 
   @Column()
   createdAt: Date;

@@ -10,6 +10,7 @@ import {
   FaEdit,
   FaChevronDown,
 } from 'react-icons/fa';
+import { API_URL } from '../../../shared/config/api';
 
 const colors = {
   brown: '#9E5533',
@@ -247,8 +248,8 @@ export default function ListInformePage() {
     const loadOptions = async () => {
       try {
         const [resUsers, resOTs] = await Promise.all([
-          fetch('http://localhost:3000/users'),
-          fetch('http://localhost:3000/ots'),
+          fetch(`${API_URL}/users`),
+          fetch(`${API_URL}/ots`),
         ]);
         const [users, ots] = (await Promise.all([
           resUsers.ok ? resUsers.json() : Promise.resolve([]),

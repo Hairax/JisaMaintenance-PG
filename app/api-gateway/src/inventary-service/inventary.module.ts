@@ -19,8 +19,8 @@ import { AlmacenesHttpController } from './almacen/almacen.controller';
         name: 'INVENTORY_MICROSERVICE',
         transport: Transport.TCP,
         options: {
-          host: 'localhost',
-          port: 3003,
+          host: process.env.INVENTORY_SERVICE_HOST || 'localhost',
+          port: parseInt(process.env.INVENTORY_SERVICE_PORT || '3003'),
         },
       },
     ]),

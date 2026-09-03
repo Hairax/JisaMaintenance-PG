@@ -23,13 +23,13 @@ export default [
     ],
   },
   {
-    files: ['apps/web-app/**/*.{ts,tsx}'],
+    files: ['app/web-app/**/*.{ts,tsx}'],
     settings: { react: { version: '18.3' } },
     languageOptions: {
       // other options...
       parserOptions: {
         project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: './apps/web-app',
+        tsconfigRootDir: './app/web-app',
       },
     },
     plugins: {

@@ -1,12 +1,12 @@
 import { useCallback, useEffect, useState, useRef } from 'react';
 import {
   TipoMantenimiento,
-  TipoMantenimientoFormData,
   ModalMode,
   TipoMantenimientoManagementState,
 } from '../types/tipoMantenimiento.types';
+import { API_URL } from '../../../shared/config/api';
 
-const API_BASE_URL = 'http://localhost:3000/tipo-mantenimientos';
+const API_BASE_URL = `${API_URL}/tipo-mantenimientos`;
 
 export function useTipoMantenimiento() {
   const [state, setState] = useState<TipoMantenimientoManagementState>({

@@ -1,9 +1,10 @@
 import { Injectable, Inject } from '@nestjs/common';
-import { Repository } from 'typeorm';
+import { EntityManager, Repository } from 'typeorm';
 import { SubUnidad } from './entitites/subUnidad.entity';
 import { CreateSubUnidadDto } from './dtos/create-subunidad.dto';
 import { UpdateSubUnidadDto } from './dtos/update-subunidad.dto';
 import { ResponseSubUnidadDto } from './dtos/response-subunidad.dto';
+import { runWithDuplicateRetry } from '../common/concurrency.util';
 
 @Injectable()
 export class SubUnidadService {
@@ -12,11 +13,16 @@ export class SubUnidadService {
     private readonly subUnidadRepository: Repository<SubUnidad>,
   ) {}
 
+  // Lockea las subunidades existentes de la máquina mientras calcula el
+  // próximo correlativo, para que una segunda transacción concurrente
+  // espere a que esta termine en vez de leer el mismo "último" valor.
   private async getNextCorrelativoForMachine(
+    manager: EntityManager,
     maquinaId: number,
   ): Promise<number> {
-    const result = await this.subUnidadRepository
-      .createQueryBuilder('subunidad')
+    const result = await manager
+      .createQueryBuilder(SubUnidad, 'subunidad')
+      .setLock('pessimistic_write')
       .select('MAX(subunidad.correlativo)', 'max')
       .where('subunidad.maquina_id = :maquinaId', { maquinaId })
       .getRawOne<{ max: number }>();
@@ -49,20 +55,39 @@ export class SubUnidadService {
   }
 
   async create(dto: CreateSubUnidadDto): Promise<ResponseSubUnidadDto> {
-    const correlativo = dto.correlativo
-      ? await this.ensureCorrelativoUnique(dto.maquina_id, dto.correlativo)
-      : await this.getNextCorrelativoForMachine(dto.maquina_id);
+    if (dto.correlativo) {
+      const correlativo = await this.ensureCorrelativoUnique(
+        dto.maquina_id,
+        dto.correlativo,
+      );
+      const subunidad = this.subUnidadRepository.create({
+        descripcion: dto.descripcion,
+        maquina: { id: dto.maquina_id },
+        correlativo,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      });
+      const saved = await this.subUnidadRepository.save(subunidad);
+      return this.toResponseDto(saved);
+    }
 
-    const subunidad = this.subUnidadRepository.create({
-      descripcion: dto.descripcion,
-      maquina: { id: dto.maquina_id },
-      correlativo,
-      createdAt: new Date(),
-      updatedAt: new Date(),
-    });
-
-    const saved = await this.subUnidadRepository.save(subunidad);
-    return this.toResponseDto(saved);
+    return runWithDuplicateRetry(() =>
+      this.subUnidadRepository.manager.transaction(async (manager) => {
+        const correlativo = await this.getNextCorrelativoForMachine(
+          manager,
+          dto.maquina_id,
+        );
+        const subunidad = manager.create(SubUnidad, {
+          descripcion: dto.descripcion,
+          maquina: { id: dto.maquina_id },
+          correlativo,
+          createdAt: new Date(),
+          updatedAt: new Date(),
+        });
+        const saved = await manager.save(subunidad);
+        return this.toResponseDto(saved);
+      }),
+    );
   }
 
   async findAll(): Promise<ResponseSubUnidadDto[]> {
@@ -85,34 +110,41 @@ export class SubUnidadService {
     id: number,
     dto: UpdateSubUnidadDto,
   ): Promise<ResponseSubUnidadDto> {
-    const subunidad = await this.subUnidadRepository.findOne({
-      where: { id },
-      relations: ['maquina'],
-    });
-    if (!subunidad) throw new Error('SubUnidad not found');
+    return runWithDuplicateRetry(() =>
+      this.subUnidadRepository.manager.transaction(async (manager) => {
+        const subunidad = await manager.findOne(SubUnidad, {
+          where: { id },
+          relations: ['maquina'],
+        });
+        if (!subunidad) throw new Error('SubUnidad not found');
 
-    const maquinaId = dto.maquina_id ?? subunidad.maquina.id;
-    let correlativo = subunidad.correlativo;
+        const maquinaId = dto.maquina_id ?? subunidad.maquina.id;
+        let correlativo = subunidad.correlativo;
 
-    if (dto.correlativo !== undefined) {
-      correlativo = await this.ensureCorrelativoUnique(
-        maquinaId,
-        dto.correlativo,
-        subunidad.id,
-      );
-    } else if (dto.maquina_id && dto.maquina_id !== subunidad.maquina.id) {
-      correlativo = await this.getNextCorrelativoForMachine(maquinaId);
-    }
+        if (dto.correlativo !== undefined) {
+          correlativo = await this.ensureCorrelativoUnique(
+            maquinaId,
+            dto.correlativo,
+            subunidad.id,
+          );
+        } else if (dto.maquina_id && dto.maquina_id !== subunidad.maquina.id) {
+          correlativo = await this.getNextCorrelativoForMachine(
+            manager,
+            maquinaId,
+          );
+        }
 
-    const updated = this.subUnidadRepository.merge(subunidad, {
-      descripcion: dto.descripcion ?? subunidad.descripcion,
-      maquina: dto.maquina_id ? { id: dto.maquina_id } : subunidad.maquina,
-      correlativo,
-      updatedAt: new Date(),
-    });
+        const updated = manager.merge(SubUnidad, subunidad, {
+          descripcion: dto.descripcion ?? subunidad.descripcion,
+          maquina: dto.maquina_id ? { id: dto.maquina_id } : subunidad.maquina,
+          correlativo,
+          updatedAt: new Date(),
+        });
 
-    const saved = await this.subUnidadRepository.save(updated);
-    return this.toResponseDto(saved);
+        const saved = await manager.save(updated);
+        return this.toResponseDto(saved);
+      }),
+    );
   }
 
   async remove(id: number): Promise<void> {

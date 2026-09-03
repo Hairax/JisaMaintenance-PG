@@ -2,11 +2,11 @@ import { useEffect, useRef, useState } from 'react';
 import {
   SubUnidad,
   ModalMode,
-  SubUnidadFormData,
   SubUnidadManagementState,
 } from '../types/subUnidad.types';
+import { API_URL } from '../../../shared/config/api';
 
-const API_BASE_URL = 'http://localhost:3000/subunidades';
+const API_BASE_URL = `${API_URL}/subunidades`;
 
 export interface SelectOption {
   id: number;
@@ -72,7 +72,7 @@ export const useSubUnidad = () => {
 
   const fetchCentrosCosto = async () => {
     try {
-      const res = await fetch('http://localhost:3000/cost-centers');
+      const res = await fetch(`${API_URL}/cost-centers`);
       if (!res.ok) throw new Error('Error al cargar centros de costo');
       const data = await res.json();
       setState((prev) => ({ ...prev, centrosCosto: data }));
@@ -81,7 +81,10 @@ export const useSubUnidad = () => {
     }
   };
 
-  const formatProcessName = (process: any) => {
+  const formatProcessName = (process: {
+    correlativo?: number;
+    name: string;
+  }) => {
     const correlativo = process.correlativo;
     const prefix =
       correlativo !== null && correlativo !== undefined
@@ -90,7 +93,10 @@ export const useSubUnidad = () => {
     return `${prefix} - ${process.name}`;
   };
 
-  const formatMachineName = (machine: any) => {
+  const formatMachineName = (machine: {
+    correlativo?: number;
+    name: string;
+  }) => {
     const correlativo = machine.correlativo;
     const prefix =
       correlativo !== null && correlativo !== undefined
@@ -101,10 +107,17 @@ export const useSubUnidad = () => {
 
   const fetchProcesos = async () => {
     try {
-      const res = await fetch('http://localhost:3000/process');
+      const res = await fetch(`${API_URL}/process`);
       if (!res.ok) throw new Error('Error al cargar procesos');
       const data = await res.json();
-      const procesos = data.map((process: any) => ({
+      const procesos = (
+        data as {
+          id: number;
+          name: string;
+          centroCosto: number;
+          correlativo?: number;
+        }[]
+      ).map((process) => ({
         id: process.id,
         name: formatProcessName(process),
         centroCosto: process.centroCosto,
@@ -118,10 +131,18 @@ export const useSubUnidad = () => {
 
   const fetchMaquinas = async () => {
     try {
-      const res = await fetch('http://localhost:3000/maquinas');
+      const res = await fetch(`${API_URL}/maquinas`);
       if (!res.ok) throw new Error('Error al cargar máquinas');
       const data = await res.json();
-      const maquinas = data.map((machine: any) => ({
+      const maquinas = (
+        data as {
+          id: number;
+          name: string;
+          centroCosto_id: number;
+          proceso_id: number;
+          correlativo?: number;
+        }[]
+      ).map((machine) => ({
         id: machine.id,
         name: formatMachineName(machine),
         centroCosto: machine.centroCosto_id,
@@ -147,9 +168,6 @@ export const useSubUnidad = () => {
 
   const getMachineById = (id?: number) =>
     state.maquinas.find((machine) => machine.id === id);
-
-  const getProcessById = (id?: number) =>
-    state.procesos.find((process) => process.id === id);
 
   // Modal handlers
   const handleOpenModal = (

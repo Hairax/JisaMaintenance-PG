@@ -1,3 +1,4 @@
+import 'dotenv/config';
 import { DataSource } from 'typeorm';
 import { TipoMantenimiento } from '../tipoMantenimiento/entities/tipoMantenimiento.entity';
 import { Departamento } from '../departamento/entities/departamento.entity';
@@ -19,11 +20,11 @@ export const databaseProviders = [
     useFactory: async () => {
       const dataSource = new DataSource({
         type: 'mysql',
-        host: 'localhost',
-        port: 3010,
-        username: 'root',
-        password: 'password_core_db',
-        database: 'core_db',
+        host: process.env.DB_HOST || 'localhost',
+        port: parseInt(process.env.DB_PORT || '3010'),
+        username: process.env.DB_USERNAME || 'root',
+        password: process.env.DB_PASSWORD || 'password_core_db',
+        database: process.env.DB_DATABASE || 'core_db',
         entities: [
           TipoMantenimiento,
           Departamento,

@@ -32,7 +32,7 @@ export const Sidebar = () => {
   const sidebarRef = useRef<HTMLDivElement>(null);
   const location = useLocation();
   const navigate = useNavigate();
-  const { logout } = useAuth();
+  const { logout, user } = useAuth();
   const { theme, toggleTheme } = useTheme();
   const { can } = usePermissions();
   const canRoute = (to: string) => {
@@ -105,13 +105,52 @@ export const Sidebar = () => {
       >
         {/* Sección Perfil y Botón Colapsar */}
         <div className="relative mb-8 flex justify-center">
-          {/* Icono de perfil */}
-          <div className="flex items-center justify-center">
+          {/* Icono de perfil (lleva a "Mi Perfil") */}
+          <button
+            onClick={() => navigate('/profile')}
+            className={`flex items-center rounded-lg transition-colors duration-200 ${
+              isCollapsed
+                ? 'justify-center p-1'
+                : 'justify-start w-full px-2 py-1 gap-2'
+            }`}
+            style={{
+              backgroundColor:
+                location.pathname === '/profile'
+                  ? theme === 'dark'
+                    ? `${colors.brown}30`
+                    : `${colors.gold}20`
+                  : 'transparent',
+            }}
+            onMouseEnter={(e) => {
+              e.currentTarget.style.backgroundColor =
+                theme === 'dark' ? `${colors.brown}30` : `${colors.gold}20`;
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.backgroundColor =
+                location.pathname === '/profile'
+                  ? theme === 'dark'
+                    ? `${colors.brown}30`
+                    : `${colors.gold}20`
+                  : 'transparent';
+            }}
+            aria-label="Mi Perfil"
+            title="Mi Perfil"
+          >
             <FaUserCircle
-              className="w-[36px] h-[36px] transition-colors duration-300"
+              className="w-[36px] h-[36px] shrink-0 transition-colors duration-300"
               style={{ color: profileIconColor }}
             />
-          </div>
+            {!isCollapsed && user && (
+              <span
+                className="text-sm font-medium truncate"
+                style={{
+                  color: theme === 'dark' ? colors.lightText : colors.darkText,
+                }}
+              >
+                {user.name}
+              </span>
+            )}
+          </button>
           {/* Botón para colapsar/expandir */}
           <button
             onClick={() => setIsCollapsed(!isCollapsed)}

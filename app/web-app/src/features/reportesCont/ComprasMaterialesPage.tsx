@@ -1,7 +1,8 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import * as XLSX from 'xlsx';
+import { API_URL } from '../../shared/config/api';
 
-const API = 'http://localhost:3000';
+const API = API_URL;
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -147,7 +148,7 @@ export default function ComprasMaterialesPage() {
     ];
 
     // Array de arrays: la primera fila serán los encabezados obligatoriamente
-    const datosHoja: any[][] = [headers];
+    const datosHoja: (string | number | Date)[][] = [headers];
 
     for (const c of dataFiltrada) {
       // Si la compra no tiene detalles, evitamos que rompa metiendo campos vacíos alineados

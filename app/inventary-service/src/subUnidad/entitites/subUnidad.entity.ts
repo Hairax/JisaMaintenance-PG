@@ -4,10 +4,12 @@ import {
   PrimaryGeneratedColumn,
   ManyToOne,
   JoinColumn,
+  Unique,
 } from 'typeorm';
 import { Maquina } from '../../maquina/entities/maquina.entity';
 
 @Entity()
+@Unique(['maquina', 'correlativo'])
 export class SubUnidad {
   @PrimaryGeneratedColumn()
   id: number;

@@ -4,9 +4,10 @@ import {
   CreateProcessDto,
   UpdateProcessDto,
 } from '../types/process.types';
+import { API_URL } from '../../../shared/config/api';
 
-const API_BASE_URL = 'http://localhost:3000/process';
-const COST_CENTER_API_URL = 'http://localhost:3000/cost-centers';
+const API_BASE_URL = `${API_URL}/process`;
+const COST_CENTER_API_URL = `${API_URL}/cost-centers`;
 
 type ModalMode = 'view' | 'edit' | 'add';
 
@@ -153,7 +154,7 @@ export function useProcess() {
     try {
       const correlativoValue =
         state.formData.correlativo !== undefined &&
-        state.formData.correlativo !== ''
+        String(state.formData.correlativo) !== ''
           ? Number(state.formData.correlativo)
           : undefined;
 
@@ -193,7 +194,7 @@ export function useProcess() {
     try {
       const correlativoValue =
         state.formData.correlativo !== undefined &&
-        state.formData.correlativo !== ''
+        String(state.formData.correlativo) !== ''
           ? Number(state.formData.correlativo)
           : undefined;
 
