@@ -3,6 +3,17 @@ import { API_URL } from '../../../shared/config/api';
 
 const API_BASE_URL = API_URL;
 
+export interface OcurrenciaProgramacion {
+  programacionId: number;
+  nombre: string;
+  descripcionTarea: string;
+  fecha: string;
+  maquina_id: number;
+  tipoOT_id: number;
+  tipoEjecucion: string;
+  activo: boolean;
+}
+
 async function handle<T>(res: Response, fallback: string): Promise<T> {
   if (!res.ok) {
     const body = await res.json().catch(() => null);
@@ -51,5 +62,16 @@ export const programacionOtService = {
       { method: 'POST' },
     );
     return handle(res, 'Error al ejecutar la programación');
+  },
+
+  async getOcurrencias(
+    desde: string,
+    hasta: string,
+  ): Promise<OcurrenciaProgramacion[]> {
+    const params = new URLSearchParams({ desde, hasta });
+    const res = await fetch(
+      `${API_BASE_URL}/programaciones-ot/ocurrencias?${params.toString()}`,
+    );
+    return handle(res, 'Error al cargar el calendario de mantenimientos');
   },
 };

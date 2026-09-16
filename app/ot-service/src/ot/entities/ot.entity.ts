@@ -99,6 +99,13 @@ export class OrdenTrabajo {
   @Column({ default: 'Abierta' })
   estado: string; // Abierta | En Progreso Técnico | En Progreso Almacén | Cerrada
 
+  // Se estampa automáticamente cuando estado pasa a 'Cerrada' (y se limpia
+  // si se reabre) — ver OrdenTrabajoService.update. Sirve para poder generar
+  // el reporte de cierre de OTs de un mes específico sin depender de
+  // fechaCreacion, que es la fecha en que se creó la OT, no en que se cerró.
+  @Column({ type: 'datetime', nullable: true })
+  fechaCierre?: Date | null;
+
   @CreateDateColumn()
   fechaCreacion: Date;
 

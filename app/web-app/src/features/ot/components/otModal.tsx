@@ -4,7 +4,14 @@ import {
   OrdenTrabajoFormData,
   ModalMode,
 } from '../types/ot.types';
-import { FaTimes, FaEdit, FaTrash, FaSave, FaPlus } from 'react-icons/fa';
+import {
+  FaTimes,
+  FaEdit,
+  FaTrash,
+  FaSave,
+  FaPlus,
+  FaPrint,
+} from 'react-icons/fa';
 
 const colors = {
   brown: '#9E5533',
@@ -28,9 +35,11 @@ interface OtModalProps {
   loading: boolean;
   onClose: () => void;
   onInputChange: (
-    e: React.ChangeEvent<
-      HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement
-    >,
+    e:
+      | React.ChangeEvent<
+          HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement
+        >
+      | { target: { name: string; value: number[] } },
   ) => void;
   onCreateOt: () => void;
   onUpdateOt: () => void;
@@ -150,7 +159,7 @@ export const OtModal: React.FC<OtModalProps> = ({
       const updatedTecnicos = [...currentTecnicos, tecnicoId];
       onInputChange({
         target: { name: 'tecnicos', value: updatedTecnicos },
-      } as any);
+      });
       setTecnicoSearchId('');
     }
   };
@@ -159,7 +168,7 @@ export const OtModal: React.FC<OtModalProps> = ({
     const updatedTecnicos = currentTecnicos.filter((id) => id !== tecnicoId);
     onInputChange({
       target: { name: 'tecnicos', value: updatedTecnicos },
-    } as any);
+    });
   };
 
   const renderFormField = (
@@ -672,7 +681,7 @@ export const OtModal: React.FC<OtModalProps> = ({
                     <strong style={{ color: secondaryTextColor }}>
                       Centro de Costo:
                     </strong>{' '}
-                    {(selectedOT as any).costCenter?.name ||
+                    {selectedOT.costCenter?.name ||
                       selectedOT.centroCosto?.nombre ||
                       '—'}
                   </p>
@@ -718,6 +727,17 @@ export const OtModal: React.FC<OtModalProps> = ({
                       {selectedOT.estado || '—'}
                     </span>
                   </p>
+                  {selectedOT.estado === 'Cerrada' &&
+                    selectedOT.fechaCierre && (
+                      <p>
+                        <strong style={{ color: secondaryTextColor }}>
+                          Fecha de Cierre:
+                        </strong>{' '}
+                        {new Date(selectedOT.fechaCierre).toLocaleDateString(
+                          'es-BO',
+                        )}
+                      </p>
+                    )}
                 </div>
 
                 {/* Fila 4: Supervisor y Tipo de Cambio */}
@@ -877,6 +897,17 @@ export const OtModal: React.FC<OtModalProps> = ({
         >
           {mode === 'view' && !showDeleteConfirm && (
             <>
+              {selectedOT && (
+                <button
+                  onClick={() =>
+                    window.open(`/ot/${selectedOT.id}/imprimir`, '_blank')
+                  }
+                  style={{ color: secondaryTextColor }}
+                  className="flex items-center gap-1.5 text-sm transition duration-150 ease-in-out"
+                >
+                  <FaPrint /> Imprimir
+                </button>
+              )}
               <button
                 onClick={onEditMode}
                 style={{ color: editColor }}

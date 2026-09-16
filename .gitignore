@@ -1,1 +1,7 @@
 node_modules
+
+# Datos binarios de runtime de los contenedores MySQL (infrastructure/docker-compose.yml).
+# Nunca deberían versionarse: son archivos de datos, no configuración, y
+# cambian en cada escritura a la base de datos.
+infrastructure/mysql-data/
+infrastructure/mysql-data2/

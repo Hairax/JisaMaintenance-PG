@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import * as XLSX from 'xlsx';
 import { API_URL } from '../../shared/config/api';
+import { exportStyledExcel } from '../../shared/utils/accountingExcel';
 
 const API = API_URL;
 
@@ -16,6 +17,7 @@ interface CompraDetalle {
   unidadMedida: string;
   cantidad: number;
   precioUnitario: number;
+  precioOriginal: number;
   importe: number;
   porcentajeDescuento: number;
   descuentoMonto: number;
@@ -141,6 +143,7 @@ export default function ComprasMaterialesPage() {
       'U.M.',
       'Cantidad',
       'P. Unit. Bs',
+      'Precio Original Bs',
       'Descuento Bs',
       'Subtotal Bs',
       'Costo Bs',
@@ -161,6 +164,7 @@ export default function ComprasMaterialesPage() {
                 unidadMedida: '',
                 cantidad: 0,
                 precioUnitario: 0,
+                precioOriginal: 0,
                 porcentajeDescuento: 0,
                 subtotal: 0,
               },
@@ -173,6 +177,7 @@ export default function ComprasMaterialesPage() {
         // Celdas numéricas con fallback a 0 para que Excel no reciba NaN o undefined
         const cantidad = Number(d.cantidad) || 0;
         const pUnitario = Number(d.precioUnitario) || 0;
+        const precioOriginalBs = Number(d.precioOriginal) || 0;
         const descuentoBs = Number(c.descuentoTotal) || 0; // O la lógica que manejes por ítem
         const subtotal = Number(d.subtotal) || 0;
 
@@ -199,11 +204,12 @@ export default function ComprasMaterialesPage() {
           d.nombre, // Columna J: Material
           d.unidadMedida, // Columna K: U.M.
           cantidad, // Columna L: Cantidad (Tipo Number)
-          pUnitario, // Columna M: P. Unit. Bs (Tipo Number)
-          descuentoBs, // Columna N: Descuento Bs (Tipo Number)
-          subtotal, // Columna O: Subtotal Bs (Tipo Number)
-          costoBs, // Columna P: Costo Bs (Tipo Number)
-          valoradoBs, // Columna Q: Valorado Bs. (Precio menos 13%) (Tipo Number)
+          pUnitario, // Columna M: P. Unit. Bs (sin impuesto, Tipo Number)
+          precioOriginalBs, // Columna N: Precio Original Bs (con impuesto, tal cual factura)
+          descuentoBs, // Columna O: Descuento Bs (Tipo Number)
+          subtotal, // Columna P: Subtotal Bs (Tipo Number)
+          costoBs, // Columna Q: Costo Bs (Tipo Number)
+          valoradoBs, // Columna R: Valorado Bs. (Precio menos 13%) (Tipo Number)
         ];
 
         datosHoja.push(fila);
@@ -219,8 +225,8 @@ export default function ComprasMaterialesPage() {
     for (let R = 1; R <= rango.e.r; ++R) {
       // Empezamos en 1 para saltarnos los encabezados
 
-      // Formato para columnas de dinero (L, M, N, O, P, Q) -> ÍNDICES: 11, 12, 13, 14, 15, 16
-      const columnasMoneda = [12, 13, 14, 15, 16];
+      // Formato para columnas de dinero (M, N, O, P, Q, R) -> ÍNDICES: 12, 13, 14, 15, 16, 17
+      const columnasMoneda = [12, 13, 14, 15, 16, 17];
       columnasMoneda.forEach((colIdx) => {
         const cellRef = XLSX.utils.encode_cell({ r: R, c: colIdx });
         if (hoja[cellRef] && hoja[cellRef].t === 'n') {
@@ -246,6 +252,104 @@ export default function ComprasMaterialesPage() {
     // cellDates: true es VITAL para que la librería no transforme los objetos Date en strings numéricos extraños
     XLSX.utils.book_append_sheet(libro, hoja, 'Compras');
     XLSX.writeFile(libro, 'reporte_compras.xlsx', { cellDates: true });
+  };
+
+  // Export para contabilidad: columnas exactas de Plantilla_Compras.xlsx,
+  // una fila por cada línea de detalle. Las columnas que el sistema no
+  // registra hoy (Responsable, Tipo Pago, Plazo, Moneda, index UM, Empresa/
+  // Categoría/Línea/Marca de producto) quedan vacías a propósito — no hay
+  // dato del que sacarlas todavía.
+  const exportarContabilidad = async () => {
+    const headers = [
+      'Fecha',
+      'codigo',
+      'N° factura',
+      'Cod. autorizacion',
+      'Fecha Factura',
+      'Cod. Proveedor',
+      'Nom. Proveedor',
+      'Cod. Responsable',
+      'Nom. Responsable',
+      'Tipo Pago (contado/credito)',
+      'Plazo',
+      'Moneda (bs/us)',
+      'TC',
+      'Cod. producto',
+      'Nom. producto',
+      'Cantidad',
+      'Precio',
+      'Descuento x prd.',
+      'Costo',
+      'index UM (0=um1,1=um2,2=um3)',
+      'unidades UM',
+      'Empresa prd.',
+      'Categoria prd.',
+      'Linea prd.',
+      'Marca prd.',
+      'Detalle Compra',
+    ];
+    const columnWidths = [
+      6.11, 6.78, 9.55, 16.22, 13, 13.89, 14.66, 16.55, 17.33, 25.22, 5.66,
+      14.55, 3.11, 13, 13.89, 8.78, 6.33, 15.11, 5.78, 29.11, 12.22, 12.33, 13,
+      9.44, 10.22, 14.11,
+    ];
+
+    const rows: (string | number)[][] = [];
+    for (const c of dataFiltrada) {
+      const detalles =
+        (c.detalles ?? []).length === 0
+          ? [
+              {
+                codigo: '',
+                nombre: '',
+                unidadMedida: '',
+                cantidad: 0,
+                precioOriginal: 0,
+                descuentoMonto: 0,
+                precioUnitario: 0,
+              },
+            ]
+          : c.detalles;
+
+      for (const d of detalles) {
+        rows.push([
+          fmtDate(c.createdAt),
+          c.nroDocumento || '',
+          c.nroFactura || '',
+          c.nroAutorizacion || '',
+          fmtDate(c.fecha),
+          c.proveedorId ?? '',
+          proveedorNombre(c),
+          '', // Cod. Responsable — sin dato
+          '', // Nom. Responsable — sin dato
+          '', // Tipo Pago — sin dato
+          '', // Plazo — sin dato
+          '', // Moneda — sin dato
+          Number(c.tipoCambio) || 0,
+          d.codigo || '',
+          d.nombre,
+          Number(d.cantidad) || 0,
+          Number(d.precioOriginal) || 0,
+          Number(d.descuentoMonto) || 0,
+          Number(d.precioUnitario) || 0,
+          '', // index UM — sin dato
+          d.unidadMedida,
+          '', // Empresa prd. — sin dato
+          '', // Categoria prd. — sin dato
+          '', // Linea prd. — sin dato
+          '', // Marca prd. — sin dato
+          c.detalle || '',
+        ]);
+      }
+    }
+
+    await exportStyledExcel({
+      filename: 'compras_contabilidad.xlsx',
+      sheetName: 'Hoja1',
+      headers,
+      columnWidths,
+      rows,
+    });
   };
 
   if (loading)
@@ -416,6 +520,25 @@ export default function ComprasMaterialesPage() {
             }}
           >
             Exportar a Excel
+          </button>
+          <button
+            onClick={() => {
+              exportarContabilidad().catch((err) => {
+                console.error(err);
+                setError('Error al generar el Excel para contabilidad.');
+              });
+            }}
+            style={{
+              padding: '0.5rem 1.2rem',
+              borderRadius: 8,
+              background: '#6A5ACD',
+              color: '#fff',
+              border: 'none',
+              fontWeight: 500,
+              cursor: 'pointer',
+            }}
+          >
+            Exportar para Contabilidad
           </button>
         </div>
 
@@ -747,6 +870,14 @@ export default function ComprasMaterialesPage() {
                                       textAlign: 'right',
                                     }}
                                   >
+                                    Precio Original Bs
+                                  </th>
+                                  <th
+                                    style={{
+                                      padding: '0.5rem 0.75rem',
+                                      textAlign: 'right',
+                                    }}
+                                  >
                                     Desc. %
                                   </th>
                                   <th
@@ -824,6 +955,15 @@ export default function ComprasMaterialesPage() {
                                       }}
                                     >
                                       {fmtNum(Number(d.precioUnitario))}
+                                    </td>
+                                    <td
+                                      style={{
+                                        padding: '0.5rem 0.75rem',
+                                        textAlign: 'right',
+                                        color: '#888',
+                                      }}
+                                    >
+                                      {fmtNum(Number(d.precioOriginal))}
                                     </td>
                                     <td
                                       style={{

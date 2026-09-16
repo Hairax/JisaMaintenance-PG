@@ -35,7 +35,9 @@ import SalidaPage from '../features/Salida/page/salidaPage';
 import { ListSalidaPage } from '../features/Salida/page/listSalidaPage';
 import RepuestosPage from '../features/repuestos/page/RepuestosPage';
 import ProgramacionOtPage from '../features/programacion-ot/page/ProgramacionOtPage';
+import CalendarioProgramacionPage from '../features/programacion-ot/page/CalendarioProgramacionPage';
 import ProfilePage from '../features/profile/pages/ProfilePage';
+import PrintOtPage from '../features/ot/page/PrintOtPage';
 
 export const AppRoutes = () => {
   return (
@@ -76,6 +78,10 @@ export const AppRoutes = () => {
         <Route path="/salidas/registrar" element={<SalidaPage />} />
         <Route path="/repuestos" element={<RepuestosPage />} />
         <Route path="/programacion-ot" element={<ProgramacionOtPage />} />
+        <Route
+          path="/programacion-ot/calendario"
+          element={<CalendarioProgramacionPage />}
+        />
 
         {/* Ruta para reportes contables */}
         <Route path="/reportes/kardex" element={<KardexValoradoPage />} />
@@ -105,6 +111,18 @@ export const AppRoutes = () => {
         <Route path="/kpis/tmef" element={<TMEFPage />} />
         <Route path="/kpis/tmpr" element={<TMPRPage />} />
         <Route path="/kpis/costo-por-activo" element={<KPICostoPorActivo />} />
+      </Route>
+
+      {/* Rutas de impresión: protegidas, pero sin sidebar/bottom nav —
+          se abren en una pestaña aparte solo para imprimir. */}
+      <Route
+        element={
+          <ProtectedRoute>
+            <AuthLayout />
+          </ProtectedRoute>
+        }
+      >
+        <Route path="/ot/:id/imprimir" element={<PrintOtPage />} />
       </Route>
 
       {/* Redirección por defecto */}

@@ -208,4 +208,69 @@ export class ProgramacionOtService {
     await this.generarOtDesdeProgramacion(prog);
     return this.findOne(id);
   }
+
+  /**
+   * Proyecta todas las fechas en que cada programación activa generaría (o
+   * generó) una OT dentro del rango [desde, hasta], usando la misma
+   * matemática de anclaje que la generación real — para que el calendario
+   * de planificación anual muestre exactamente lo que va a pasar, sin
+   * duplicar la lógica de otro modo.
+   */
+  async ocurrenciasEnRango(
+    desdeStr: string,
+    hastaStr: string,
+  ): Promise<
+    {
+      programacionId: number;
+      nombre: string;
+      descripcionTarea: string;
+      fecha: string;
+      maquina_id: number;
+      tipoOT_id: number;
+      tipoEjecucion: string;
+      activo: boolean;
+    }[]
+  > {
+    const desde = parseDateOnly(desdeStr);
+    const hasta = parseDateOnly(hastaStr);
+    const programaciones = await this.repo.find({ where: { activo: true } });
+
+    const ocurrencias: {
+      programacionId: number;
+      nombre: string;
+      descripcionTarea: string;
+      fecha: string;
+      maquina_id: number;
+      tipoOT_id: number;
+      tipoEjecucion: string;
+      activo: boolean;
+    }[] = [];
+
+    for (const prog of programaciones) {
+      let fecha = parseDateOnly(prog.fechaInicio);
+      if (fecha < desde) {
+        fecha = primerAnchorDesde(
+          fecha,
+          prog.frecuenciaValor,
+          prog.frecuenciaUnidad,
+          desde,
+        );
+      }
+      while (fecha <= hasta) {
+        ocurrencias.push({
+          programacionId: prog.id,
+          nombre: prog.nombre || prog.descripcionTarea,
+          descripcionTarea: prog.descripcionTarea,
+          fecha: formatDateOnly(fecha),
+          maquina_id: prog.maquina_id,
+          tipoOT_id: prog.tipoOT_id,
+          tipoEjecucion: prog.tipoEjecucion,
+          activo: prog.activo,
+        });
+        fecha = addPeriodo(fecha, prog.frecuenciaUnidad, prog.frecuenciaValor);
+      }
+    }
+
+    return ocurrencias;
+  }
 }

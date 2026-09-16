@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import * as XLSX from 'xlsx';
 import { API_URL } from '../../shared/config/api';
+import { exportStyledExcel } from '../../shared/utils/accountingExcel';
 
 const API = API_URL;
 
@@ -38,6 +39,20 @@ interface Salida {
   createdAt: string;
 }
 
+interface OtInfo {
+  id: number;
+  costCenter?: { id: number; name?: string };
+  centroCosto?: { id: number; nombre?: string };
+  departamento?: { id: number; nombre?: string };
+  objeto?: { id: number; nombre?: string };
+}
+
+interface UsuarioInfo {
+  id: number;
+  name?: string;
+  lastName?: string;
+}
+
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
 const fmtDate = (d: string) => {
@@ -73,15 +88,37 @@ export default function ConsumoMaterialesPage() {
   const [fechaInicio, setFechaInicio] = useState('');
   const [fechaFin, setFechaFin] = useState('');
   const [expandido, setExpandido] = useState<number | null>(null);
+  const [otsMap, setOtsMap] = useState<Record<number, OtInfo>>({});
+  const [usuariosMap, setUsuariosMap] = useState<Record<number, UsuarioInfo>>(
+    {},
+  );
 
   const cargarDatos = useCallback(async () => {
     setLoading(true);
     setError(null);
     try {
-      const res = await fetch(`${API}/salidas`);
-      if (!res.ok) throw new Error(`Error ${res.status}`);
-      const data: Salida[] = await res.json();
+      const [resSalidas, resOts, resUsers] = await Promise.all([
+        fetch(`${API}/salidas`),
+        fetch(`${API}/ots`),
+        fetch(`${API}/users`),
+      ]);
+      if (!resSalidas.ok) throw new Error(`Error ${resSalidas.status}`);
+      const data: Salida[] = await resSalidas.json();
       setSalidas(Array.isArray(data) ? data : []);
+
+      const ots: OtInfo[] = resOts.ok ? await resOts.json() : [];
+      setOtsMap(
+        Object.fromEntries(
+          (Array.isArray(ots) ? ots : []).map((o) => [o.id, o]),
+        ),
+      );
+
+      const users: UsuarioInfo[] = resUsers.ok ? await resUsers.json() : [];
+      setUsuariosMap(
+        Object.fromEntries(
+          (Array.isArray(users) ? users : []).map((u) => [u.id, u]),
+        ),
+      );
     } catch (err) {
       console.error(err);
       setError(
@@ -161,6 +198,71 @@ export default function ConsumoMaterialesPage() {
     const libro = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(libro, hoja, 'Consumo');
     XLSX.writeFile(libro, 'reporte_consumo.xlsx');
+  };
+
+  // Export para contabilidad: columnas exactas de Otras_Salidas.xlsx, una
+  // fila por cada línea de detalle. 'Tipo (produc/promo/muestra/merma)'
+  // queda vacía a propósito — el sistema no distingue eso hoy (solo
+  // 'repuesto' vs 'repuesto-maquina', que es otra clasificación).
+  const exportarContabilidad = async () => {
+    const headers = [
+      'codigo',
+      'Fecha',
+      'Responsable',
+      'Almacen',
+      'Tipo (produc/promo/muestra/merma)',
+      'Cod. producto',
+      'Nom. producto',
+      'Cantidad',
+      'Centro Costo',
+      'Departamento',
+      'Objeto',
+    ];
+    const columnWidths = [
+      6.71, 6.14, 12.14, 8.43, 34.14, 13, 13.86, 8.71, 11.71, 13.29, 6.71,
+    ];
+
+    const nombreUsuario = (id: number) => {
+      const u = usuariosMap[id];
+      return u ? `${u.name ?? ''} ${u.lastName ?? ''}`.trim() : '';
+    };
+
+    const rows: (string | number)[][] = [];
+    for (const s of dataFiltrada) {
+      const ot = otsMap[s.otId];
+      const centroCosto = ot?.costCenter?.name || ot?.centroCosto?.nombre || '';
+      const departamento = ot?.departamento?.nombre || '';
+      const objeto = ot?.objeto?.nombre || '';
+
+      const detalles =
+        (s.detalles ?? []).length === 0
+          ? [{ codigo: '', nombre: '', cantidad: 0 }]
+          : s.detalles;
+
+      for (const d of detalles) {
+        rows.push([
+          s.nroSalida || '',
+          fmtDate(s.fecha),
+          nombreUsuario(s.usuarioId),
+          s.almacen || '',
+          '', // Tipo (produc/promo/muestra/merma) — sin dato
+          d.codigo || '',
+          d.nombre,
+          Number(d.cantidad) || 0,
+          centroCosto,
+          departamento,
+          objeto,
+        ]);
+      }
+    }
+
+    await exportStyledExcel({
+      filename: 'salidas_contabilidad.xlsx',
+      sheetName: 'Hoja1',
+      headers,
+      columnWidths,
+      rows,
+    });
   };
 
   if (loading)
@@ -330,6 +432,25 @@ export default function ConsumoMaterialesPage() {
             }}
           >
             Exportar a Excel
+          </button>
+          <button
+            onClick={() => {
+              exportarContabilidad().catch((err) => {
+                console.error(err);
+                setError('Error al generar el Excel para contabilidad.');
+              });
+            }}
+            style={{
+              padding: '0.5rem 1.2rem',
+              borderRadius: 8,
+              background: '#6A5ACD',
+              color: '#fff',
+              border: 'none',
+              fontWeight: 500,
+              cursor: 'pointer',
+            }}
+          >
+            Exportar para Contabilidad
           </button>
         </div>
 

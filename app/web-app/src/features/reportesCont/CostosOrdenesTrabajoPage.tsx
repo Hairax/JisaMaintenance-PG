@@ -61,6 +61,7 @@ interface OT {
   estado: string;
   fechaHora: string;
   fechaCreacion: string;
+  fechaCierre?: string | null;
   tiempoEstimado?: number;
   tipoCambio: number;
   tipoEjecucion?: string;
@@ -155,6 +156,10 @@ export default function CostosOrdenesTrabajoPage() {
   const [error, setError] = useState<string | null>(null);
   const [filtroDesc, setFiltroDesc] = useState('');
   const [filtroEstado, setFiltroEstado] = useState('todos');
+  const [mesCierre, setMesCierre] = useState(() => {
+    const hoy = new Date();
+    return `${hoy.getFullYear()}-${String(hoy.getMonth() + 1).padStart(2, '0')}`;
+  });
   const [expandedId, setExpandedId] = useState<number | null>(null);
   const [expandTab, setExpandTab] = useState<Record<number, 'mano' | 'mat'>>(
     {},
@@ -275,14 +280,17 @@ export default function CostosOrdenesTrabajoPage() {
   const setTab = (id: number, tab: 'mano' | 'mat') =>
     setExpandTab((prev) => ({ ...prev, [id]: tab }));
 
-  const exportarExcel = () => {
+  const buildDetalleRows = (
+    filas: OTReportRow[],
+  ): Record<string, unknown>[] => {
     const datos: Record<string, unknown>[] = [];
-    for (const r of filtrados) {
+    for (const r of filas) {
       datos.push({
         'OT #': r.ot.id,
         Descripción: r.ot.descripcionTarea,
         Estado: r.ot.estado,
         Fecha: fmtDate(r.ot.fechaHora),
+        'Fecha Cierre': r.ot.fechaCierre ? fmtDate(r.ot.fechaCierre) : '—',
         'Tipo Mantenimiento': getName(r.ot.tipoOT),
         Máquina: getName(r.ot.maquina),
         'Centro Costo': getName(r.ot.costCenter),
@@ -300,6 +308,7 @@ export default function CostosOrdenesTrabajoPage() {
           Descripción: '',
           Estado: '',
           Fecha: fmtDate(mo.fecha),
+          'Fecha Cierre': '',
           'Tipo Mantenimiento': '',
           Máquina: '',
           'Centro Costo': '',
@@ -319,6 +328,7 @@ export default function CostosOrdenesTrabajoPage() {
             Descripción: '',
             Estado: '',
             Fecha: fmtDate(sal.fecha),
+            'Fecha Cierre': '',
             'Tipo Mantenimiento': '',
             Máquina: '',
             'Centro Costo': '',
@@ -333,10 +343,28 @@ export default function CostosOrdenesTrabajoPage() {
         }
       }
     }
-    const hoja = XLSX.utils.json_to_sheet(datos);
+    return datos;
+  };
+
+  const exportarExcel = () => {
+    const hoja = XLSX.utils.json_to_sheet(buildDetalleRows(filtrados));
     const libro = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(libro, hoja, 'Costos OT');
     XLSX.writeFile(libro, 'reporte_costos_ordenes_trabajo.xlsx');
+  };
+
+  const otsDelMesCierre = rows.filter(
+    (r) =>
+      r.ot.estado === 'Cerrada' &&
+      (r.ot.fechaCierre ?? '').startsWith(mesCierre),
+  );
+
+  const generarCierreExcel = () => {
+    if (otsDelMesCierre.length === 0) return;
+    const hoja = XLSX.utils.json_to_sheet(buildDetalleRows(otsDelMesCierre));
+    const libro = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(libro, hoja, 'Cierre OT');
+    XLSX.writeFile(libro, `cierre_ot_${mesCierre}.xlsx`);
   };
 
   if (loading) {
@@ -478,6 +506,56 @@ export default function CostosOrdenesTrabajoPage() {
             }}
           >
             Exportar Excel
+          </button>
+        </div>
+
+        {/* Cierre mensual de OTs */}
+        <div
+          style={{
+            display: 'flex',
+            gap: 12,
+            alignItems: 'center',
+            flexWrap: 'wrap',
+            marginBottom: 24,
+            padding: '0.85rem 1rem',
+            borderRadius: 10,
+            background: '#F3E9DC',
+            border: '1px solid #E1CD9B',
+          }}
+        >
+          <strong style={{ fontSize: '0.9rem', color: '#5D3A1A' }}>
+            Cierre mensual de OTs:
+          </strong>
+          <input
+            type="month"
+            value={mesCierre}
+            onChange={(e) => setMesCierre(e.target.value)}
+            style={{
+              padding: '0.4rem 0.7rem',
+              borderRadius: 8,
+              border: '1px solid #ccc',
+            }}
+          />
+          <span style={{ fontSize: '0.82rem', color: '#5D3A1A' }}>
+            {otsDelMesCierre.length}{' '}
+            {otsDelMesCierre.length === 1
+              ? 'OT cerrada en ese mes'
+              : 'OTs cerradas en ese mes'}
+          </span>
+          <button
+            onClick={generarCierreExcel}
+            disabled={otsDelMesCierre.length === 0}
+            style={{
+              padding: '0.5rem 1.2rem',
+              borderRadius: 8,
+              background: otsDelMesCierre.length === 0 ? '#BBB' : '#2E7D32',
+              color: '#fff',
+              border: 'none',
+              cursor: otsDelMesCierre.length === 0 ? 'not-allowed' : 'pointer',
+              marginLeft: 'auto',
+            }}
+          >
+            Generar Cierre del Mes
           </button>
         </div>
 

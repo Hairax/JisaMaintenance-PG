@@ -59,6 +59,7 @@ export interface OrdenTrabajo {
   tipoCambio?: number;
   estado?: string;
   fechaCreacion?: string | Date;
+  fechaCierre?: string | Date | null;
 }
 
 export interface CatalogOption {

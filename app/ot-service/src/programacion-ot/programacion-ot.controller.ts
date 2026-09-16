@@ -37,4 +37,9 @@ export class ProgramacionOtController {
   ejecutarAhora(@Payload() data: { id: number }) {
     return this.service.ejecutarAhora(Number(data.id));
   }
+
+  @MessagePattern('programacionOt.ocurrencias')
+  ocurrencias(@Payload() data: { desde: string; hasta: string }) {
+    return this.service.ocurrenciasEnRango(data.desde, data.hasta);
+  }
 }

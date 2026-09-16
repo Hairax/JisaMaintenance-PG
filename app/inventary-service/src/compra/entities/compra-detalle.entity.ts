@@ -43,8 +43,17 @@ export class CompraDetalle {
   @Column({ type: 'decimal', precision: 10, scale: 2 })
   cantidad: number;
 
+  // Precio sin impuesto: es el que alimenta costoUnitario/costoUnitarioPonderado
+  // del repuesto y toda la lógica de costeo. Se calcula a partir de
+  // precioOriginal restándole el porcentajeImpuesto.
   @Column({ type: 'decimal', precision: 10, scale: 2 })
   precioUnitario: number;
+
+  // Precio tal cual figura en la factura/documento del proveedor (con
+  // impuesto incluido), tal como lo tipea quien registra la compra. Solo
+  // para mostrar en reportes — no participa en el cálculo de costos.
+  @Column({ type: 'decimal', precision: 10, scale: 2, default: 0 })
+  precioOriginal: number;
 
   @Column({ type: 'decimal', precision: 12, scale: 2 })
   importe: number;

@@ -220,6 +220,7 @@ export default function ListInformePage() {
   const [error, setError] = useState('');
   const [selectedInforme, setSelectedInforme] = useState<Informe | null>(null);
   const [showDetailModal, setShowDetailModal] = useState(false);
+  const [filtroTecnico, setFiltroTecnico] = useState('');
 
   // Edit state
   const [showEditModal, setShowEditModal] = useState(false);
@@ -234,6 +235,9 @@ export default function ListInformePage() {
     }>
   >([]);
   const [userOptions, setUserOptions] = useState<ComboOption[]>([]);
+  const [tecnicoNombres, setTecnicoNombres] = useState<Record<number, string>>(
+    {},
+  );
   const [otOptions, setOtOptions] = useState<ComboOption[]>([]);
   const [editLoading, setEditLoading] = useState(false);
   const [editError, setEditError] = useState('');
@@ -258,11 +262,17 @@ export default function ListInformePage() {
           Array<{ id: number; name: string; lastName: string }>,
           Array<{ id: number; descripcionTarea: string }>,
         ];
+        const usersArr = Array.isArray(users) ? users : [];
         setUserOptions(
-          (Array.isArray(users) ? users : []).map((u) => ({
+          usersArr.map((u) => ({
             value: String(u.id),
             label: `${u.id} - ${u.name} ${u.lastName}`.trim(),
           })),
+        );
+        setTecnicoNombres(
+          Object.fromEntries(
+            usersArr.map((u) => [u.id, `${u.name} ${u.lastName}`.trim()]),
+          ),
         );
         setOtOptions(
           (Array.isArray(ots) ? ots : []).map((o) => ({
@@ -276,6 +286,10 @@ export default function ListInformePage() {
     };
     loadOptions();
   }, []);
+
+  const informesFiltrados = filtroTecnico
+    ? informes.filter((inf) => String(inf.userId) === filtroTecnico)
+    : informes;
 
   const fetchInformes = async () => {
     setLoading(true);
@@ -450,6 +464,36 @@ export default function ListInformePage() {
           </div>
         </div>
 
+        <div
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: '10px',
+            marginBottom: '20px',
+            maxWidth: '360px',
+          }}
+        >
+          <span
+            style={{
+              color: secondaryTextColor,
+              fontWeight: 'bold',
+              fontSize: '13px',
+              whiteSpace: 'nowrap',
+            }}
+          >
+            Técnico:
+          </span>
+          <SearchableSelect
+            options={userOptions}
+            value={filtroTecnico}
+            onChange={setFiltroTecnico}
+            placeholder="Todos los técnicos"
+            inputBg={inputBgColor}
+            inputBorder={inputBorderColor}
+            textColor={textColor}
+          />
+        </div>
+
         {error && (
           <div
             style={{
@@ -468,9 +512,11 @@ export default function ListInformePage() {
           <div style={{ textAlign: 'center', padding: '40px' }}>
             Cargando informes...
           </div>
-        ) : informes.length === 0 ? (
+        ) : informesFiltrados.length === 0 ? (
           <div style={{ textAlign: 'center', padding: '40px' }}>
-            No hay informes registrados
+            {informes.length === 0
+              ? 'No hay informes registrados'
+              : 'Ningún informe coincide con el técnico seleccionado'}
           </div>
         ) : (
           <div
@@ -509,7 +555,7 @@ export default function ListInformePage() {
                       borderBottom: `1px solid ${inputBorderColor}`,
                     }}
                   >
-                    Usuario ID
+                    Técnico
                   </th>
                   <th
                     style={{
@@ -539,7 +585,7 @@ export default function ListInformePage() {
                 </tr>
               </thead>
               <tbody>
-                {informes.map((informe: Informe, index: number) => (
+                {informesFiltrados.map((informe: Informe, index: number) => (
                   <tr
                     key={informe.id}
                     style={{
@@ -561,7 +607,8 @@ export default function ListInformePage() {
                         borderBottom: `1px solid ${inputBorderColor}`,
                       }}
                     >
-                      {informe.userId}
+                      {tecnicoNombres[informe.userId] ??
+                        `Técnico #${informe.userId}`}
                     </td>
                     <td
                       style={{
@@ -682,7 +729,9 @@ export default function ListInformePage() {
               <h2 style={{ marginTop: 0 }}>Informe #{selectedInforme.id}</h2>
 
               <div style={{ marginBottom: '15px' }}>
-                <strong>Usuario ID:</strong> {selectedInforme.userId}
+                <strong>Técnico:</strong>{' '}
+                {tecnicoNombres[selectedInforme.userId] ??
+                  `Técnico #${selectedInforme.userId}`}
               </div>
 
               <div style={{ marginBottom: '15px' }}>

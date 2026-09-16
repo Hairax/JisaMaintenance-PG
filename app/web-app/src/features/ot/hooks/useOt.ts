@@ -304,7 +304,7 @@ export function useOt() {
       | React.ChangeEvent<
           HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement
         >
-      | { target: { name: string; value: string | number } },
+      | { target: { name: string; value: string | number | number[] } },
   ) => {
     const { name, value } = e.target;
     const numericFields = new Set([

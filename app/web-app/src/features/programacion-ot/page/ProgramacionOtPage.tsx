@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import {
   FaPlay,
   FaPlus,
@@ -7,6 +8,7 @@ import {
   FaToggleOn,
   FaToggleOff,
   FaClock,
+  FaCalendarAlt,
 } from 'react-icons/fa';
 import { useTheme } from '../../../shared/contexts/ThemeContext';
 import { SearchableSelect } from '../../../shared/components/SearchableSelect';
@@ -72,6 +74,7 @@ const diasHasta = (fecha: string): number => {
 
 export default function ProgramacionOtPage() {
   const { theme } = useTheme();
+  const navigate = useNavigate();
 
   const textColor = theme === 'dark' ? colors.lightText : colors.darkText;
   const secondaryTextColor = theme === 'dark' ? colors.beige : colors.brown;
@@ -439,23 +442,42 @@ export default function ProgramacionOtPage() {
               de trabajo para un activo (ideal para mantenimiento preventivo).
             </p>
           </div>
-          <button
-            onClick={openCreateModal}
-            style={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: '8px',
-              backgroundColor: colors.gold,
-              color: colors.darkText,
-              border: 'none',
-              padding: '10px 16px',
-              borderRadius: '4px',
-              cursor: 'pointer',
-              fontWeight: 'bold',
-            }}
-          >
-            <FaPlus /> Nueva Programación
-          </button>
+          <div style={{ display: 'flex', gap: '10px' }}>
+            <button
+              onClick={() => navigate('/programacion-ot/calendario')}
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: '8px',
+                backgroundColor: 'transparent',
+                color: secondaryTextColor,
+                border: `1px solid ${secondaryTextColor}`,
+                padding: '10px 16px',
+                borderRadius: '4px',
+                cursor: 'pointer',
+                fontWeight: 'bold',
+              }}
+            >
+              <FaCalendarAlt /> Ver Calendario
+            </button>
+            <button
+              onClick={openCreateModal}
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: '8px',
+                backgroundColor: colors.gold,
+                color: colors.darkText,
+                border: 'none',
+                padding: '10px 16px',
+                borderRadius: '4px',
+                cursor: 'pointer',
+                fontWeight: 'bold',
+              }}
+            >
+              <FaPlus /> Nueva Programación
+            </button>
+          </div>
         </div>
 
         {error && (

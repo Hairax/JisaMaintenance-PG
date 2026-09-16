@@ -16,7 +16,7 @@ export class OtController {
     return this.otService.findAll();
   }
   @MessagePattern('ot.findOne')
-  findOne(@Payload('id') id: string) {
+  findOne(@Payload() id: number) {
     return this.otService.findOne(Number(id));
   }
   @MessagePattern('ot.update')

@@ -40,6 +40,7 @@ export class CompraService {
       return {
         ...d,
         precioUnitario: precioSinImpuesto, // Guardar precio sin impuesto
+        precioOriginal: precioBruto, // Precio tal cual factura, con impuesto
         importe,
         descuentoMonto: descuento,
         subtotal: importe - descuento,

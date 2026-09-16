@@ -7,6 +7,7 @@ import {
   Param,
   Post,
   Put,
+  Query,
 } from '@nestjs/common';
 import { ClientProxy } from '@nestjs/microservices';
 import { Observable } from 'rxjs';
@@ -27,6 +28,16 @@ export class ProgramacionOtHttpController {
   @Get()
   findAll(): Observable<unknown[]> {
     return this.client.send('programacionOt.findAll', {});
+  }
+
+  // Debe declararse antes de ':id' — si no, Nest matchea "ocurrencias"
+  // como si fuera el :id de la ruta de abajo.
+  @Get('ocurrencias')
+  ocurrencias(
+    @Query('desde') desde: string,
+    @Query('hasta') hasta: string,
+  ): Observable<unknown[]> {
+    return this.client.send('programacionOt.ocurrencias', { desde, hasta });
   }
 
   @Get(':id')
