@@ -2,6 +2,11 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 import * as XLSX from 'xlsx';
 import { API_URL } from '../../shared/config/api';
 import { exportStyledExcel } from '../../shared/utils/accountingExcel';
+import {
+  AlcanceExport,
+  ExportContabilidadModal,
+} from '../../shared/components/ExportContabilidadModal';
+import { cargarFiltroContable } from '../../shared/utils/contableFilter';
 
 const API = API_URL;
 
@@ -12,6 +17,7 @@ interface CompraDetalle {
   compraId: number;
   tipoProducto: 'repuesto' | 'repuesto-maquina';
   productoId: number;
+  repuestoId?: number | null;
   codigo: string;
   nombre: string;
   unidadMedida: string;
@@ -37,6 +43,7 @@ interface Compra {
   fecha: string;
   tipoCambio: number;
   nroAutorizacion: string;
+  usuarioId?: number | null;
   subtotal: number;
   descuentoTotal: number;
   total: number;
@@ -62,6 +69,12 @@ const fmtNum = (n: number) =>
     maximumFractionDigits: 2,
   });
 
+interface UsuarioInfo {
+  id: number;
+  name?: string;
+  lastName?: string;
+}
+
 const proveedorNombre = (c: Compra) =>
   c.proveedor?.nombre ?? c.proveedor?.name ?? `Proveedor #${c.proveedorId}`;
 
@@ -77,15 +90,29 @@ export default function ComprasMaterialesPage() {
   const [fechaInicio, setFechaInicio] = useState('');
   const [fechaFin, setFechaFin] = useState('');
   const [expandido, setExpandido] = useState<number | null>(null);
+  const [usuariosMap, setUsuariosMap] = useState<Record<number, UsuarioInfo>>(
+    {},
+  );
+  const [modalExport, setModalExport] = useState(false);
 
   const cargarDatos = useCallback(async () => {
     setLoading(true);
     setError(null);
     try {
-      const res = await fetch(`${API}/compras`);
+      const [res, resUsers] = await Promise.all([
+        fetch(`${API}/compras`),
+        fetch(`${API}/users`),
+      ]);
       if (!res.ok) throw new Error(`Error ${res.status}`);
       const data: Compra[] = await res.json();
       setCompras(Array.isArray(data) ? data : []);
+
+      const users: UsuarioInfo[] = resUsers.ok ? await resUsers.json() : [];
+      setUsuariosMap(
+        Object.fromEntries(
+          (Array.isArray(users) ? users : []).map((u) => [u.id, u]),
+        ),
+      );
     } catch (err) {
       console.error(err);
       setError(
@@ -255,11 +282,19 @@ export default function ComprasMaterialesPage() {
   };
 
   // Export para contabilidad: columnas exactas de Plantilla_Compras.xlsx,
-  // una fila por cada línea de detalle. Las columnas que el sistema no
-  // registra hoy (Responsable, Tipo Pago, Plazo, Moneda, index UM, Empresa/
-  // Categoría/Línea/Marca de producto) quedan vacías a propósito — no hay
-  // dato del que sacarlas todavía.
-  const exportarContabilidad = async () => {
+  // una fila por cada línea de detalle. Responsable = usuario que registró o
+  // editó la compra por última vez; index UM va siempre en 0 (indicado por
+  // contabilidad). Las columnas que el sistema no registra hoy (Tipo Pago,
+  // Plazo, Moneda, Empresa/Categoría/Línea/Marca de producto) quedan vacías.
+  // Con alcance 'contables' se omiten las líneas de repuestos no contables.
+  const exportarContabilidad = async (alcance: AlcanceExport) => {
+    const esContable =
+      alcance === 'contables' ? await cargarFiltroContable() : () => true;
+    const nombreUsuario = (id?: number | null) => {
+      const u = id != null ? usuariosMap[id] : undefined;
+      return u ? `${u.name ?? ''} ${u.lastName ?? ''}`.trim() : '';
+    };
+
     const headers = [
       'Fecha',
       'codigo',
@@ -296,8 +331,11 @@ export default function ComprasMaterialesPage() {
 
     const rows: (string | number)[][] = [];
     for (const c of dataFiltrada) {
+      const lineas = (c.detalles ?? []).filter((d) => esContable(d.repuestoId));
+      // Compra cuyas líneas eran todas no contables: no aporta nada al export.
+      if (lineas.length === 0 && (c.detalles ?? []).length > 0) continue;
       const detalles =
-        (c.detalles ?? []).length === 0
+        lineas.length === 0
           ? [
               {
                 codigo: '',
@@ -309,7 +347,7 @@ export default function ComprasMaterialesPage() {
                 precioUnitario: 0,
               },
             ]
-          : c.detalles;
+          : lineas;
 
       for (const d of detalles) {
         rows.push([
@@ -320,8 +358,8 @@ export default function ComprasMaterialesPage() {
           fmtDate(c.fecha),
           c.proveedorId ?? '',
           proveedorNombre(c),
-          '', // Cod. Responsable — sin dato
-          '', // Nom. Responsable — sin dato
+          c.usuarioId ?? '',
+          nombreUsuario(c.usuarioId),
           '', // Tipo Pago — sin dato
           '', // Plazo — sin dato
           '', // Moneda — sin dato
@@ -332,7 +370,7 @@ export default function ComprasMaterialesPage() {
           Number(d.precioOriginal) || 0,
           Number(d.descuentoMonto) || 0,
           Number(d.precioUnitario) || 0,
-          '', // index UM — sin dato
+          0, // index UM
           d.unidadMedida,
           '', // Empresa prd. — sin dato
           '', // Categoria prd. — sin dato
@@ -354,7 +392,13 @@ export default function ComprasMaterialesPage() {
 
   if (loading)
     return (
-      <div style={{ padding: '2rem', textAlign: 'center', color: '#888' }}>
+      <div
+        style={{
+          padding: '2rem',
+          textAlign: 'center',
+          color: 'var(--app-text-subtle)',
+        }}
+      >
         Cargando compras...
       </div>
     );
@@ -390,9 +434,9 @@ export default function ComprasMaterialesPage() {
     >
       <div
         style={{
-          background: '#fff',
+          background: 'var(--app-surface)',
           borderRadius: 12,
-          boxShadow: '0 2px 8px rgba(0,0,0,0.08)',
+          boxShadow: 'var(--app-shadow)',
           padding: 'clamp(1rem, 4vw, 2rem)',
         }}
       >
@@ -424,7 +468,7 @@ export default function ComprasMaterialesPage() {
             style={{
               padding: '0.5rem 1rem',
               borderRadius: 8,
-              border: '1px solid #ccc',
+              border: '1px solid var(--app-border)',
               minWidth: 220,
               flex: 1,
             }}
@@ -435,7 +479,7 @@ export default function ComprasMaterialesPage() {
             style={{
               padding: '0.5rem 0.75rem',
               borderRadius: 8,
-              border: '1px solid #ccc',
+              border: '1px solid var(--app-border)',
             }}
           >
             {proveedores.map((p) => (
@@ -445,7 +489,9 @@ export default function ComprasMaterialesPage() {
             ))}
           </select>
           <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
-            <span style={{ fontSize: '0.72rem', color: '#888' }}>
+            <span
+              style={{ fontSize: '0.72rem', color: 'var(--app-text-subtle)' }}
+            >
               Fecha inicio
             </span>
             <input
@@ -455,12 +501,14 @@ export default function ComprasMaterialesPage() {
               style={{
                 padding: '0.5rem 0.75rem',
                 borderRadius: 8,
-                border: '1px solid #ccc',
+                border: '1px solid var(--app-border)',
               }}
             />
           </div>
           <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
-            <span style={{ fontSize: '0.72rem', color: '#888' }}>
+            <span
+              style={{ fontSize: '0.72rem', color: 'var(--app-text-subtle)' }}
+            >
               Fecha fin
             </span>
             <input
@@ -470,7 +518,7 @@ export default function ComprasMaterialesPage() {
               style={{
                 padding: '0.5rem 0.75rem',
                 borderRadius: 8,
-                border: '1px solid #ccc',
+                border: '1px solid var(--app-border)',
               }}
             />
           </div>
@@ -522,12 +570,7 @@ export default function ComprasMaterialesPage() {
             Exportar a Excel
           </button>
           <button
-            onClick={() => {
-              exportarContabilidad().catch((err) => {
-                console.error(err);
-                setError('Error al generar el Excel para contabilidad.');
-              });
-            }}
+            onClick={() => setModalExport(true)}
             style={{
               padding: '0.5rem 1.2rem',
               borderRadius: 8,
@@ -552,14 +595,18 @@ export default function ComprasMaterialesPage() {
           }}
         >
           {[
-            { label: 'Compras', value: dataFiltrada.length, color: '#5D3312' },
+            {
+              label: 'Compras',
+              value: dataFiltrada.length,
+              color: 'var(--app-brand-text)',
+            },
             {
               label: 'Ítems',
               value: dataFiltrada.reduce(
                 (s, c) => s + (c.detalles?.length ?? 0),
                 0,
               ),
-              color: '#555',
+              color: 'var(--app-text-muted)',
             },
             {
               label: 'Total Bs',
@@ -575,14 +622,16 @@ export default function ComprasMaterialesPage() {
             <div
               key={s.label}
               style={{
-                background: '#F5F5F5',
+                background: 'var(--app-surface-alt)',
                 borderRadius: 8,
                 padding: '6px 16px',
                 textAlign: 'center',
               }}
             >
               <div style={{ fontWeight: 700, color: s.color }}>{s.value}</div>
-              <div style={{ fontSize: '0.72rem', color: '#888' }}>
+              <div
+                style={{ fontSize: '0.72rem', color: 'var(--app-text-subtle)' }}
+              >
                 {s.label}
               </div>
             </div>
@@ -599,7 +648,7 @@ export default function ComprasMaterialesPage() {
             }}
           >
             <thead>
-              <tr style={{ background: '#E1CD9B' }}>
+              <tr style={{ background: 'var(--app-head-bg)' }}>
                 <th
                   style={{
                     padding: '0.65rem 0.75rem',
@@ -680,7 +729,7 @@ export default function ComprasMaterialesPage() {
                     style={{
                       padding: '1.5rem',
                       textAlign: 'center',
-                      color: '#9E5533',
+                      color: 'var(--app-brand-accent)',
                     }}
                   >
                     No se encontraron resultados.
@@ -694,7 +743,10 @@ export default function ComprasMaterialesPage() {
                     <tr
                       key={c.id}
                       style={{
-                        background: i % 2 === 0 ? '#fff' : '#F5F5F5',
+                        background:
+                          i % 2 === 0
+                            ? 'var(--app-surface)'
+                            : 'var(--app-surface-alt)',
                         cursor: 'pointer',
                       }}
                       onClick={() => setExpandido(isExp ? null : c.id)}
@@ -703,7 +755,7 @@ export default function ComprasMaterialesPage() {
                         style={{
                           padding: '0.65rem 0.75rem',
                           textAlign: 'center',
-                          color: '#aaa',
+                          color: 'var(--app-text-subtle)',
                           fontSize: '0.8rem',
                         }}
                       >
@@ -721,7 +773,7 @@ export default function ComprasMaterialesPage() {
                         style={{
                           padding: '0.65rem 0.75rem',
                           fontWeight: 600,
-                          color: '#5D3312',
+                          color: 'var(--app-brand-text)',
                         }}
                       >
                         {c.nroDocumento || '—'}
@@ -730,7 +782,7 @@ export default function ComprasMaterialesPage() {
                         style={{
                           padding: '0.65rem 0.75rem',
                           fontSize: '0.82rem',
-                          color: '#555',
+                          color: 'var(--app-text-muted)',
                         }}
                       >
                         {c.nroFactura || '—'}
@@ -742,7 +794,7 @@ export default function ComprasMaterialesPage() {
                         style={{
                           padding: '0.65rem 0.75rem',
                           fontSize: '0.82rem',
-                          color: '#555',
+                          color: 'var(--app-text-muted)',
                           maxWidth: 200,
                           overflow: 'hidden',
                           textOverflow: 'ellipsis',
@@ -790,7 +842,10 @@ export default function ComprasMaterialesPage() {
                       </td>
                     </tr>
                     {isExp && (
-                      <tr key={`det-${c.id}`} style={{ background: '#FAFAFA' }}>
+                      <tr
+                        key={`det-${c.id}`}
+                        style={{ background: 'var(--app-surface-soft)' }}
+                      >
                         <td
                           colSpan={10}
                           style={{ padding: '0 1rem 1rem 2.5rem' }}
@@ -798,7 +853,7 @@ export default function ComprasMaterialesPage() {
                           {(c.detalles ?? []).length === 0 ? (
                             <p
                               style={{
-                                color: '#aaa',
+                                color: 'var(--app-text-subtle)',
                                 fontSize: '0.82rem',
                                 margin: '0.5rem 0',
                               }}
@@ -815,7 +870,11 @@ export default function ComprasMaterialesPage() {
                               }}
                             >
                               <thead>
-                                <tr style={{ background: '#F0E8D0' }}>
+                                <tr
+                                  style={{
+                                    background: 'var(--app-surface-warm)',
+                                  }}
+                                >
                                   <th
                                     style={{
                                       padding: '0.5rem 0.75rem',
@@ -896,7 +955,9 @@ export default function ComprasMaterialesPage() {
                                     key={di}
                                     style={{
                                       background:
-                                        di % 2 === 0 ? '#fff' : '#F9F6EE',
+                                        di % 2 === 0
+                                          ? 'var(--app-surface)'
+                                          : 'var(--app-surface-warm)',
                                     }}
                                   >
                                     <td
@@ -910,7 +971,7 @@ export default function ComprasMaterialesPage() {
                                     <td
                                       style={{
                                         padding: '0.5rem 0.75rem',
-                                        color: '#888',
+                                        color: 'var(--app-text-subtle)',
                                       }}
                                     >
                                       {d.codigo || '—'}
@@ -960,7 +1021,7 @@ export default function ComprasMaterialesPage() {
                                       style={{
                                         padding: '0.5rem 0.75rem',
                                         textAlign: 'right',
-                                        color: '#888',
+                                        color: 'var(--app-text-subtle)',
                                       }}
                                     >
                                       {fmtNum(Number(d.precioOriginal))}
@@ -1000,6 +1061,17 @@ export default function ComprasMaterialesPage() {
           </table>
         </div>
       </div>
+      <ExportContabilidadModal
+        open={modalExport}
+        onClose={() => setModalExport(false)}
+        onSelect={(alcance) => {
+          setModalExport(false);
+          exportarContabilidad(alcance).catch((err) => {
+            console.error(err);
+            setError('Error al generar el Excel para contabilidad.');
+          });
+        }}
+      />
     </div>
   );
 }

@@ -1,4 +1,6 @@
 import React from 'react';
+import { SearchBar } from '../../../shared/components/SearchBar';
+import { filtrarPorTexto } from '../../../shared/utils/search';
 import { exportDepartamentoExcel } from '../functions/exportExcel';
 import { useTheme } from '../../../shared/contexts/ThemeContext';
 import { DepartamentoTable } from '../components/departamentoTable';
@@ -8,6 +10,7 @@ import { Departamento } from '../types/departamento.types';
 
 export const DepartamentoPage: React.FC = () => {
   const { theme } = useTheme();
+  const [busqueda, setBusqueda] = React.useState('');
   const {
     departamentos,
     loading,
@@ -105,6 +108,8 @@ export const DepartamentoPage: React.FC = () => {
     }
   };
 
+  const filtrados = filtrarPorTexto(departamentos, busqueda, (d) => [d.nombre]);
+
   return (
     <div className="w-full h-full">
       <div className="flex justify-between items-center mb-4">
@@ -116,8 +121,16 @@ export const DepartamentoPage: React.FC = () => {
           Exportar a Excel
         </button>
       </div>
+      <SearchBar
+        value={busqueda}
+        onChange={setBusqueda}
+        placeholder="Buscar por ID o nombre..."
+        theme={theme}
+        total={departamentos.length}
+        resultados={filtrados.length}
+      />
       <DepartamentoTable
-        departamentos={departamentos}
+        departamentos={filtrados}
         theme={theme}
         onAddDepartamento={handleAddDepartamento}
         onViewDepartamento={handleViewDepartamento}

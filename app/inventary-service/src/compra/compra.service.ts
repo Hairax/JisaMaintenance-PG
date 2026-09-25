@@ -98,6 +98,25 @@ export class CompraService {
     }
   }
 
+  // Recalcula el costo ponderado (kardex completo, por fecha) de cada
+  // repuesto; esto también reprecia sus salidas y actualiza sus totales.
+  private async recalcularRepuestos(repuestoIds: Iterable<number>) {
+    for (const repuestoId of new Set(repuestoIds)) {
+      try {
+        await this.repuestoService.recalculateCostoPonderado(repuestoId);
+      } catch (error) {
+        console.error(
+          `Error recalculando costo ponderado para repuesto ${repuestoId}:`,
+          error,
+        );
+      }
+    }
+  }
+
+  private idsRepuestos(detalles: { repuestoId?: number | null }[] = []) {
+    return detalles.map((d) => d.repuestoId).filter((id): id is number => !!id);
+  }
+
   // ── create ─────────────────────────────────────────────────────────────────
   async create(dto: CreateCompraDto): Promise<ResponseCompraDto> {
     const { detalles, ...compraData } = dto;
@@ -128,6 +147,9 @@ export class CompraService {
 
     // Update repuesto stock (+)
     await this.incrementStock(calculated, 1);
+    // El ponderado incremental de incrementStock no contempla compras con
+    // fecha anterior a salidas existentes: se recalcula con el kardex.
+    await this.recalcularRepuestos(this.idsRepuestos(calculated));
 
     return this.toResponseDto(savedCompra, savedDetalles);
   }
@@ -150,22 +172,32 @@ export class CompraService {
   async update(id: number, dto: UpdateCompraDto): Promise<ResponseCompraDto> {
     const compra = await this.findOne(id);
 
-    // Reverse old detalles stock
-    if (compra.detalles?.length) {
-      await this.incrementStock(compra.detalles, -1);
-    }
+    // Solo se reemplazan los detalles si el request los trae. Un update de
+    // solo cabecera (sin `detalles`) no debe revertir stock ni borrarlos.
+    const reemplazaDetalles = dto.detalles !== undefined;
+    const repuestosAfectados = new Set<number>();
 
-    // Hard-delete old detalles via QueryBuilder (bypasses TypeORM cascade)
-    await this.compraDetalleRepository
-      .createQueryBuilder()
-      .delete()
-      .where('compraId = :compraId', { compraId: id })
-      .execute();
+    if (reemplazaDetalles) {
+      // Repuestos que se quitan de la compra también cambian su kardex.
+      for (const repuestoId of this.idsRepuestos(compra.detalles)) {
+        repuestosAfectados.add(repuestoId);
+      }
+      // Reverse old detalles stock
+      if (compra.detalles?.length) {
+        await this.incrementStock(compra.detalles, -1);
+      }
+
+      // Hard-delete old detalles via QueryBuilder (bypasses TypeORM cascade)
+      await this.compraDetalleRepository
+        .createQueryBuilder()
+        .delete()
+        .where('compraId = :compraId', { compraId: id })
+        .execute();
+    }
 
     // Update header fields using repository.update() — no cascade, no save()
     const { detalles, ...headerFields } = dto;
     let savedDetalles: CompraDetalle[] = [];
-    const repuestosAfectados = new Set<number>();
 
     if (detalles?.length) {
       const { calculated, subtotal, descuentoTotal, total } =
@@ -204,19 +236,17 @@ export class CompraService {
         ...headerFields,
         updatedAt: new Date(),
       });
+      // Si cambió la fecha, el orden del kardex cambia: recalcular los
+      // repuestos de los detalles que se conservan.
+      if (!reemplazaDetalles && headerFields.fecha) {
+        for (const d of compra.detalles ?? []) {
+          if (d.repuestoId) repuestosAfectados.add(d.repuestoId);
+        }
+      }
     }
 
     // Recalculate costos ponderados y actualizar salidas para cada repuesto afectado
-    for (const repuestoId of repuestosAfectados) {
-      try {
-        await this.repuestoService.recalculateCostoPonderado(repuestoId);
-      } catch (error) {
-        console.error(
-          `Error recalculando costo ponderado para repuesto ${repuestoId}:`,
-          error,
-        );
-      }
-    }
+    await this.recalcularRepuestos(repuestosAfectados);
 
     const updated = await this.findOne(id);
     return this.toResponseDto(updated, updated.detalles ?? savedDetalles);
@@ -230,6 +260,7 @@ export class CompraService {
       await this.incrementStock(compra.detalles, -1);
     }
     await this.compraRepository.remove(compra);
+    await this.recalcularRepuestos(this.idsRepuestos(compra.detalles));
   }
 
   // ── toResponseDto ──────────────────────────────────────────────────────────
@@ -249,6 +280,7 @@ export class CompraService {
       fecha: compra.fecha,
       tipoCambio: compra.tipoCambio,
       nroAutorizacion: compra.nroAutorizacion,
+      usuarioId: compra.usuarioId,
       subtotal: compra.subtotal,
       descuentoTotal: compra.descuentoTotal,
       total: compra.total,

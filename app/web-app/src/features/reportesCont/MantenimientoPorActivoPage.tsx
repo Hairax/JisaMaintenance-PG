@@ -156,7 +156,10 @@ const ESTADO_COLORS: Record<string, { bg: string; color: string }> = {
 };
 
 const estadoBadge = (estado: string) => {
-  const c = ESTADO_COLORS[estado] ?? { bg: '#F5F5F5', color: '#555' };
+  const c = ESTADO_COLORS[estado] ?? {
+    bg: 'var(--app-surface-alt)',
+    color: 'var(--app-text-muted)',
+  };
   return (
     <span
       style={{
@@ -446,7 +449,7 @@ export default function MantenimientoPorActivoPage() {
 
   if (loading) {
     return (
-      <div className="p-8 text-center text-gray-500">
+      <div className="p-8 text-center text-gray-500 dark:text-gray-400">
         Cargando datos de activos...
       </div>
     );
@@ -467,9 +470,9 @@ export default function MantenimientoPorActivoPage() {
   }
 
   return (
-    <div className="p-4 md:p-8 max-w-7xl mx-auto bg-[#F9FAFB]">
-      <div className="bg-white rounded-2xl shadow-lg p-4 md:p-8">
-        <h2 className="text-2xl font-bold mb-6 text-[#2D3748]">
+    <div className="p-4 md:p-8 max-w-7xl mx-auto bg-[#F9FAFB] dark:bg-[#161616]">
+      <div className="bg-white dark:bg-[#1E1E1E] rounded-2xl shadow-lg p-4 md:p-8">
+        <h2 className="text-2xl font-bold mb-6 text-[#2D3748] dark:text-gray-100">
           Reporte de Mantenimiento por Activo
         </h2>
 
@@ -480,12 +483,12 @@ export default function MantenimientoPorActivoPage() {
             placeholder="Buscar por nombre o N° de serie..."
             value={filtroNombre}
             onChange={(e) => setFiltroNombre(e.target.value)}
-            className="p-2 px-4 border border-gray-200 rounded-lg flex-1 min-w-[200px] focus:ring-2 focus:ring-yellow-400 bg-[#F7FAFC]"
+            className="p-2 px-4 border border-gray-200 dark:border-[#3A3A3A] rounded-lg flex-1 min-w-[200px] focus:ring-2 focus:ring-yellow-400 bg-[#F7FAFC]"
           />
           <select
             value={filtroTipo}
             onChange={(e) => setFiltroTipo(e.target.value)}
-            className="p-2 px-3 border border-gray-200 rounded-lg bg-[#F7FAFC]"
+            className="p-2 px-3 border border-gray-200 dark:border-[#3A3A3A] rounded-lg bg-[#F7FAFC]"
           >
             {tiposDeMaquina.map((t) => (
               <option key={t} value={t}>
@@ -562,10 +565,12 @@ export default function MantenimientoPorActivoPage() {
           ].map((s) => (
             <div
               key={s.label}
-              className="bg-gray-100 rounded-lg px-5 py-3 text-center min-w-[110px]"
+              className="bg-gray-100 dark:bg-[#262626] rounded-lg px-5 py-3 text-center min-w-[110px]"
             >
               <div className={`text-xl font-bold ${s.color}`}>{s.value}</div>
-              <div className="text-xs text-gray-500">{s.label}</div>
+              <div className="text-xs text-gray-500 dark:text-gray-400">
+                {s.label}
+              </div>
             </div>
           ))}
         </div>
@@ -583,7 +588,7 @@ export default function MantenimientoPorActivoPage() {
             return (
               <div
                 key={r.maquina.id}
-                className="border border-gray-200 rounded-xl overflow-hidden"
+                className="border border-gray-200 dark:border-[#3A3A3A] rounded-xl overflow-hidden"
               >
                 {/* Maquina header row */}
                 <div
@@ -593,18 +598,20 @@ export default function MantenimientoPorActivoPage() {
                     setExpandedOT(null);
                   }}
                 >
-                  <span className="text-gray-400 w-4 shrink-0">
+                  <span className="text-gray-400 dark:text-gray-500 w-4 shrink-0">
                     {isMaqExp ? '▼' : '▶'}
                   </span>
                   <div className="flex-1 min-w-[200px] grid grid-cols-2 md:grid-cols-4 gap-2">
                     <div>
-                      <div className="text-xs text-gray-400">Activo</div>
-                      <div className="font-bold text-[#2D3748]">
+                      <div className="text-xs text-gray-400 dark:text-gray-500">
+                        Activo
+                      </div>
+                      <div className="font-bold text-[#2D3748] dark:text-gray-100">
                         {r.maquina.name}
                       </div>
                     </div>
                     <div>
-                      <div className="text-xs text-gray-400">
+                      <div className="text-xs text-gray-400 dark:text-gray-500">
                         Tipo / N° Serie
                       </div>
                       <div className="text-sm">
@@ -613,13 +620,17 @@ export default function MantenimientoPorActivoPage() {
                       </div>
                     </div>
                     <div>
-                      <div className="text-xs text-gray-400">Fabricante</div>
+                      <div className="text-xs text-gray-400 dark:text-gray-500">
+                        Fabricante
+                      </div>
                       <div className="text-sm">
                         {r.maquina.fabricante || '—'}
                       </div>
                     </div>
                     <div>
-                      <div className="text-xs text-gray-400">Fecha Montaje</div>
+                      <div className="text-xs text-gray-400 dark:text-gray-500">
+                        Fecha Montaje
+                      </div>
                       <div className="text-sm">
                         {fmtDate(r.maquina.fechaDeMontaje)}
                       </div>
@@ -628,19 +639,25 @@ export default function MantenimientoPorActivoPage() {
                   {/* KPIs */}
                   <div className="flex gap-4 flex-wrap shrink-0 text-center">
                     <div>
-                      <div className="text-xs text-gray-400">OTs</div>
+                      <div className="text-xs text-gray-400 dark:text-gray-500">
+                        OTs
+                      </div>
                       <div className="font-bold text-blue-700">
                         {r.totalOTs}
                       </div>
                     </div>
                     <div>
-                      <div className="text-xs text-gray-400">Horas</div>
+                      <div className="text-xs text-gray-400 dark:text-gray-500">
+                        Horas
+                      </div>
                       <div className="font-bold text-purple-700">
                         {r.totalHoras > 0 ? fmtHours(r.totalHoras) : '—'}
                       </div>
                     </div>
                     <div>
-                      <div className="text-xs text-gray-400">Mat. (Bs)</div>
+                      <div className="text-xs text-gray-400 dark:text-gray-500">
+                        Mat. (Bs)
+                      </div>
                       <div className="font-bold text-red-700">
                         {r.totalMateriales > 0
                           ? fmtCurrency(r.totalMateriales)
@@ -648,7 +665,7 @@ export default function MantenimientoPorActivoPage() {
                       </div>
                     </div>
                     <div>
-                      <div className="text-xs text-gray-400">
+                      <div className="text-xs text-gray-400 dark:text-gray-500">
                         Costo Total (Bs)
                       </div>
                       <div className="font-bold text-green-700">
@@ -660,7 +677,7 @@ export default function MantenimientoPorActivoPage() {
 
                 {/* Expanded: Maquina detail + OT list */}
                 {isMaqExp && (
-                  <div className="p-5 bg-white border-t border-gray-100">
+                  <div className="p-5 bg-white dark:bg-[#1E1E1E] border-t border-gray-100 dark:border-[#2E2E2E]">
                     {/* Maquina info grid */}
                     <div className="grid grid-cols-2 md:grid-cols-4 gap-3 p-4 bg-yellow-50 rounded-xl mb-5 text-sm border border-yellow-200">
                       {[
@@ -686,10 +703,10 @@ export default function MantenimientoPorActivoPage() {
                         ],
                       ].map(([label, val]) => (
                         <div key={label}>
-                          <div className="text-xs text-gray-400 mb-0.5">
+                          <div className="text-xs text-gray-400 dark:text-gray-500 mb-0.5">
                             {label}
                           </div>
-                          <div className="font-semibold text-[#2D3748]">
+                          <div className="font-semibold text-[#2D3748] dark:text-gray-100">
                             {val}
                           </div>
                         </div>
@@ -697,12 +714,12 @@ export default function MantenimientoPorActivoPage() {
                     </div>
 
                     {/* OT list for this maquina */}
-                    <h4 className="font-semibold text-[#2D3748] mb-3 text-sm">
+                    <h4 className="font-semibold text-[#2D3748] dark:text-gray-100 mb-3 text-sm">
                       Órdenes de Trabajo ({r.ots.length})
                     </h4>
 
                     {r.ots.length === 0 && (
-                      <p className="text-gray-400 text-sm">
+                      <p className="text-gray-400 dark:text-gray-500 text-sm">
                         Sin órdenes de trabajo registradas para este activo.
                       </p>
                     )}
@@ -714,16 +731,16 @@ export default function MantenimientoPorActivoPage() {
                         return (
                           <div
                             key={otRow.ot.id}
-                            className="border border-gray-200 rounded-lg overflow-hidden"
+                            className="border border-gray-200 dark:border-[#3A3A3A] rounded-lg overflow-hidden"
                           >
                             {/* OT summary row */}
                             <div
-                              className="flex items-center gap-3 gap-y-1 px-4 py-3 bg-gray-50 cursor-pointer hover:bg-gray-100 transition text-sm flex-wrap"
+                              className="flex items-center gap-3 gap-y-1 px-4 py-3 bg-gray-50 dark:bg-[#222222] cursor-pointer hover:bg-gray-100 dark:hover:bg-[#2A2A2A] transition text-sm flex-wrap"
                               onClick={() =>
                                 setExpandedOT(isOTExp ? null : otRow.ot.id)
                               }
                             >
-                              <span className="text-gray-400 w-3 shrink-0">
+                              <span className="text-gray-400 dark:text-gray-500 w-3 shrink-0">
                                 {isOTExp ? '▼' : '▶'}
                               </span>
                               <span className="font-bold text-[#5D3312] w-12 shrink-0">
@@ -735,7 +752,7 @@ export default function MantenimientoPorActivoPage() {
                               <span className="shrink-0">
                                 {estadoBadge(otRow.ot.estado)}
                               </span>
-                              <span className="text-gray-400 shrink-0 w-24 text-right">
+                              <span className="text-gray-400 dark:text-gray-500 shrink-0 w-24 text-right">
                                 {fmtDate(otRow.ot.fechaHora)}
                               </span>
                               <span className="text-[#6A1B9A] font-semibold shrink-0 w-20 text-right">
@@ -757,7 +774,7 @@ export default function MantenimientoPorActivoPage() {
 
                             {/* OT expanded detail */}
                             {isOTExp && (
-                              <div className="p-4 bg-white border-t border-gray-100">
+                              <div className="p-4 bg-white dark:bg-[#1E1E1E] border-t border-gray-100 dark:border-[#2E2E2E]">
                                 {/* OT info */}
                                 <div className="grid grid-cols-2 md:grid-cols-4 gap-3 text-xs mb-4 p-3 bg-[#F9F6EE] rounded-lg border border-yellow-100">
                                   {[
@@ -793,10 +810,10 @@ export default function MantenimientoPorActivoPage() {
                                     ],
                                   ].map(([label, val]) => (
                                     <div key={label}>
-                                      <div className="text-gray-400 mb-0.5">
+                                      <div className="text-gray-400 dark:text-gray-500 mb-0.5">
                                         {label}
                                       </div>
-                                      <div className="font-semibold text-[#2D3748]">
+                                      <div className="font-semibold text-[#2D3748] dark:text-gray-100">
                                         {val}
                                       </div>
                                     </div>
@@ -815,8 +832,13 @@ export default function MantenimientoPorActivoPage() {
                                       className="text-xs px-3 py-1.5 rounded-lg font-semibold transition"
                                       style={{
                                         background:
-                                          tab === t ? '#5D3312' : '#E1CD9B',
-                                        color: tab === t ? '#fff' : '#5D3312',
+                                          tab === t
+                                            ? '#5D3312'
+                                            : 'var(--app-head-bg)',
+                                        color:
+                                          tab === t
+                                            ? '#fff'
+                                            : 'var(--app-brand-text)',
                                         border: 'none',
                                         cursor: 'pointer',
                                       }}
@@ -833,25 +855,25 @@ export default function MantenimientoPorActivoPage() {
                                   <table className="w-full text-xs border-collapse">
                                     <thead>
                                       <tr className="bg-yellow-100">
-                                        <th className="p-2 text-left font-semibold text-gray-500">
+                                        <th className="p-2 text-left font-semibold text-gray-500 dark:text-gray-400">
                                           Técnico
                                         </th>
-                                        <th className="p-2 text-left font-semibold text-gray-500">
+                                        <th className="p-2 text-left font-semibold text-gray-500 dark:text-gray-400">
                                           Fecha
                                         </th>
-                                        <th className="p-2 text-left font-semibold text-gray-500">
+                                        <th className="p-2 text-left font-semibold text-gray-500 dark:text-gray-400">
                                           Inicio
                                         </th>
-                                        <th className="p-2 text-left font-semibold text-gray-500">
+                                        <th className="p-2 text-left font-semibold text-gray-500 dark:text-gray-400">
                                           Fin
                                         </th>
-                                        <th className="p-2 text-right font-semibold text-gray-500">
+                                        <th className="p-2 text-right font-semibold text-gray-500 dark:text-gray-400">
                                           Horas
                                         </th>
-                                        <th className="p-2 text-right font-semibold text-gray-500">
+                                        <th className="p-2 text-right font-semibold text-gray-500 dark:text-gray-400">
                                           Costo (Bs)
                                         </th>
-                                        <th className="p-2 text-left font-semibold text-gray-500">
+                                        <th className="p-2 text-left font-semibold text-gray-500 dark:text-gray-400">
                                           Observaciones
                                         </th>
                                       </tr>
@@ -861,7 +883,7 @@ export default function MantenimientoPorActivoPage() {
                                         <tr>
                                           <td
                                             colSpan={7}
-                                            className="p-3 text-center text-gray-400"
+                                            className="p-3 text-center text-gray-400 dark:text-gray-500"
                                           >
                                             Sin registros de trabajo aún.
                                           </td>
@@ -872,8 +894,8 @@ export default function MantenimientoPorActivoPage() {
                                           key={i}
                                           className={
                                             i % 2 === 0
-                                              ? 'bg-white'
-                                              : 'bg-gray-50'
+                                              ? 'bg-white dark:bg-[#1E1E1E]'
+                                              : 'bg-gray-50 dark:bg-[#222222]'
                                           }
                                         >
                                           <td className="p-2 font-medium">
@@ -892,7 +914,7 @@ export default function MantenimientoPorActivoPage() {
                                           <td className="p-2 text-right font-bold text-green-700">
                                             {fmtCurrency(mo.costo)}
                                           </td>
-                                          <td className="p-2 text-gray-500">
+                                          <td className="p-2 text-gray-500 dark:text-gray-400">
                                             {mo.observaciones ?? '—'}
                                           </td>
                                         </tr>
@@ -922,13 +944,13 @@ export default function MantenimientoPorActivoPage() {
                                 {tab === 'mat' && (
                                   <>
                                     {otRow.salidas.length === 0 && (
-                                      <p className="text-gray-400 text-xs p-2">
+                                      <p className="text-gray-400 dark:text-gray-500 text-xs p-2">
                                         Sin salidas de almacén registradas.
                                       </p>
                                     )}
                                     {otRow.salidas.map((sal) => (
                                       <div key={sal.id} className="mb-3">
-                                        <div className="flex gap-4 text-xs p-2 bg-gray-50 rounded-t border border-gray-200 font-medium text-gray-600">
+                                        <div className="flex gap-4 text-xs p-2 bg-gray-50 dark:bg-[#222222] rounded-t border border-gray-200 dark:border-[#3A3A3A] font-medium text-gray-600 dark:text-gray-300">
                                           <span>
                                             Salida:{' '}
                                             <strong>
@@ -950,25 +972,25 @@ export default function MantenimientoPorActivoPage() {
                                             <span>Obs: {sal.observacion}</span>
                                           )}
                                         </div>
-                                        <table className="w-full text-xs border-collapse border border-t-0 border-gray-200">
+                                        <table className="w-full text-xs border-collapse border border-t-0 border-gray-200 dark:border-[#3A3A3A]">
                                           <thead>
                                             <tr className="bg-yellow-100">
-                                              <th className="p-2 text-left font-semibold text-gray-500">
+                                              <th className="p-2 text-left font-semibold text-gray-500 dark:text-gray-400">
                                                 Producto
                                               </th>
-                                              <th className="p-2 text-left font-semibold text-gray-500">
+                                              <th className="p-2 text-left font-semibold text-gray-500 dark:text-gray-400">
                                                 Tipo
                                               </th>
-                                              <th className="p-2 text-right font-semibold text-gray-500">
+                                              <th className="p-2 text-right font-semibold text-gray-500 dark:text-gray-400">
                                                 Cantidad
                                               </th>
-                                              <th className="p-2 text-left font-semibold text-gray-500">
+                                              <th className="p-2 text-left font-semibold text-gray-500 dark:text-gray-400">
                                                 U.M.
                                               </th>
-                                              <th className="p-2 text-right font-semibold text-gray-500">
+                                              <th className="p-2 text-right font-semibold text-gray-500 dark:text-gray-400">
                                                 P. Unit.
                                               </th>
-                                              <th className="p-2 text-right font-semibold text-gray-500">
+                                              <th className="p-2 text-right font-semibold text-gray-500 dark:text-gray-400">
                                                 Subtotal (Bs)
                                               </th>
                                             </tr>
@@ -980,8 +1002,8 @@ export default function MantenimientoPorActivoPage() {
                                                   key={di}
                                                   className={
                                                     di % 2 === 0
-                                                      ? 'bg-white'
-                                                      : 'bg-gray-50'
+                                                      ? 'bg-white dark:bg-[#1E1E1E]'
+                                                      : 'bg-gray-50 dark:bg-[#222222]'
                                                   }
                                                 >
                                                   <td className="p-2">

@@ -1,4 +1,6 @@
 import React from 'react';
+import { SearchBar } from '../../../shared/components/SearchBar';
+import { filtrarPorTexto } from '../../../shared/utils/search';
 import { exportProcessToExcel } from '../functions/exportExcel';
 import { useTheme } from '../../../shared/contexts/ThemeContext';
 import { useProcess } from '../hooks/useProcess';
@@ -17,6 +19,7 @@ export const colors = {
 
 export const ProcessPage: React.FC = () => {
   const { theme } = useTheme();
+  const [busqueda, setBusqueda] = React.useState('');
   const {
     state,
     handleOpenModal,
@@ -38,6 +41,11 @@ export const ProcessPage: React.FC = () => {
     exportProcessToExcel(state.processes);
   };
 
+  const filtrados = filtrarPorTexto(state.processes, busqueda, (p) => [
+    p.name,
+    state.costCenters.find((c) => c.id === p.centroCosto)?.name,
+  ]);
+
   return (
     <div style={pageStyle}>
       <button
@@ -56,8 +64,17 @@ export const ProcessPage: React.FC = () => {
         Exportar a Excel
       </button>
 
+      <SearchBar
+        value={busqueda}
+        onChange={setBusqueda}
+        placeholder="Buscar por ID, nombre o centro de costo..."
+        theme={theme}
+        total={state.processes.length}
+        resultados={filtrados.length}
+      />
+
       <ProcessTable
-        processes={state.processes}
+        processes={filtrados}
         centrosCosto={state.costCenters}
         theme={theme}
         onAddProcess={() => handleOpenModal('add')}

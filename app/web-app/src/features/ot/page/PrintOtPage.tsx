@@ -236,30 +236,14 @@ export default function PrintOtPage() {
               Orden de Trabajo
             </h1>
           </div>
-          <div style={{ textAlign: 'right' }}>
-            <div
-              style={{
-                fontSize: '22px',
-                fontWeight: 800,
-                color: colors.darkText,
-              }}
-            >
-              OT #{ot.id}
-            </div>
-            <div
-              style={{
-                display: 'inline-block',
-                marginTop: '4px',
-                padding: '2px 10px',
-                borderRadius: 10,
-                fontSize: '12px',
-                fontWeight: 700,
-                border: `1.5px solid ${colors.brown}`,
-                color: colors.brown,
-              }}
-            >
-              {ot.estado ?? '—'}
-            </div>
+          <div
+            style={{
+              fontSize: '22px',
+              fontWeight: 800,
+              color: colors.darkText,
+            }}
+          >
+            OT #{ot.id}
           </div>
         </div>
 
@@ -393,18 +377,6 @@ export default function PrintOtPage() {
           </div>
         )}
 
-        {/* Supervisor */}
-        <div
-          style={{
-            border: `1px solid ${colors.border}`,
-            borderRadius: '6px',
-            overflow: 'hidden',
-            marginBottom: '14px',
-          }}
-        >
-          <Campo label="Supervisor" value={getName(ot.supervisor)} />
-        </div>
-
         {/* Técnicos asignados — lista, escala a cualquier cantidad */}
         <div style={{ marginBottom: '20px' }}>
           <div
@@ -453,14 +425,11 @@ export default function PrintOtPage() {
           }}
         >
           <span>Fecha de Creación: {fmtDate(ot.fechaCreacion)}</span>
-          {ot.estado === 'Cerrada' && (
-            <span>Fecha de Cierre: {fmtDate(ot.fechaCierre)}</span>
-          )}
           <span>Impreso: {fmtDateTime(new Date())}</span>
         </div>
 
         {/* Firmas: una línea por cada técnico asignado (para que cada uno
-            pueda firmar su propia participación), más supervisor y jefe de
+            pueda firmar su propia participación), más el Vo.Bo. del jefe de
             mantenimiento. Si hay muchos técnicos, la grilla arma más filas
             sola — no depende de un número fijo de columnas. */}
         <div
@@ -494,31 +463,24 @@ export default function PrintOtPage() {
         </div>
         <div
           style={{
-            display: 'grid',
-            gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))',
-            gap: '24px 20px',
-            marginTop: '30px',
+            display: 'flex',
+            justifyContent: 'center',
+            marginTop: '50px',
           }}
         >
-          {['Supervisor de Área', 'Vo.Bo. Jefe de Mantenimiento'].map(
-            (label) => (
-              <div
-                key={label}
-                style={{ textAlign: 'center', breakInside: 'avoid' }}
-              >
-                <div
-                  style={{
-                    borderTop: `1px solid ${colors.darkText}`,
-                    paddingTop: '6px',
-                    fontSize: '11px',
-                    color: colors.darkText,
-                  }}
-                >
-                  {label}
-                </div>
-              </div>
-            ),
-          )}
+          <div
+            style={{
+              width: '240px',
+              textAlign: 'center',
+              breakInside: 'avoid',
+              borderTop: `1px solid ${colors.darkText}`,
+              paddingTop: '6px',
+              fontSize: '11px',
+              color: colors.darkText,
+            }}
+          >
+            Vo.Bo. Jefe de Mantenimiento
+          </div>
         </div>
       </div>
 

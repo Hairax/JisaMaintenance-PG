@@ -2,6 +2,11 @@ import React, { useCallback, useEffect, useState } from 'react';
 import * as XLSX from 'xlsx';
 import { minutosTrabajados, costoManoObra } from '../../shared/utils/laborCost';
 import { API_URL } from '../../shared/config/api';
+import { ExportOptionsModal } from '../../shared/components/ExportContabilidadModal';
+import {
+  CierreOtFila,
+  exportCierreOtExcel,
+} from '../../shared/utils/cierreOtExcel';
 
 const API = API_URL;
 
@@ -35,10 +40,12 @@ interface Informe {
 interface SalidaDetalle {
   tipoProducto: string;
   productoId: number;
+  codigo?: string;
   nombre: string;
   unidadMedida: string;
   cantidad: number;
   precioUnitario: number;
+  importe?: number;
   subtotal: number;
 }
 
@@ -66,10 +73,12 @@ interface OT {
   tipoCambio: number;
   tipoEjecucion?: string;
   tecnicos?: number[];
+  tipoOT_id?: number;
   tipoOT?: { nombre?: string; name?: string };
-  maquina?: { nombre?: string; name?: string };
-  costCenter?: { nombre?: string; name?: string };
-  proceso?: { nombre?: string; name?: string };
+  maquina?: { nombre?: string; name?: string; correlativo?: number | null };
+  costCenter?: { id?: number; nombre?: string; name?: string };
+  proceso?: { nombre?: string; name?: string; correlativo?: number | null };
+  subUnidad?: { correlativo?: number | null; descripcion?: string } | null;
   departamento?: { nombre?: string; name?: string };
   objeto?: { nombre?: string; name?: string };
   supervisor?: { name?: string; lastName?: string };
@@ -131,7 +140,10 @@ const ESTADO_COLORS: Record<string, { bg: string; color: string }> = {
 };
 
 const estadoBadge = (estado: string) => {
-  const c = ESTADO_COLORS[estado] ?? { bg: '#F5F5F5', color: '#555' };
+  const c = ESTADO_COLORS[estado] ?? {
+    bg: 'var(--app-surface-alt)',
+    color: 'var(--app-text-muted)',
+  };
   return (
     <span
       style={{
@@ -161,6 +173,7 @@ export default function CostosOrdenesTrabajoPage() {
     return `${hoy.getFullYear()}-${String(hoy.getMonth() + 1).padStart(2, '0')}`;
   });
   const [expandedId, setExpandedId] = useState<number | null>(null);
+  const [modalCierre, setModalCierre] = useState(false);
   const [expandTab, setExpandTab] = useState<Record<number, 'mano' | 'mat'>>(
     {},
   );
@@ -359,17 +372,66 @@ export default function CostosOrdenesTrabajoPage() {
       (r.ot.fechaCierre ?? '').startsWith(mesCierre),
   );
 
-  const generarCierreExcel = () => {
+  // Cierre del mes en el formato "Cuadro resumen de órdenes de trabajo" de
+  // contabilidad. Con detalle agrega los repuestos de cada OT debajo de ella.
+  const generarCierreExcel = async (conDetalle: boolean) => {
     if (otsDelMesCierre.length === 0) return;
-    const hoja = XLSX.utils.json_to_sheet(buildDetalleRows(otsDelMesCierre));
-    const libro = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(libro, hoja, 'Cierre OT');
-    XLSX.writeFile(libro, `cierre_ot_${mesCierre}.xlsx`);
+    const [anio, mes] = mesCierre.split('-').map(Number);
+    const codigo = (v?: number | null) => (v != null ? v : '');
+    const fecha = (d?: string | null) => (d ? new Date(d) : null);
+
+    const filas: CierreOtFila[] = otsDelMesCierre.map((r) => ({
+      numOt: `OT${String(r.ot.id).padStart(6, '0')}`,
+      tipoOt: codigo(r.ot.tipoOT_id),
+      fechaOt: fecha(r.ot.fechaHora),
+      fechaFin: fecha(r.ot.fechaCierre),
+      codCentroCosto: codigo(r.ot.costCenter?.id),
+      codProceso: codigo(r.ot.proceso?.correlativo),
+      codMaquina: codigo(r.ot.maquina?.correlativo),
+      codElemento: codigo(r.ot.subUnidad?.correlativo),
+      centroCosto: r.ot.costCenter ? getName(r.ot.costCenter) : '',
+      proceso: r.ot.proceso ? getName(r.ot.proceso) : '',
+      maquina: r.ot.maquina ? getName(r.ot.maquina) : '',
+      descripcion: r.ot.descripcionTarea,
+      totManoObra: r.totalManoObra,
+      totRepuestos: r.totalMateriales,
+      repuestos: r.salidas.flatMap((sal) =>
+        (sal.detalles ?? []).map((det) => ({
+          fecha: fecha(sal.fecha),
+          nroSalida: sal.nroSalida,
+          codigo: det.codigo ?? '',
+          nombre: det.nombre,
+          cantidad: Number(det.cantidad) || 0,
+          unidad: det.unidadMedida,
+          precioUnitario: Number(det.precioUnitario) || 0,
+          // importe guardado por línea (es el que suma el total de la
+          // salida); cantidad × precio redondeado puede diferir en centavos.
+          importe:
+            det.importe != null
+              ? Number(det.importe)
+              : (Number(det.cantidad) || 0) * (Number(det.precioUnitario) || 0),
+        })),
+      ),
+    }));
+
+    await exportCierreOtExcel({
+      filename: `cierre_ot_${mesCierre}${conDetalle ? '_detalle' : ''}.xlsx`,
+      desde: new Date(anio, mes - 1, 1),
+      hasta: new Date(anio, mes, 0),
+      filas,
+      conDetalle,
+    });
   };
 
   if (loading) {
     return (
-      <div style={{ padding: '2rem', textAlign: 'center', color: '#666' }}>
+      <div
+        style={{
+          padding: '2rem',
+          textAlign: 'center',
+          color: 'var(--app-text-muted)',
+        }}
+      >
         Cargando órdenes de trabajo...
       </div>
     );
@@ -411,9 +473,9 @@ export default function CostosOrdenesTrabajoPage() {
     >
       <div
         style={{
-          background: '#fff',
+          background: 'var(--app-surface)',
           borderRadius: 12,
-          boxShadow: '0 2px 8px rgba(0,0,0,0.08)',
+          boxShadow: 'var(--app-shadow)',
           padding: 'clamp(1rem, 4vw, 2rem)',
         }}
       >
@@ -445,7 +507,7 @@ export default function CostosOrdenesTrabajoPage() {
             style={{
               padding: '0.5rem 1rem',
               borderRadius: 8,
-              border: '1px solid #ccc',
+              border: '1px solid var(--app-border)',
               flex: 1,
               minWidth: 200,
             }}
@@ -456,7 +518,7 @@ export default function CostosOrdenesTrabajoPage() {
             style={{
               padding: '0.5rem 1rem',
               borderRadius: 8,
-              border: '1px solid #ccc',
+              border: '1px solid var(--app-border)',
             }}
           >
             {estados.map((e) => (
@@ -519,11 +581,13 @@ export default function CostosOrdenesTrabajoPage() {
             marginBottom: 24,
             padding: '0.85rem 1rem',
             borderRadius: 10,
-            background: '#F3E9DC',
-            border: '1px solid #E1CD9B',
+            background: 'var(--app-surface-warm)',
+            border: '1px solid var(--app-border)',
           }}
         >
-          <strong style={{ fontSize: '0.9rem', color: '#5D3A1A' }}>
+          <strong
+            style={{ fontSize: '0.9rem', color: 'var(--app-brand-text)' }}
+          >
             Cierre mensual de OTs:
           </strong>
           <input
@@ -533,17 +597,17 @@ export default function CostosOrdenesTrabajoPage() {
             style={{
               padding: '0.4rem 0.7rem',
               borderRadius: 8,
-              border: '1px solid #ccc',
+              border: '1px solid var(--app-border)',
             }}
           />
-          <span style={{ fontSize: '0.82rem', color: '#5D3A1A' }}>
+          <span style={{ fontSize: '0.82rem', color: 'var(--app-brand-text)' }}>
             {otsDelMesCierre.length}{' '}
             {otsDelMesCierre.length === 1
               ? 'OT cerrada en ese mes'
               : 'OTs cerradas en ese mes'}
           </span>
           <button
-            onClick={generarCierreExcel}
+            onClick={() => setModalCierre(true)}
             disabled={otsDelMesCierre.length === 0}
             style={{
               padding: '0.5rem 1.2rem',
@@ -569,7 +633,11 @@ export default function CostosOrdenesTrabajoPage() {
           }}
         >
           {[
-            { label: 'Total OTs', value: filtrados.length, color: '#5D3312' },
+            {
+              label: 'Total OTs',
+              value: filtrados.length,
+              color: 'var(--app-brand-text)',
+            },
             {
               label: 'Abiertas',
               value: filtrados.filter((r) => r.ot.estado === 'Abierta').length,
@@ -611,7 +679,7 @@ export default function CostosOrdenesTrabajoPage() {
             <div
               key={s.label}
               style={{
-                background: '#F5F5F5',
+                background: 'var(--app-surface-alt)',
                 borderRadius: 8,
                 padding: '0.75rem 1.25rem',
                 textAlign: 'center',
@@ -623,7 +691,9 @@ export default function CostosOrdenesTrabajoPage() {
               >
                 {s.value}
               </div>
-              <div style={{ fontSize: '0.76rem', color: '#666' }}>
+              <div
+                style={{ fontSize: '0.76rem', color: 'var(--app-text-muted)' }}
+              >
                 {s.label}
               </div>
             </div>
@@ -640,7 +710,7 @@ export default function CostosOrdenesTrabajoPage() {
             }}
           >
             <thead>
-              <tr style={{ background: '#E1CD9B' }}>
+              <tr style={{ background: 'var(--app-head-bg)' }}>
                 <th style={{ padding: '0.75rem', width: 28 }} />
                 <th style={{ padding: '0.75rem', textAlign: 'left' }}>OT #</th>
                 <th style={{ padding: '0.75rem', textAlign: 'left' }}>
@@ -696,7 +766,7 @@ export default function CostosOrdenesTrabajoPage() {
                     style={{
                       padding: '1.5rem',
                       textAlign: 'center',
-                      color: '#9E5533',
+                      color: 'var(--app-brand-accent)',
                     }}
                   >
                     No se encontraron resultados.
@@ -710,7 +780,10 @@ export default function CostosOrdenesTrabajoPage() {
                   <React.Fragment key={r.ot.id}>
                     <tr
                       style={{
-                        background: idx % 2 === 0 ? '#fff' : '#F5F5F5',
+                        background:
+                          idx % 2 === 0
+                            ? 'var(--app-surface)'
+                            : 'var(--app-surface-alt)',
                         cursor: 'pointer',
                       }}
                       onClick={() => toggleExpand(r.ot.id)}
@@ -719,7 +792,7 @@ export default function CostosOrdenesTrabajoPage() {
                         style={{
                           padding: '0.75rem',
                           textAlign: 'center',
-                          color: '#888',
+                          color: 'var(--app-text-subtle)',
                         }}
                       >
                         {isExpanded ? '▼' : '▶'}
@@ -785,7 +858,10 @@ export default function CostosOrdenesTrabajoPage() {
                       <tr>
                         <td
                           colSpan={11}
-                          style={{ padding: 0, background: '#F9F6EE' }}
+                          style={{
+                            padding: 0,
+                            background: 'var(--app-surface-warm)',
+                          }}
                         >
                           <div style={{ padding: '1.25rem 2rem 1.5rem' }}>
                             {/* OT info header */}
@@ -797,9 +873,9 @@ export default function CostosOrdenesTrabajoPage() {
                                 gap: '0.5rem 1.5rem',
                                 marginBottom: '1.25rem',
                                 padding: '0.75rem 1rem',
-                                background: '#fff',
+                                background: 'var(--app-surface)',
                                 borderRadius: 8,
-                                border: '1px solid #E1CD9B',
+                                border: '1px solid var(--app-border)',
                               }}
                             >
                               {[
@@ -827,7 +903,7 @@ export default function CostosOrdenesTrabajoPage() {
                                   <div
                                     style={{
                                       fontSize: '0.72rem',
-                                      color: '#888',
+                                      color: 'var(--app-text-subtle)',
                                       marginBottom: 2,
                                     }}
                                   >
@@ -868,8 +944,13 @@ export default function CostosOrdenesTrabajoPage() {
                                     fontWeight: 600,
                                     fontSize: '0.85rem',
                                     background:
-                                      tab === t ? '#5D3312' : '#E1CD9B',
-                                    color: tab === t ? '#fff' : '#5D3312',
+                                      tab === t
+                                        ? '#5D3312'
+                                        : 'var(--app-head-bg)',
+                                    color:
+                                      tab === t
+                                        ? '#fff'
+                                        : 'var(--app-brand-text)',
                                   }}
                                 >
                                   {t === 'mano'
@@ -889,7 +970,9 @@ export default function CostosOrdenesTrabajoPage() {
                                 }}
                               >
                                 <thead>
-                                  <tr style={{ background: '#E1CD9B' }}>
+                                  <tr
+                                    style={{ background: 'var(--app-head-bg)' }}
+                                  >
                                     <th
                                       style={{
                                         padding: '0.5rem 0.75rem',
@@ -956,7 +1039,7 @@ export default function CostosOrdenesTrabajoPage() {
                                         style={{
                                           padding: '0.75rem',
                                           textAlign: 'center',
-                                          color: '#999',
+                                          color: 'var(--app-text-subtle)',
                                         }}
                                       >
                                         Sin registros de trabajo aún.
@@ -968,7 +1051,9 @@ export default function CostosOrdenesTrabajoPage() {
                                       key={i}
                                       style={{
                                         background:
-                                          i % 2 === 0 ? '#fff' : '#F9F6EE',
+                                          i % 2 === 0
+                                            ? 'var(--app-surface)'
+                                            : 'var(--app-surface-warm)',
                                       }}
                                     >
                                       <td
@@ -1011,7 +1096,7 @@ export default function CostosOrdenesTrabajoPage() {
                                       <td
                                         style={{
                                           padding: '0.5rem 0.75rem',
-                                          color: '#666',
+                                          color: 'var(--app-text-muted)',
                                         }}
                                       >
                                         {mo.observaciones ?? '—'}
@@ -1021,7 +1106,7 @@ export default function CostosOrdenesTrabajoPage() {
                                   {r.manoObra.length > 0 && (
                                     <tr
                                       style={{
-                                        background: '#EDE7F6',
+                                        background: 'var(--app-surface-lilac)',
                                         fontWeight: 700,
                                       }}
                                     >
@@ -1065,7 +1150,7 @@ export default function CostosOrdenesTrabajoPage() {
                                 {r.salidas.length === 0 && (
                                   <p
                                     style={{
-                                      color: '#999',
+                                      color: 'var(--app-text-subtle)',
                                       padding: '0.5rem 0',
                                     }}
                                   >
@@ -1083,10 +1168,10 @@ export default function CostosOrdenesTrabajoPage() {
                                         display: 'flex',
                                         gap: 24,
                                         padding: '0.5rem 0.75rem',
-                                        background: '#fff',
+                                        background: 'var(--app-surface)',
                                         borderRadius: 6,
                                         marginBottom: 4,
-                                        border: '1px solid #ddd',
+                                        border: '1px solid var(--app-border)',
                                         fontSize: '0.83rem',
                                       }}
                                     >
@@ -1120,7 +1205,11 @@ export default function CostosOrdenesTrabajoPage() {
                                       }}
                                     >
                                       <thead>
-                                        <tr style={{ background: '#E1CD9B' }}>
+                                        <tr
+                                          style={{
+                                            background: 'var(--app-head-bg)',
+                                          }}
+                                        >
                                           <th
                                             style={{
                                               padding: '0.4rem 0.75rem',
@@ -1178,8 +1267,8 @@ export default function CostosOrdenesTrabajoPage() {
                                             style={{
                                               background:
                                                 di % 2 === 0
-                                                  ? '#fff'
-                                                  : '#F9F6EE',
+                                                  ? 'var(--app-surface)'
+                                                  : 'var(--app-surface-warm)',
                                             }}
                                           >
                                             <td
@@ -1285,6 +1374,34 @@ export default function CostosOrdenesTrabajoPage() {
           </table>
         </div>
       </div>
+
+      <ExportOptionsModal
+        open={modalCierre}
+        titulo="Cierre del Mes"
+        pregunta="¿Cómo desea exportar las órdenes de trabajo?"
+        opciones={[
+          {
+            value: 'detalle',
+            titulo: 'Con detalle',
+            detalle: 'Cada OT con la lista de repuestos consumidos debajo.',
+            color: '#2E7D32',
+          },
+          {
+            value: 'resumen',
+            titulo: 'Sin detalle',
+            detalle: 'Solo una fila por OT, con sus totales.',
+            color: '#6A5ACD',
+          },
+        ]}
+        onClose={() => setModalCierre(false)}
+        onSelect={(v) => {
+          setModalCierre(false);
+          generarCierreExcel(v === 'detalle').catch((err) => {
+            console.error(err);
+            setError('Error al generar el Excel de cierre del mes.');
+          });
+        }}
+      />
     </div>
   );
 }

@@ -6,6 +6,7 @@ export enum UserRole {
   JEFE_MANTENIMIENTO = 'jefe-mantenimiento',
   ENCARGADO_ALMACEN = 'encargado-almacen',
   USUARIO_CONTABLE = 'usuario-contable',
+  ENCARGADO_COMPRAS = 'encargado-compras',
 }
 
 export interface User {

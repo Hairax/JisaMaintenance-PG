@@ -6,4 +6,5 @@ export enum UserRole {
   JEFEMANTENIMIENTO = 'jefe-mantenimiento',
   ECARGADOALMACEN = 'encargado-almacen',
   USUARIOCONTABLE = 'usuario-contable',
+  ENCARGADOCOMPRAS = 'encargado-compras',
 }

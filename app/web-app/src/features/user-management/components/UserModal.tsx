@@ -2,6 +2,7 @@ import React from 'react';
 import { User } from '../../../shared/types/user.types';
 import { UserFormData, ModalMode } from '../types/user.types';
 import { FaTimes, FaEdit, FaTrash, FaSave, FaPlus } from 'react-icons/fa';
+import { ChangePasswordForm } from './ChangePasswordForm';
 
 // Roles disponibles
 const CARGO_OPTIONS: { value: string; label: string }[] = [
@@ -12,6 +13,7 @@ const CARGO_OPTIONS: { value: string; label: string }[] = [
   { value: 'jefe-mantenimiento', label: 'Jefe de Mantenimiento' },
   { value: 'encargado-almacen', label: 'Encargado de Almacén' },
   { value: 'usuario-contable', label: 'Usuario Contable' },
+  { value: 'encargado-compras', label: 'Encargado de Compras' },
 ];
 
 // Paleta de colores
@@ -46,6 +48,8 @@ interface UserModalProps {
   onEditMode: () => void;
   canEdit?: boolean;
   canDelete?: boolean;
+  canChangePassword?: boolean;
+  onChangePassword?: (password: string) => Promise<string | null>;
 }
 
 export const UserModal: React.FC<UserModalProps> = ({
@@ -67,6 +71,8 @@ export const UserModal: React.FC<UserModalProps> = ({
   onEditMode,
   canEdit = true,
   canDelete = true,
+  canChangePassword = false,
+  onChangePassword,
 }) => {
   if (!isOpen) return null;
 
@@ -293,6 +299,14 @@ export const UserModal: React.FC<UserModalProps> = ({
                   {selectedUser.status ? 'Activo' : 'Inactivo'}
                 </span>
               </p>
+              {canChangePassword && onChangePassword && (
+                <ChangePasswordForm
+                  key={selectedUser.id}
+                  theme={theme}
+                  userName={selectedUser.userName}
+                  onSubmit={onChangePassword}
+                />
+              )}
             </div>
           ) : showDeleteConfirm && selectedUser ? (
             <div style={{ color: textColor }} className="text-center">

@@ -48,6 +48,10 @@ export class Compra {
   @Column({ nullable: true })
   nroAutorizacion: string;
 
+  // Usuario que registró o editó la compra por última vez.
+  @Column({ nullable: true })
+  usuarioId: number;
+
   @Column({ type: 'decimal', precision: 12, scale: 2, default: 0 })
   subtotal: number;
 

@@ -4,7 +4,7 @@
 // community) no puede escribir estilos de celda, solo exceljs lo hace.
 //
 // exceljs se carga con import() dinámico (no en el bundle principal): pesa
-// ~275KB gzip y solo lo usan estos dos botones puntuales, no tiene sentido
+// ~275KB gzip y solo lo usan unos pocos botones de export, no tiene sentido
 // que lo descargue todo el mundo en cada carga de la app.
 
 const HEADER_FONT = { name: 'Aptos Narrow', size: 11 };
@@ -44,6 +44,13 @@ export async function exportStyledExcel({
     sheet.addRow(row);
   }
 
+  await descargarWorkbook(workbook, filename);
+}
+
+export async function descargarWorkbook(
+  workbook: import('exceljs').Workbook,
+  filename: string,
+) {
   const buffer = await workbook.xlsx.writeBuffer();
   const blob = new Blob([buffer], {
     type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',

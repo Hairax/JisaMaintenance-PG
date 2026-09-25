@@ -1,4 +1,7 @@
 import React from 'react';
+import { SearchBar } from '../../../shared/components/SearchBar';
+import { filtrarPorTexto } from '../../../shared/utils/search';
+import { ROLE_LABELS } from '../../../shared/permissions/permissions';
 import { exportUsersToExcel } from '../functions/exportExcel';
 import { useTheme } from '../../../shared/contexts/ThemeContext';
 import { usePermissions } from '../../../shared/hooks/usePermissions';
@@ -18,6 +21,7 @@ export const colors = {
 
 export const UserManagementPage: React.FC = () => {
   const { theme } = useTheme();
+  const [busqueda, setBusqueda] = React.useState('');
   const { can } = usePermissions();
   const {
     state,
@@ -28,6 +32,7 @@ export const UserManagementPage: React.FC = () => {
     handleUpdateUser,
     handleDeleteClick,
     handleDelete,
+    handleChangePassword,
   } = useUserManagement();
 
   // Define estilos basados en el tema
@@ -37,55 +42,75 @@ export const UserManagementPage: React.FC = () => {
     padding: '20px 0',
   };
 
+  const filtrados = filtrarPorTexto(state.users, busqueda, (u) => [
+    u.name,
+    u.lastName,
+    u.userName,
+    u.email,
+    u.cargo,
+    ROLE_LABELS[u.cargo],
+  ]);
+
   return (
-      <div style={pageStyle}>
-        <button
-          style={{
-            marginBottom: '16px',
-            padding: '8px 16px',
-            backgroundColor: colors.gold,
-            color: colors.darkText,
-            border: 'none',
-            borderRadius: '4px',
-            cursor: 'pointer',
-          }}
-          onClick={() => exportUsersToExcel(state.users)}
-        >
-          Exportar a Excel
-        </button>
+    <div style={pageStyle}>
+      <button
+        style={{
+          marginBottom: '16px',
+          padding: '8px 16px',
+          backgroundColor: colors.gold,
+          color: colors.darkText,
+          border: 'none',
+          borderRadius: '4px',
+          cursor: 'pointer',
+        }}
+        onClick={() => exportUsersToExcel(state.users)}
+      >
+        Exportar a Excel
+      </button>
 
-        <UserTable
-          users={state.users}
-          theme={theme}
-          onAddUser={() => handleOpenModal('add')}
-          onViewUser={(user) => handleOpenModal('view', user)}
-          loading={state.loading}
-          error={state.error}
-          canCreate={can('crearUsuarios')}
-        />
+      <SearchBar
+        value={busqueda}
+        onChange={setBusqueda}
+        placeholder="Buscar por ID, nombre, usuario, email o cargo..."
+        theme={theme}
+        total={state.users.length}
+        resultados={filtrados.length}
+      />
 
-        <UserModal
-          isOpen={state.isModalOpen}
-          mode={state.modalMode}
-          selectedUser={state.selectedUser}
-          formData={state.formData}
-          theme={theme}
-          showDeleteConfirm={state.showDeleteConfirm}
-          deleteCountdown={state.deleteCountdown}
-          canConfirmDelete={state.canConfirmDelete}
-          loading={state.loading}
-          onClose={handleCloseModal}
-          onInputChange={handleInputChange}
-          onCreateUser={handleCreateUser}
-          onUpdateUser={handleUpdateUser}
-          onDeleteClick={handleDeleteClick}
-          onDelete={handleDelete}
-          onEditMode={() =>
-            state.selectedUser && handleOpenModal('edit', state.selectedUser)
-          }
-          canEdit={can('editarUsuarios')}
-          canDelete={can('eliminarUsuarios')}
-        />
-      </div>
+      <UserTable
+        users={filtrados}
+        theme={theme}
+        onAddUser={() => handleOpenModal('add')}
+        onViewUser={(user) => handleOpenModal('view', user)}
+        loading={state.loading}
+        error={state.error}
+        canCreate={can('crearUsuarios')}
+      />
+
+      <UserModal
+        isOpen={state.isModalOpen}
+        mode={state.modalMode}
+        selectedUser={state.selectedUser}
+        formData={state.formData}
+        theme={theme}
+        showDeleteConfirm={state.showDeleteConfirm}
+        deleteCountdown={state.deleteCountdown}
+        canConfirmDelete={state.canConfirmDelete}
+        loading={state.loading}
+        onClose={handleCloseModal}
+        onInputChange={handleInputChange}
+        onCreateUser={handleCreateUser}
+        onUpdateUser={handleUpdateUser}
+        onDeleteClick={handleDeleteClick}
+        onDelete={handleDelete}
+        onEditMode={() =>
+          state.selectedUser && handleOpenModal('edit', state.selectedUser)
+        }
+        canEdit={can('editarUsuarios')}
+        canDelete={can('eliminarUsuarios')}
+        canChangePassword={can('cambiarContrasenas')}
+        onChangePassword={handleChangePassword}
+      />
+    </div>
   );
 };

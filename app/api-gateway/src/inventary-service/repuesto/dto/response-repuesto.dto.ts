@@ -12,6 +12,7 @@ export class ResponseRepuestoDto {
   costoUnitarioPonderado: number;
   cantidad: number;
   stockCritico: number;
+  contable: boolean;
   correlativo: number;
   centroCosto_id: number;
   proceso_id: number;

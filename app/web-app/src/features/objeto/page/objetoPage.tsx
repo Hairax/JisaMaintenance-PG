@@ -1,4 +1,6 @@
 import React from 'react';
+import { SearchBar } from '../../../shared/components/SearchBar';
+import { filtrarPorTexto } from '../../../shared/utils/search';
 import { useTheme } from '../../../shared/contexts/ThemeContext';
 import { useObjeto } from '../hooks/useObjeto';
 import { exportExcel } from '../functions/exportExcel';
@@ -17,6 +19,7 @@ export const colors = {
 
 export const ObjetoPage: React.FC = () => {
   const { theme } = useTheme();
+  const [busqueda, setBusqueda] = React.useState('');
   const {
     state,
     handleOpenModal,
@@ -34,9 +37,17 @@ export const ObjetoPage: React.FC = () => {
     padding: '20px 0',
   };
 
+  const filtrados = filtrarPorTexto(state.objetos, busqueda, (o) => [o.nombre]);
+
   return (
     <div style={pageStyle}>
-      <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: 16 }}>
+      <div
+        style={{
+          display: 'flex',
+          justifyContent: 'flex-end',
+          marginBottom: 16,
+        }}
+      >
         <button
           onClick={() => exportExcel(state.objetos)}
           style={{
@@ -52,8 +63,16 @@ export const ObjetoPage: React.FC = () => {
           Exportar a Excel
         </button>
       </div>
+      <SearchBar
+        value={busqueda}
+        onChange={setBusqueda}
+        placeholder="Buscar por ID o nombre..."
+        theme={theme}
+        total={state.objetos.length}
+        resultados={filtrados.length}
+      />
       <ObjetoTable
-        objetos={state.objetos}
+        objetos={filtrados}
         theme={theme}
         onAddObjeto={() => handleOpenModal('add')}
         onViewObjeto={(objeto) => handleOpenModal('view', objeto)}

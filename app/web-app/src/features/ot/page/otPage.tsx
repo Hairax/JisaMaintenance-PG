@@ -1,4 +1,6 @@
 import React from 'react';
+import { SearchBar } from '../../../shared/components/SearchBar';
+import { filtrarPorTexto } from '../../../shared/utils/search';
 import { useTheme } from '../../../shared/contexts/ThemeContext';
 import { useOt } from '../hooks/useOt';
 import { exportOtsToExcel } from '../functions/exportExcel';
@@ -17,6 +19,7 @@ export const colors = {
 
 export const OtPage: React.FC = () => {
   const { theme } = useTheme();
+  const [busqueda, setBusqueda] = React.useState('');
   const {
     state,
     handleOpenModal,
@@ -45,6 +48,19 @@ export const OtPage: React.FC = () => {
     padding: '20px 0',
   };
 
+  const filtrados = filtrarPorTexto(state.ots, busqueda, (o) => [
+    o.descripcionTarea,
+    o.indicacionesEspeciales,
+    o.maquina?.name ?? o.maquina?.nombre,
+    o.tipoOT?.nombre,
+    o.costCenter?.name ?? o.centroCosto?.nombre,
+    o.proceso?.name ?? o.proceso?.nombre,
+    o.departamento?.nombre,
+    o.objeto?.nombre,
+    o.tipoEjecucion,
+    o.estado,
+  ]);
+
   return (
     <div style={pageStyle}>
       <div
@@ -69,8 +85,16 @@ export const OtPage: React.FC = () => {
           Exportar a Excel
         </button>
       </div>
+      <SearchBar
+        value={busqueda}
+        onChange={setBusqueda}
+        placeholder="Buscar por N° de OT, descripción, máquina, tipo, centro de costo, estado..."
+        theme={theme}
+        total={state.ots.length}
+        resultados={filtrados.length}
+      />
       <OtTable
-        ots={state.ots}
+        ots={filtrados}
         theme={theme}
         onAddOt={() => handleOpenModal('create')}
         onViewOt={(ot) => handleOpenModal('view', ot)}

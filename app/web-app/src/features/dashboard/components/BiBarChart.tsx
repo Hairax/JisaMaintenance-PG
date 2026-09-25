@@ -26,7 +26,9 @@ export const BiBarChart: React.FC<BiBarChartProps> = ({
   return (
     <div className="w-full">
       {title && (
-        <h3 className="text-lg font-semibold mb-4 text-gray-800">{title}</h3>
+        <h3 className="text-lg font-semibold mb-4 text-gray-800 dark:text-gray-100">
+          {title}
+        </h3>
       )}
       <ResponsiveContainer width="100%" height={height}>
         <BarChart data={data}>

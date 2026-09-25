@@ -19,4 +19,11 @@ export class AuthController {
       throw error; // Esto se propaga bien si es HttpException o RpcException
     }
   }
+
+  // Valida un JWT emitido por este servicio y devuelve el usuario vigente
+  // (sin contraseña). Lo usa el api-gateway para proteger endpoints.
+  @MessagePattern('auth.verify')
+  verify(@Payload() data: { token: string }) {
+    return this.authService.verifyToken(data?.token);
+  }
 }

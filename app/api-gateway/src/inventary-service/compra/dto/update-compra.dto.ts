@@ -41,6 +41,10 @@ export class UpdateCompraDto {
   @IsOptional()
   nroAutorizacion?: string;
 
+  @IsNumber()
+  @IsOptional()
+  usuarioId?: number;
+
   @IsArray()
   @IsOptional()
   detalles?: ProductoCompraDto[];
@@ -77,6 +81,10 @@ export class CreateCompraDto {
   @IsString()
   @IsOptional()
   nroAutorizacion?: string;
+
+  @IsNumber()
+  @IsOptional()
+  usuarioId?: number;
 
   detalles: ProductoCompraDto[];
 }

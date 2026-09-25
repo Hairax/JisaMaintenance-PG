@@ -3,6 +3,7 @@ import { Repository } from 'typeorm';
 import { Repuesto } from './entities/repuesto.entity';
 import { CompraDetalle } from '../compra/entities/compra-detalle.entity';
 import { SalidaDetalle } from '../salida/entities/salida-detalle.entity';
+import { Salida } from '../salida/entities/salida.entity';
 import { CreateRepuestoDto } from './dto/create-repuesto.dto';
 import { UpdateRepuestoDto } from './dto/update-repuesto.dto';
 import { ResponseRepuestoDto } from './dto/response-repuesto.dto';
@@ -35,6 +36,7 @@ export class RepuestoService {
       aperturaCantidad: dto.cantidad,
       aperturaCostoUnitario: dto.costoUnitario,
       stockCritico: dto.stockCritico,
+      contable: dto.contable ?? true,
       correlativo: dto.correlativo,
       costCenter: dto.centroCosto_id ? { id: dto.centroCosto_id } : undefined,
       process: dto.proceso_id ? { id: dto.proceso_id } : undefined,
@@ -85,6 +87,7 @@ export class RepuestoService {
       costoUnitarioPonderado: repuesto.costoUnitarioPonderado,
       cantidad: dto.cantidad ?? repuesto.cantidad,
       stockCritico: dto.stockCritico ?? repuesto.stockCritico,
+      contable: dto.contable ?? repuesto.contable,
       correlativo: dto.correlativo ?? repuesto.correlativo,
       costCenter: dto.centroCosto_id
         ? { id: dto.centroCosto_id }
@@ -207,18 +210,49 @@ export class RepuestoService {
         salida.importe = Number(
           (Number(salida.cantidad) * nuevoCosto).toFixed(2),
         );
+        // Las salidas no tienen descuento: subtotal = importe.
+        salida.subtotal = salida.importe;
         salida.updatedAt = new Date();
       }
     }
 
     if (salidas.length > 0) {
       await this.salidaDetalleRepository.save(salidas);
+      // Los totales de cada salida (que usan los reportes de costos por OT)
+      // deben reflejar los nuevos importes de sus líneas.
+      await this.actualizarTotalesSalidas(salidas.map((d) => d.salidaId));
     }
 
     repuesto.costoUnitarioPonderado = Number(costoPonderado.toFixed(4));
     repuesto.updatedAt = new Date();
     const saved = await this.repuestoRepository.save(repuesto);
     return this.toResponseDto(saved);
+  }
+
+  // Recalcula subtotal/total de las salidas indicadas como la suma de los
+  // importes de TODAS sus líneas (no solo las del repuesto recalculado).
+  private async actualizarTotalesSalidas(salidaIds: number[]) {
+    const ids = [...new Set(salidaIds)];
+    if (ids.length === 0) return;
+    const sumas: { salidaId: number; total: string }[] =
+      await this.salidaDetalleRepository
+        .createQueryBuilder('d')
+        .select('d.salidaId', 'salidaId')
+        .addSelect('SUM(d.importe)', 'total')
+        .where('d.salidaId IN (:...ids)', { ids })
+        .groupBy('d.salidaId')
+        .getRawMany();
+    const salidaRepository =
+      this.salidaDetalleRepository.manager.getRepository(Salida);
+    for (const { salidaId, total } of sumas) {
+      const monto = Number(Number(total).toFixed(2));
+      await salidaRepository.update(salidaId, {
+        subtotal: monto,
+        descuentoTotal: 0,
+        total: monto,
+        updatedAt: new Date(),
+      });
+    }
   }
 
   private toResponseDto = (r: Repuesto): ResponseRepuestoDto => ({
@@ -238,6 +272,7 @@ export class RepuestoService {
     aperturaCostoUnitario: r.aperturaCostoUnitario,
     cantidad: r.cantidad,
     stockCritico: r.stockCritico,
+    contable: r.contable,
     correlativo: r.correlativo,
     centroCosto_id: r.costCenter?.id,
     proceso_id: r.process?.id,

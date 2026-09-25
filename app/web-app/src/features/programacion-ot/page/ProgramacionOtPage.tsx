@@ -12,6 +12,8 @@ import {
 } from 'react-icons/fa';
 import { useTheme } from '../../../shared/contexts/ThemeContext';
 import { SearchableSelect } from '../../../shared/components/SearchableSelect';
+import { SearchBar } from '../../../shared/components/SearchBar';
+import { filtrarPorTexto } from '../../../shared/utils/search';
 import { programacionOtService } from '../services/programacionOt.service';
 import {
   EMPTY_FORM,
@@ -105,6 +107,7 @@ export default function ProgramacionOtPage() {
   const [formData, setFormData] = useState<ProgramacionOtFormData>(EMPTY_FORM);
   const [saving, setSaving] = useState(false);
   const [ejecutandoId, setEjecutandoId] = useState<number | null>(null);
+  const [busqueda, setBusqueda] = useState('');
 
   const cargarTodo = useCallback(async () => {
     setLoading(true);
@@ -203,6 +206,19 @@ export default function ProgramacionOtPage() {
   const tipoMap = useMemo(
     () => Object.fromEntries(tiposMantenimiento.map((t) => [t.id, t.name])),
     [tiposMantenimiento],
+  );
+
+  const programacionesFiltradas = filtrarPorTexto(
+    programaciones,
+    busqueda,
+    (p) => [
+      p.nombre,
+      p.descripcionTarea,
+      p.tipoEjecucion,
+      maquinaMap[p.maquina_id],
+      p.subUnidad_id ? subUnidadMap[p.subUnidad_id] : '',
+      tipoMap[p.tipoOT_id],
+    ],
   );
 
   // ── Cascada Centro de Costo → Proceso → Máquina → SubUnidad ──
@@ -494,6 +510,18 @@ export default function ProgramacionOtPage() {
           </div>
         )}
 
+        {!loading && programaciones.length > 0 && (
+          <SearchBar
+            value={busqueda}
+            onChange={setBusqueda}
+            placeholder="Buscar por ID, nombre, descripción, máquina o tipo..."
+            theme={theme}
+            total={programaciones.length}
+            resultados={programacionesFiltradas.length}
+            sinContenedor
+          />
+        )}
+
         {loading ? (
           <div style={{ textAlign: 'center', padding: '40px' }}>
             Cargando programaciones...
@@ -563,7 +591,7 @@ export default function ProgramacionOtPage() {
                 </tr>
               </thead>
               <tbody>
-                {programaciones.map((p, idx) => {
+                {programacionesFiltradas.map((p, idx) => {
                   const dias = diasHasta(p.proximaEjecucion);
                   const vencida = dias <= 0;
                   return (
@@ -726,6 +754,20 @@ export default function ProgramacionOtPage() {
                     </tr>
                   );
                 })}
+                {programacionesFiltradas.length === 0 && (
+                  <tr>
+                    <td
+                      colSpan={8}
+                      style={{
+                        padding: '20px',
+                        textAlign: 'center',
+                        opacity: 0.7,
+                      }}
+                    >
+                      Ninguna programación coincide con la búsqueda.
+                    </td>
+                  </tr>
+                )}
               </tbody>
             </table>
           </div>

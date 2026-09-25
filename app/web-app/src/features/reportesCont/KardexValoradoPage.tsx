@@ -298,7 +298,10 @@ const TIPO_STYLE: Record<string, { bg: string; color: string }> = {
 };
 
 function TipoBadge({ tipo }: { tipo: string; theme: string }) {
-  const s = TIPO_STYLE[tipo] ?? { bg: '#E1CD9B', color: '#5D3312' };
+  const s = TIPO_STYLE[tipo] ?? {
+    bg: 'var(--app-head-bg)',
+    color: 'var(--app-brand-text)',
+  };
   // For dark mode, adjust colors if needed, but for now keep as is
   return (
     <span
@@ -495,7 +498,7 @@ export default function KardexValoradoPage() {
         style={{
           background: bgColor,
           borderRadius: 12,
-          boxShadow: '0 2px 8px rgba(0,0,0,0.08)',
+          boxShadow: 'var(--app-shadow)',
           padding: 'clamp(1rem, 4vw, 2rem)',
         }}
       >
@@ -544,7 +547,9 @@ export default function KardexValoradoPage() {
               maxWidth: 180,
             }}
           >
-            <span style={{ fontSize: '0.72rem', color: '#888' }}>
+            <span
+              style={{ fontSize: '0.72rem', color: 'var(--app-text-subtle)' }}
+            >
               Fecha inicio
             </span>
             <input
@@ -570,7 +575,9 @@ export default function KardexValoradoPage() {
               maxWidth: 180,
             }}
           >
-            <span style={{ fontSize: '0.72rem', color: '#888' }}>
+            <span
+              style={{ fontSize: '0.72rem', color: 'var(--app-text-subtle)' }}
+            >
               Fecha fin
             </span>
             <input
@@ -648,9 +655,13 @@ export default function KardexValoradoPage() {
             {
               label: 'Repuestos',
               value: new Set(dataFiltrada.map((r) => r.codigo)).size,
-              color: '#5D3312',
+              color: 'var(--app-brand-text)',
             },
-            { label: 'Movimientos', value: dataFiltrada.length, color: '#555' },
+            {
+              label: 'Movimientos',
+              value: dataFiltrada.length,
+              color: 'var(--app-text-muted)',
+            },
             {
               label: 'Total Ingresos Val. Bs',
               value: fmtNum(
@@ -669,14 +680,17 @@ export default function KardexValoradoPage() {
             <div
               key={s.label}
               style={{
-                background: theme === 'dark' ? '#2A2A2A' : '#F5F5F5',
+                background:
+                  theme === 'dark' ? '#2A2A2A' : 'var(--app-surface-alt)',
                 borderRadius: 8,
                 padding: '6px 16px',
                 textAlign: 'center',
               }}
             >
               <div style={{ fontWeight: 700, color: s.color }}>{s.value}</div>
-              <div style={{ fontSize: '0.72rem', color: '#888' }}>
+              <div
+                style={{ fontSize: '0.72rem', color: 'var(--app-text-subtle)' }}
+              >
                 {s.label}
               </div>
             </div>
@@ -752,7 +766,12 @@ export default function KardexValoradoPage() {
                             : salidaBg2;
                     return (
                       <tr key={i} style={{ background: rowBg }}>
-                        <td style={{ padding: '0.4rem 0.5rem', color: '#888' }}>
+                        <td
+                          style={{
+                            padding: '0.4rem 0.5rem',
+                            color: 'var(--app-text-subtle)',
+                          }}
+                        >
                           {item.codigo}
                         </td>
                         <td
@@ -926,7 +945,12 @@ export default function KardexValoradoPage() {
                         >
                           {item.producto}
                         </div>
-                        <div style={{ fontSize: '0.72rem', color: '#888' }}>
+                        <div
+                          style={{
+                            fontSize: '0.72rem',
+                            color: 'var(--app-text-subtle)',
+                          }}
+                        >
                           {item.codigo}
                         </div>
                       </div>
@@ -973,7 +997,12 @@ export default function KardexValoradoPage() {
                       }}
                     >
                       <div>
-                        <div style={{ fontSize: '0.66rem', color: '#888' }}>
+                        <div
+                          style={{
+                            fontSize: '0.66rem',
+                            color: 'var(--app-text-subtle)',
+                          }}
+                        >
                           Ingresos
                         </div>
                         <div
@@ -987,7 +1016,12 @@ export default function KardexValoradoPage() {
                         </div>
                       </div>
                       <div>
-                        <div style={{ fontSize: '0.66rem', color: '#888' }}>
+                        <div
+                          style={{
+                            fontSize: '0.66rem',
+                            color: 'var(--app-text-subtle)',
+                          }}
+                        >
                           Salidas
                         </div>
                         <div
@@ -1001,7 +1035,12 @@ export default function KardexValoradoPage() {
                         </div>
                       </div>
                       <div>
-                        <div style={{ fontSize: '0.66rem', color: '#888' }}>
+                        <div
+                          style={{
+                            fontSize: '0.66rem',
+                            color: 'var(--app-text-subtle)',
+                          }}
+                        >
                           Saldo ({item.unidad || 'u.'})
                         </div>
                         <div
@@ -1029,7 +1068,12 @@ export default function KardexValoradoPage() {
                       }}
                     >
                       <div>
-                        <div style={{ fontSize: '0.66rem', color: '#888' }}>
+                        <div
+                          style={{
+                            fontSize: '0.66rem',
+                            color: 'var(--app-text-subtle)',
+                          }}
+                        >
                           Costo Unit. Bs
                         </div>
                         <div style={{ fontSize: '0.8rem', color: textColor }}>
@@ -1037,7 +1081,12 @@ export default function KardexValoradoPage() {
                         </div>
                       </div>
                       <div>
-                        <div style={{ fontSize: '0.66rem', color: '#888' }}>
+                        <div
+                          style={{
+                            fontSize: '0.66rem',
+                            color: 'var(--app-text-subtle)',
+                          }}
+                        >
                           Ing. Val. Bs
                         </div>
                         <div
@@ -1049,7 +1098,12 @@ export default function KardexValoradoPage() {
                         </div>
                       </div>
                       <div>
-                        <div style={{ fontSize: '0.66rem', color: '#888' }}>
+                        <div
+                          style={{
+                            fontSize: '0.66rem',
+                            color: 'var(--app-text-subtle)',
+                          }}
+                        >
                           Sal. Val. Bs
                         </div>
                         <div style={{ fontSize: '0.8rem', color: errorColor }}>
@@ -1059,7 +1113,12 @@ export default function KardexValoradoPage() {
                         </div>
                       </div>
                       <div>
-                        <div style={{ fontSize: '0.66rem', color: '#888' }}>
+                        <div
+                          style={{
+                            fontSize: '0.66rem',
+                            color: 'var(--app-text-subtle)',
+                          }}
+                        >
                           Saldo Val. Bs
                         </div>
                         <div

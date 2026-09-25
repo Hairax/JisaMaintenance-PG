@@ -15,6 +15,7 @@ export class ResponseRepuestoDto {
   aperturaCostoUnitario: number;
   cantidad: number;
   stockCritico: number;
+  contable: boolean;
   correlativo: number;
   centroCosto_id: number;
   proceso_id: number;

@@ -1,4 +1,6 @@
 import React from 'react';
+import { SearchBar } from '../../../shared/components/SearchBar';
+import { filtrarPorTexto } from '../../../shared/utils/search';
 import { exportSubUnidadesToExcel } from '../functions/exportExcel';
 import { useTheme } from '../../../shared/contexts/ThemeContext';
 import { useSubUnidad } from '../hooks/useSubUnidad';
@@ -9,6 +11,7 @@ import { colors } from '../types/colors';
 
 export const SubUnidadPage: React.FC = () => {
   const { theme } = useTheme();
+  const [busqueda, setBusqueda] = React.useState('');
   const {
     state,
     handleOpenModal,
@@ -19,6 +22,11 @@ export const SubUnidadPage: React.FC = () => {
     handleDeleteClick,
     handleDeleteSubUnidad,
   } = useSubUnidad();
+
+  const filtrados = filtrarPorTexto(state.subUnidades, busqueda, (s) => [
+    s.descripcion,
+    state.maquinas.find((m) => m.id === s.maquina_id)?.name,
+  ]);
 
   return (
     <div
@@ -43,8 +51,16 @@ export const SubUnidadPage: React.FC = () => {
           Exportar a Excel
         </button>
       </div>
+      <SearchBar
+        value={busqueda}
+        onChange={setBusqueda}
+        placeholder="Buscar por ID, descripción o máquina..."
+        theme={theme}
+        total={state.subUnidades.length}
+        resultados={filtrados.length}
+      />
       <SubUnidadTable
-        subUnidades={state.subUnidades}
+        subUnidades={filtrados}
         theme={theme}
         maquinas={state.maquinas}
         procesos={state.procesos}

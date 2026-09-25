@@ -15,6 +15,7 @@ const CARGO_LABELS: Record<string, string> = {
   'jefe-mantenimiento': 'Jefe de Mantenimiento',
   'encargado-almacen': 'Encargado de Almacén',
   'usuario-contable': 'Usuario Contable',
+  'encargado-compras': 'Encargado de Compras',
 };
 
 const colors = {

@@ -49,7 +49,7 @@ const ACCESOS_RAPIDOS = [
   {
     label: 'Costos por OT',
     to: '/reportes/costos-ordenes-trabajo',
-    color: '#9E5533',
+    color: 'var(--app-brand-accent)',
   },
   {
     label: 'Costos de Mantenimiento',
@@ -59,14 +59,14 @@ const ACCESOS_RAPIDOS = [
   {
     label: 'Mantenimiento por Activo',
     to: '/reportes/mantenimiento-activo',
-    color: '#5D3312',
+    color: 'var(--app-brand-text)',
   },
 ];
 
 const diasColor = (dias: number) => {
   if (dias > 14) return { bg: '#FDECEA', color: '#C62828' };
   if (dias > 7) return { bg: '#FFF3E0', color: '#E65100' };
-  return { bg: '#F5F5F5', color: '#555' };
+  return { bg: 'var(--app-surface-alt)', color: 'var(--app-text-muted)' };
 };
 
 // ── Component ─────────────────────────────────────────────────────────────────
@@ -77,7 +77,7 @@ export default function DashboardPage() {
 
   if (loading && !data) {
     return (
-      <div className="p-8 text-center text-gray-500">
+      <div className="p-8 text-center text-gray-500 dark:text-gray-400">
         Cargando panel gerencial...
       </div>
     );
@@ -108,19 +108,19 @@ export default function DashboardPage() {
   }));
 
   return (
-    <div className="p-6 md:p-8 max-w-7xl mx-auto bg-[#F9FAFB]">
+    <div className="p-6 md:p-8 max-w-7xl mx-auto bg-[#F9FAFB] dark:bg-[#161616]">
       {/* Header */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-6">
         <div>
-          <h1 className="text-2xl md:text-3xl font-bold text-[#2D3748]">
+          <h1 className="text-2xl md:text-3xl font-bold text-[#2D3748] dark:text-gray-100">
             Panel Gerencial de Mantenimiento
           </h1>
-          <p className="text-sm text-gray-500 mt-1">
+          <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
             Visión general de órdenes de trabajo, costos y desempeño
           </p>
         </div>
         <div className="flex items-center gap-2 flex-wrap">
-          <div className="flex bg-white border border-gray-200 rounded-lg overflow-hidden">
+          <div className="flex bg-white dark:bg-[#1E1E1E] border border-gray-200 dark:border-[#3A3A3A] rounded-lg overflow-hidden">
             {PERIODOS.map((p) => (
               <button
                 key={p.value}
@@ -128,7 +128,7 @@ export default function DashboardPage() {
                 className="px-3 py-2 text-xs font-medium transition"
                 style={{
                   background: periodo === p.value ? '#5D3312' : 'transparent',
-                  color: periodo === p.value ? '#fff' : '#5D3312',
+                  color: periodo === p.value ? '#fff' : 'var(--app-brand-text)',
                 }}
               >
                 {p.label}
@@ -202,12 +202,12 @@ export default function DashboardPage() {
 
       {/* Tendencias */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 mb-6">
-        <div className="bg-white p-4 rounded-xl shadow-sm border border-gray-100">
-          <h3 className="text-base font-semibold mb-3 text-gray-800">
+        <div className="bg-white dark:bg-[#1E1E1E] p-4 rounded-xl shadow-sm border border-gray-100 dark:border-[#2E2E2E]">
+          <h3 className="text-base font-semibold mb-3 text-gray-800 dark:text-gray-100">
             OTs Creadas vs. Cerradas por Mes
           </h3>
           {tendenciaOTs.length === 0 ? (
-            <p className="text-sm text-gray-400 text-center py-10">
+            <p className="text-sm text-gray-400 dark:text-gray-500 text-center py-10">
               Sin datos en el período.
             </p>
           ) : (
@@ -237,13 +237,13 @@ export default function DashboardPage() {
           )}
         </div>
 
-        <div className="bg-white p-4 rounded-xl shadow-sm border border-gray-100">
+        <div className="bg-white dark:bg-[#1E1E1E] p-4 rounded-xl shadow-sm border border-gray-100 dark:border-[#2E2E2E]">
           {data.costoPorMes.length === 0 ? (
             <>
-              <h3 className="text-base font-semibold mb-3 text-gray-800">
+              <h3 className="text-base font-semibold mb-3 text-gray-800 dark:text-gray-100">
                 Costo de Mantenimiento por Mes (Bs)
               </h3>
-              <p className="text-sm text-gray-400 text-center py-10">
+              <p className="text-sm text-gray-400 dark:text-gray-500 text-center py-10">
                 Sin datos en el período.
               </p>
             </>
@@ -259,9 +259,9 @@ export default function DashboardPage() {
 
       {/* Distribuciones */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 mb-6">
-        <div className="bg-white p-4 rounded-xl shadow-sm border border-gray-100">
+        <div className="bg-white dark:bg-[#1E1E1E] p-4 rounded-xl shadow-sm border border-gray-100 dark:border-[#2E2E2E]">
           {data.otsPorEstado.length === 0 ? (
-            <p className="text-sm text-gray-400 text-center py-10">
+            <p className="text-sm text-gray-400 dark:text-gray-500 text-center py-10">
               Sin datos.
             </p>
           ) : (
@@ -272,9 +272,9 @@ export default function DashboardPage() {
             />
           )}
         </div>
-        <div className="bg-white p-4 rounded-xl shadow-sm border border-gray-100">
+        <div className="bg-white dark:bg-[#1E1E1E] p-4 rounded-xl shadow-sm border border-gray-100 dark:border-[#2E2E2E]">
           {data.otsPorTipo.length === 0 ? (
-            <p className="text-sm text-gray-400 text-center py-10">
+            <p className="text-sm text-gray-400 dark:text-gray-500 text-center py-10">
               Sin datos.
             </p>
           ) : (
@@ -285,9 +285,9 @@ export default function DashboardPage() {
             />
           )}
         </div>
-        <div className="bg-white p-4 rounded-xl shadow-sm border border-gray-100">
+        <div className="bg-white dark:bg-[#1E1E1E] p-4 rounded-xl shadow-sm border border-gray-100 dark:border-[#2E2E2E]">
           {data.otsPorDepartamento.length === 0 ? (
-            <p className="text-sm text-gray-400 text-center py-10">
+            <p className="text-sm text-gray-400 dark:text-gray-500 text-center py-10">
               Sin datos.
             </p>
           ) : (
@@ -303,26 +303,30 @@ export default function DashboardPage() {
       {/* Rankings y alertas */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 mb-6">
         {/* Ranking activos */}
-        <div className="bg-white p-4 rounded-xl shadow-sm border border-gray-100">
-          <h3 className="text-base font-semibold mb-3 text-gray-800">
+        <div className="bg-white dark:bg-[#1E1E1E] p-4 rounded-xl shadow-sm border border-gray-100 dark:border-[#2E2E2E]">
+          <h3 className="text-base font-semibold mb-3 text-gray-800 dark:text-gray-100">
             Top 5 Activos por Costo
           </h3>
           {data.rankingActivos.length === 0 ? (
-            <p className="text-sm text-gray-400 text-center py-8">Sin datos.</p>
+            <p className="text-sm text-gray-400 dark:text-gray-500 text-center py-8">
+              Sin datos.
+            </p>
           ) : (
             <table className="w-full text-xs">
               <tbody>
                 {data.rankingActivos.map((a, i) => (
                   <tr
                     key={a.id}
-                    className="border-b border-gray-50 last:border-0"
+                    className="border-b border-gray-50 dark:border-[#2E2E2E] last:border-0"
                   >
-                    <td className="py-2 pr-2 text-gray-400 w-5">{i + 1}</td>
+                    <td className="py-2 pr-2 text-gray-400 dark:text-gray-500 w-5">
+                      {i + 1}
+                    </td>
                     <td className="py-2 pr-2">
-                      <div className="font-medium text-gray-800">
+                      <div className="font-medium text-gray-800 dark:text-gray-100">
                         {a.nombre}
                       </div>
-                      <div className="text-gray-400">
+                      <div className="text-gray-400 dark:text-gray-500">
                         {a.ots} OTs · {fmtHours(a.horas)}
                       </div>
                     </td>
@@ -337,26 +341,30 @@ export default function DashboardPage() {
         </div>
 
         {/* Ranking técnicos */}
-        <div className="bg-white p-4 rounded-xl shadow-sm border border-gray-100">
-          <h3 className="text-base font-semibold mb-3 text-gray-800">
+        <div className="bg-white dark:bg-[#1E1E1E] p-4 rounded-xl shadow-sm border border-gray-100 dark:border-[#2E2E2E]">
+          <h3 className="text-base font-semibold mb-3 text-gray-800 dark:text-gray-100">
             Top 5 Técnicos por Horas Trabajadas
           </h3>
           {data.rankingTecnicos.length === 0 ? (
-            <p className="text-sm text-gray-400 text-center py-8">Sin datos.</p>
+            <p className="text-sm text-gray-400 dark:text-gray-500 text-center py-8">
+              Sin datos.
+            </p>
           ) : (
             <table className="w-full text-xs">
               <tbody>
                 {data.rankingTecnicos.map((t, i) => (
                   <tr
                     key={t.id}
-                    className="border-b border-gray-50 last:border-0"
+                    className="border-b border-gray-50 dark:border-[#2E2E2E] last:border-0"
                   >
-                    <td className="py-2 pr-2 text-gray-400 w-5">{i + 1}</td>
+                    <td className="py-2 pr-2 text-gray-400 dark:text-gray-500 w-5">
+                      {i + 1}
+                    </td>
                     <td className="py-2 pr-2">
-                      <div className="font-medium text-gray-800">
+                      <div className="font-medium text-gray-800 dark:text-gray-100">
                         {t.nombre}
                       </div>
-                      <div className="text-gray-400">
+                      <div className="text-gray-400 dark:text-gray-500">
                         {t.intervenciones} intervenciones
                       </div>
                     </td>
@@ -364,7 +372,7 @@ export default function DashboardPage() {
                       <div className="font-bold text-[#6A1B9A]">
                         {fmtHours(t.horas)}
                       </div>
-                      <div className="text-gray-400">
+                      <div className="text-gray-400 dark:text-gray-500">
                         Bs {fmtCurrency(t.costo)}
                       </div>
                     </td>
@@ -376,12 +384,12 @@ export default function DashboardPage() {
         </div>
 
         {/* OTs vencidas / envejecidas */}
-        <div className="bg-white p-4 rounded-xl shadow-sm border border-gray-100">
-          <h3 className="text-base font-semibold mb-3 text-gray-800">
+        <div className="bg-white dark:bg-[#1E1E1E] p-4 rounded-xl shadow-sm border border-gray-100 dark:border-[#2E2E2E]">
+          <h3 className="text-base font-semibold mb-3 text-gray-800 dark:text-gray-100">
             OTs Abiertas Más Antiguas
           </h3>
           {data.otsVencidas.length === 0 ? (
-            <p className="text-sm text-gray-400 text-center py-8">
+            <p className="text-sm text-gray-400 dark:text-gray-500 text-center py-8">
               No hay OTs pendientes. 🎉
             </p>
           ) : (
@@ -392,13 +400,13 @@ export default function DashboardPage() {
                   return (
                     <tr
                       key={o.id}
-                      className="border-b border-gray-50 last:border-0"
+                      className="border-b border-gray-50 dark:border-[#2E2E2E] last:border-0"
                     >
                       <td className="py-2 pr-2">
-                        <div className="font-medium text-gray-800">
+                        <div className="font-medium text-gray-800 dark:text-gray-100">
                           #{o.id} · {o.maquina}
                         </div>
-                        <div className="text-gray-400 truncate max-w-[180px]">
+                        <div className="text-gray-400 dark:text-gray-500 truncate max-w-[180px]">
                           {o.descripcion}
                         </div>
                       </td>
@@ -420,8 +428,8 @@ export default function DashboardPage() {
       </div>
 
       {/* Accesos rápidos a reportes detallados */}
-      <div className="bg-white p-4 rounded-xl shadow-sm border border-gray-100">
-        <h3 className="text-base font-semibold mb-3 text-gray-800">
+      <div className="bg-white dark:bg-[#1E1E1E] p-4 rounded-xl shadow-sm border border-gray-100 dark:border-[#2E2E2E]">
+        <h3 className="text-base font-semibold mb-3 text-gray-800 dark:text-gray-100">
           Reportes y Análisis Detallados
         </h3>
         <div className="flex flex-wrap gap-2">
@@ -432,8 +440,10 @@ export default function DashboardPage() {
               className="px-3 py-2 rounded-lg text-xs font-semibold border transition hover:shadow-sm"
               style={{
                 color: a.color,
-                borderColor: `${a.color}55`,
-                background: `${a.color}0D`,
+                // color-mix en vez de concatenar alfa: a.color puede ser una
+                // variable CSS de tema.
+                borderColor: `color-mix(in srgb, ${a.color} 33%, transparent)`,
+                background: `color-mix(in srgb, ${a.color} 5%, transparent)`,
               }}
             >
               {a.label} →

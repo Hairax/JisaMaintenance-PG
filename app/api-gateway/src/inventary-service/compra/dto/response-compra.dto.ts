@@ -1,3 +1,5 @@
+import { CompraDetalle } from '../entities/compra.entity';
+
 export class ResponseCompraDto {
   id: number;
   nroDocumento: string;
@@ -10,10 +12,11 @@ export class ResponseCompraDto {
   fecha: Date;
   tipoCambio: number;
   nroAutorizacion: string;
+  usuarioId: number;
   subtotal: number;
   descuentoTotal: number;
   total: number;
-  detalles: any[];
+  detalles: CompraDetalle[];
   createdAt: Date;
   updatedAt: Date;
 }

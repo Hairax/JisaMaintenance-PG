@@ -1,4 +1,6 @@
 import React from 'react';
+import { SearchBar } from '../../../shared/components/SearchBar';
+import { filtrarPorTexto } from '../../../shared/utils/search';
 import { useTheme } from '../../../shared/contexts/ThemeContext';
 import { useProveedores } from '../hooks/useProveedores';
 import { ProveedoresTable } from '../components/proovedoresTable';
@@ -17,6 +19,7 @@ export const colors = {
 
 export const ProovedoresPage: React.FC = () => {
   const { theme } = useTheme();
+  const [busqueda, setBusqueda] = React.useState('');
   const {
     state,
     handleOpenModal,
@@ -34,9 +37,23 @@ export const ProovedoresPage: React.FC = () => {
     padding: '20px 0',
   };
 
+  const filtrados = filtrarPorTexto(state.proveedores, busqueda, (p) => [
+    p.nombre,
+    p.ruc,
+    p.correoElectronico,
+    p.telefono,
+    p.direccion,
+  ]);
+
   return (
     <div style={pageStyle}>
-      <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: 16 }}>
+      <div
+        style={{
+          display: 'flex',
+          justifyContent: 'flex-end',
+          marginBottom: 16,
+        }}
+      >
         <button
           onClick={() => exportProveedoresToExcel(state.proveedores)}
           style={{
@@ -50,14 +67,26 @@ export const ProovedoresPage: React.FC = () => {
             cursor: 'pointer',
             marginRight: 16,
           }}
-          onMouseOver={e => (e.currentTarget.style.backgroundColor = '#E69D00')}
-          onMouseOut={e => (e.currentTarget.style.backgroundColor = colors.gold)}
+          onMouseOver={(e) =>
+            (e.currentTarget.style.backgroundColor = '#E69D00')
+          }
+          onMouseOut={(e) =>
+            (e.currentTarget.style.backgroundColor = colors.gold)
+          }
         >
           Exportar a Excel
         </button>
       </div>
+      <SearchBar
+        value={busqueda}
+        onChange={setBusqueda}
+        placeholder="Buscar por ID, nombre, NIT, correo o teléfono..."
+        theme={theme}
+        total={state.proveedores.length}
+        resultados={filtrados.length}
+      />
       <ProveedoresTable
-        proveedores={state.proveedores}
+        proveedores={filtrados}
         theme={theme}
         onAddProveedor={() => handleOpenModal('create')}
         onViewProveedor={(proveedor) => handleOpenModal('view', proveedor)}

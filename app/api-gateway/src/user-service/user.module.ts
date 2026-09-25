@@ -13,6 +13,14 @@ import { UserController } from './user.controller';
           port: parseInt(process.env.USER_SERVICE_PORT || '3002'),
         },
       },
+      {
+        name: 'AUTH_SERVICE',
+        transport: Transport.TCP,
+        options: {
+          host: process.env.AUTH_SERVICE_HOST || 'localhost',
+          port: parseInt(process.env.AUTH_SERVICE_PORT || '3001'),
+        },
+      },
     ]),
   ],
   controllers: [UserController],

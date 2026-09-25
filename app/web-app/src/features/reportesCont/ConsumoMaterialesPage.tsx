@@ -2,6 +2,11 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 import * as XLSX from 'xlsx';
 import { API_URL } from '../../shared/config/api';
 import { exportStyledExcel } from '../../shared/utils/accountingExcel';
+import {
+  AlcanceExport,
+  ExportContabilidadModal,
+} from '../../shared/components/ExportContabilidadModal';
+import { cargarFiltroContable } from '../../shared/utils/contableFilter';
 
 const API = API_URL;
 
@@ -12,6 +17,7 @@ interface SalidaDetalle {
   salidaId: number;
   tipoProducto: 'repuesto' | 'repuesto-maquina';
   productoId: number;
+  repuestoId?: number | null;
   codigo: string;
   nombre: string;
   unidadMedida: string;
@@ -92,6 +98,7 @@ export default function ConsumoMaterialesPage() {
   const [usuariosMap, setUsuariosMap] = useState<Record<number, UsuarioInfo>>(
     {},
   );
+  const [modalExport, setModalExport] = useState(false);
 
   const cargarDatos = useCallback(async () => {
     setLoading(true);
@@ -204,7 +211,10 @@ export default function ConsumoMaterialesPage() {
   // fila por cada línea de detalle. 'Tipo (produc/promo/muestra/merma)'
   // queda vacía a propósito — el sistema no distingue eso hoy (solo
   // 'repuesto' vs 'repuesto-maquina', que es otra clasificación).
-  const exportarContabilidad = async () => {
+  // Con alcance 'contables' se omiten las líneas de repuestos no contables.
+  const exportarContabilidad = async (alcance: AlcanceExport) => {
+    const esContable =
+      alcance === 'contables' ? await cargarFiltroContable() : () => true;
     const headers = [
       'codigo',
       'Fecha',
@@ -234,10 +244,13 @@ export default function ConsumoMaterialesPage() {
       const departamento = ot?.departamento?.nombre || '';
       const objeto = ot?.objeto?.nombre || '';
 
+      const lineas = (s.detalles ?? []).filter((d) => esContable(d.repuestoId));
+      // Salida cuyas líneas eran todas no contables: no aporta nada al export.
+      if (lineas.length === 0 && (s.detalles ?? []).length > 0) continue;
       const detalles =
-        (s.detalles ?? []).length === 0
+        lineas.length === 0
           ? [{ codigo: '', nombre: '', cantidad: 0 }]
-          : s.detalles;
+          : lineas;
 
       for (const d of detalles) {
         rows.push([
@@ -267,7 +280,13 @@ export default function ConsumoMaterialesPage() {
 
   if (loading)
     return (
-      <div style={{ padding: '2rem', textAlign: 'center', color: '#888' }}>
+      <div
+        style={{
+          padding: '2rem',
+          textAlign: 'center',
+          color: 'var(--app-text-subtle)',
+        }}
+      >
         Cargando consumos...
       </div>
     );
@@ -303,9 +322,9 @@ export default function ConsumoMaterialesPage() {
     >
       <div
         style={{
-          background: '#fff',
+          background: 'var(--app-surface)',
           borderRadius: 12,
-          boxShadow: '0 2px 8px rgba(0,0,0,0.08)',
+          boxShadow: 'var(--app-shadow)',
           padding: 'clamp(1rem, 4vw, 2rem)',
         }}
       >
@@ -337,7 +356,7 @@ export default function ConsumoMaterialesPage() {
             style={{
               padding: '0.5rem 1rem',
               borderRadius: 8,
-              border: '1px solid #ccc',
+              border: '1px solid var(--app-border)',
               minWidth: 220,
               flex: 1,
             }}
@@ -348,7 +367,7 @@ export default function ConsumoMaterialesPage() {
             style={{
               padding: '0.5rem 0.75rem',
               borderRadius: 8,
-              border: '1px solid #ccc',
+              border: '1px solid var(--app-border)',
             }}
           >
             <option value="todos">Todos los estados</option>
@@ -357,7 +376,9 @@ export default function ConsumoMaterialesPage() {
             <option value="cancelada">Cancelada</option>
           </select>
           <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
-            <span style={{ fontSize: '0.72rem', color: '#888' }}>
+            <span
+              style={{ fontSize: '0.72rem', color: 'var(--app-text-subtle)' }}
+            >
               Fecha inicio
             </span>
             <input
@@ -367,12 +388,14 @@ export default function ConsumoMaterialesPage() {
               style={{
                 padding: '0.5rem 0.75rem',
                 borderRadius: 8,
-                border: '1px solid #ccc',
+                border: '1px solid var(--app-border)',
               }}
             />
           </div>
           <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
-            <span style={{ fontSize: '0.72rem', color: '#888' }}>
+            <span
+              style={{ fontSize: '0.72rem', color: 'var(--app-text-subtle)' }}
+            >
               Fecha fin
             </span>
             <input
@@ -382,7 +405,7 @@ export default function ConsumoMaterialesPage() {
               style={{
                 padding: '0.5rem 0.75rem',
                 borderRadius: 8,
-                border: '1px solid #ccc',
+                border: '1px solid var(--app-border)',
               }}
             />
           </div>
@@ -434,12 +457,7 @@ export default function ConsumoMaterialesPage() {
             Exportar a Excel
           </button>
           <button
-            onClick={() => {
-              exportarContabilidad().catch((err) => {
-                console.error(err);
-                setError('Error al generar el Excel para contabilidad.');
-              });
-            }}
+            onClick={() => setModalExport(true)}
             style={{
               padding: '0.5rem 1.2rem',
               borderRadius: 8,
@@ -464,14 +482,18 @@ export default function ConsumoMaterialesPage() {
           }}
         >
           {[
-            { label: 'Salidas', value: dataFiltrada.length, color: '#5D3312' },
+            {
+              label: 'Salidas',
+              value: dataFiltrada.length,
+              color: 'var(--app-brand-text)',
+            },
             {
               label: 'Ítems',
               value: dataFiltrada.reduce(
                 (s, r) => s + (r.detalles?.length ?? 0),
                 0,
               ),
-              color: '#555',
+              color: 'var(--app-text-muted)',
             },
             {
               label: 'Total consumo',
@@ -494,14 +516,16 @@ export default function ConsumoMaterialesPage() {
             <div
               key={s.label}
               style={{
-                background: '#F5F5F5',
+                background: 'var(--app-surface-alt)',
                 borderRadius: 8,
                 padding: '6px 16px',
                 textAlign: 'center',
               }}
             >
               <div style={{ fontWeight: 700, color: s.color }}>{s.value}</div>
-              <div style={{ fontSize: '0.72rem', color: '#888' }}>
+              <div
+                style={{ fontSize: '0.72rem', color: 'var(--app-text-subtle)' }}
+              >
                 {s.label}
               </div>
             </div>
@@ -518,7 +542,7 @@ export default function ConsumoMaterialesPage() {
             }}
           >
             <thead>
-              <tr style={{ background: '#E1CD9B' }}>
+              <tr style={{ background: 'var(--app-head-bg)' }}>
                 <th style={{ padding: '0.65rem 0.75rem', width: 28 }} />
                 <th
                   style={{
@@ -593,7 +617,7 @@ export default function ConsumoMaterialesPage() {
                     style={{
                       padding: '1.5rem',
                       textAlign: 'center',
-                      color: '#9E5533',
+                      color: 'var(--app-brand-accent)',
                     }}
                   >
                     No se encontraron resultados.
@@ -603,15 +627,18 @@ export default function ConsumoMaterialesPage() {
               {dataFiltrada.map((s, i) => {
                 const isExp = expandido === s.id;
                 const estadoStyle = ESTADO_STYLE[s.estado] ?? {
-                  bg: '#F5F5F5',
-                  color: '#555',
+                  bg: 'var(--app-surface-alt)',
+                  color: 'var(--app-text-muted)',
                 };
                 return (
                   <>
                     <tr
                       key={s.id}
                       style={{
-                        background: i % 2 === 0 ? '#fff' : '#F5F5F5',
+                        background:
+                          i % 2 === 0
+                            ? 'var(--app-surface)'
+                            : 'var(--app-surface-alt)',
                         cursor: 'pointer',
                       }}
                       onClick={() => setExpandido(isExp ? null : s.id)}
@@ -620,7 +647,7 @@ export default function ConsumoMaterialesPage() {
                         style={{
                           padding: '0.65rem 0.75rem',
                           textAlign: 'center',
-                          color: '#aaa',
+                          color: 'var(--app-text-subtle)',
                           fontSize: '0.8rem',
                         }}
                       >
@@ -638,7 +665,7 @@ export default function ConsumoMaterialesPage() {
                         style={{
                           padding: '0.65rem 0.75rem',
                           fontWeight: 600,
-                          color: '#5D3312',
+                          color: 'var(--app-brand-text)',
                         }}
                       >
                         {s.nroSalida || `#${s.id}`}
@@ -647,7 +674,7 @@ export default function ConsumoMaterialesPage() {
                         style={{
                           padding: '0.65rem 0.75rem',
                           fontSize: '0.82rem',
-                          color: '#555',
+                          color: 'var(--app-text-muted)',
                         }}
                       >
                         {s.otId ? `#${s.otId}` : '—'}
@@ -673,7 +700,7 @@ export default function ConsumoMaterialesPage() {
                         style={{
                           padding: '0.65rem 0.75rem',
                           fontSize: '0.82rem',
-                          color: '#555',
+                          color: 'var(--app-text-muted)',
                           maxWidth: 200,
                           overflow: 'hidden',
                           textOverflow: 'ellipsis',
@@ -713,7 +740,10 @@ export default function ConsumoMaterialesPage() {
                       </td>
                     </tr>
                     {isExp && (
-                      <tr key={`det-${s.id}`} style={{ background: '#FAFAFA' }}>
+                      <tr
+                        key={`det-${s.id}`}
+                        style={{ background: 'var(--app-surface-soft)' }}
+                      >
                         <td
                           colSpan={10}
                           style={{ padding: '0 1rem 1rem 2.5rem' }}
@@ -721,7 +751,7 @@ export default function ConsumoMaterialesPage() {
                           {(s.detalles ?? []).length === 0 ? (
                             <p
                               style={{
-                                color: '#aaa',
+                                color: 'var(--app-text-subtle)',
                                 fontSize: '0.82rem',
                                 margin: '0.5rem 0',
                               }}
@@ -738,7 +768,11 @@ export default function ConsumoMaterialesPage() {
                               }}
                             >
                               <thead>
-                                <tr style={{ background: '#F0E8D0' }}>
+                                <tr
+                                  style={{
+                                    background: 'var(--app-surface-warm)',
+                                  }}
+                                >
                                   <th
                                     style={{
                                       padding: '0.5rem 0.75rem',
@@ -811,7 +845,9 @@ export default function ConsumoMaterialesPage() {
                                     key={di}
                                     style={{
                                       background:
-                                        di % 2 === 0 ? '#fff' : '#F9F6EE',
+                                        di % 2 === 0
+                                          ? 'var(--app-surface)'
+                                          : 'var(--app-surface-warm)',
                                     }}
                                   >
                                     <td
@@ -825,7 +861,7 @@ export default function ConsumoMaterialesPage() {
                                     <td
                                       style={{
                                         padding: '0.5rem 0.75rem',
-                                        color: '#888',
+                                        color: 'var(--app-text-subtle)',
                                       }}
                                     >
                                       {d.codigo || '—'}
@@ -906,6 +942,17 @@ export default function ConsumoMaterialesPage() {
           </table>
         </div>
       </div>
+      <ExportContabilidadModal
+        open={modalExport}
+        onClose={() => setModalExport(false)}
+        onSelect={(alcance) => {
+          setModalExport(false);
+          exportarContabilidad(alcance).catch((err) => {
+            console.error(err);
+            setError('Error al generar el Excel para contabilidad.');
+          });
+        }}
+      />
     </div>
   );
 }

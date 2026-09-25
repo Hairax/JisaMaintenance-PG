@@ -283,7 +283,13 @@ export default function TomaFisicaInventarioPage() {
 
   if (loading) {
     return (
-      <div style={{ padding: '2rem', textAlign: 'center', color: '#666' }}>
+      <div
+        style={{
+          padding: '2rem',
+          textAlign: 'center',
+          color: 'var(--app-text-muted)',
+        }}
+      >
         Cargando datos del inventario...
       </div>
     );
@@ -320,9 +326,9 @@ export default function TomaFisicaInventarioPage() {
     >
       <div
         style={{
-          background: '#fff',
+          background: 'var(--app-surface)',
           borderRadius: 12,
-          boxShadow: '0 2px 8px rgba(0,0,0,0.08)',
+          boxShadow: 'var(--app-shadow)',
           padding: 'clamp(1rem, 4vw, 2rem)',
         }}
       >
@@ -354,7 +360,7 @@ export default function TomaFisicaInventarioPage() {
             style={{
               padding: '0.5rem 1rem',
               borderRadius: 8,
-              border: '1px solid #ccc',
+              border: '1px solid var(--app-border)',
               flex: 1,
               minWidth: 200,
             }}
@@ -369,7 +375,7 @@ export default function TomaFisicaInventarioPage() {
             style={{
               padding: '0.5rem 1rem',
               borderRadius: 8,
-              border: '1px solid #ccc',
+              border: '1px solid var(--app-border)',
             }}
           >
             <option value="todos">Todos los tipos</option>
@@ -433,7 +439,7 @@ export default function TomaFisicaInventarioPage() {
             {
               label: 'Total Ítems',
               value: datosFiltrados.length,
-              color: '#5D3312',
+              color: 'var(--app-brand-text)',
             },
             {
               label: 'Repuestos',
@@ -460,7 +466,7 @@ export default function TomaFisicaInventarioPage() {
             <div
               key={stat.label}
               style={{
-                background: '#F5F5F5',
+                background: 'var(--app-surface-alt)',
                 borderRadius: 8,
                 padding: '0.75rem 1.5rem',
                 textAlign: 'center',
@@ -476,7 +482,9 @@ export default function TomaFisicaInventarioPage() {
               >
                 {stat.value}
               </div>
-              <div style={{ fontSize: '0.78rem', color: '#666' }}>
+              <div
+                style={{ fontSize: '0.78rem', color: 'var(--app-text-muted)' }}
+              >
                 {stat.label}
               </div>
             </div>
@@ -493,7 +501,7 @@ export default function TomaFisicaInventarioPage() {
             }}
           >
             <thead>
-              <tr style={{ background: '#E1CD9B' }}>
+              <tr style={{ background: 'var(--app-head-bg)' }}>
                 <th style={{ padding: '0.75rem', width: 32 }} />
                 <th style={{ padding: '0.75rem', textAlign: 'left' }}>
                   Nombre
@@ -539,7 +547,7 @@ export default function TomaFisicaInventarioPage() {
                     style={{
                       padding: '1.5rem',
                       textAlign: 'center',
-                      color: '#9E5533',
+                      color: 'var(--app-brand-accent)',
                     }}
                   >
                     No se encontraron resultados.
@@ -553,7 +561,10 @@ export default function TomaFisicaInventarioPage() {
                   <React.Fragment key={rowKey}>
                     <tr
                       style={{
-                        background: idx % 2 === 0 ? '#fff' : '#F5F5F5',
+                        background:
+                          idx % 2 === 0
+                            ? 'var(--app-surface)'
+                            : 'var(--app-surface-alt)',
                         cursor: 'pointer',
                       }}
                       onClick={() => toggleExpand(rowKey)}
@@ -562,7 +573,7 @@ export default function TomaFisicaInventarioPage() {
                         style={{
                           padding: '0.75rem',
                           textAlign: 'center',
-                          color: '#888',
+                          color: 'var(--app-text-subtle)',
                         }}
                       >
                         {isExpanded ? '▼' : '▶'}
@@ -624,7 +635,7 @@ export default function TomaFisicaInventarioPage() {
                       <td
                         style={{
                           padding: '0.75rem',
-                          color: '#666',
+                          color: 'var(--app-text-muted)',
                           fontSize: '0.85rem',
                         }}
                       >
@@ -636,13 +647,16 @@ export default function TomaFisicaInventarioPage() {
                       <tr>
                         <td
                           colSpan={9}
-                          style={{ padding: 0, background: '#F9F6EE' }}
+                          style={{
+                            padding: 0,
+                            background: 'var(--app-surface-warm)',
+                          }}
                         >
                           <div style={{ padding: '1rem 2rem 1.25rem' }}>
                             <h4
                               style={{
                                 margin: '0 0 0.75rem',
-                                color: '#5D3312',
+                                color: 'var(--app-brand-text)',
                                 fontSize: '0.9rem',
                               }}
                             >
@@ -656,7 +670,9 @@ export default function TomaFisicaInventarioPage() {
                               }}
                             >
                               <thead>
-                                <tr style={{ background: '#E1CD9B' }}>
+                                <tr
+                                  style={{ background: 'var(--app-head-bg)' }}
+                                >
                                   <th
                                     style={{
                                       padding: '0.5rem 0.75rem',
@@ -713,7 +729,9 @@ export default function TomaFisicaInventarioPage() {
                                     key={mIdx}
                                     style={{
                                       background:
-                                        mIdx % 2 === 0 ? '#fff' : '#F5F5F5',
+                                        mIdx % 2 === 0
+                                          ? 'var(--app-surface)'
+                                          : 'var(--app-surface-alt)',
                                     }}
                                   >
                                     <td style={{ padding: '0.5rem 0.75rem' }}>
@@ -773,7 +791,7 @@ export default function TomaFisicaInventarioPage() {
                                       style={{
                                         padding: '0.75rem',
                                         textAlign: 'center',
-                                        color: '#999',
+                                        color: 'var(--app-text-subtle)',
                                       }}
                                     >
                                       Sin movimientos registrados

@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { useTheme } from '../../../shared/contexts/ThemeContext';
+import { useAuth } from '../../../shared/contexts/AuthContext';
 import { compraService } from '../services/compra.service';
 import { FaPlus, FaTrash, FaSave } from 'react-icons/fa';
 import { API_URL } from '../../../shared/config/api';
@@ -136,6 +137,7 @@ const EMPTY_FILTER: RowFilter = {
 };
 
 export default function CompraInventarioPage() {
+  const { user } = useAuth();
   const { theme } = useTheme();
   const [searchParams] = useSearchParams();
   const editId = searchParams.get('id');
@@ -490,6 +492,9 @@ export default function CompraInventarioPage() {
         fecha: formatLocalDateToIso(fecha),
         tipoCambio: Number(tipoCambio) || 0,
         nroAutorizacion: nroAutorizacion || null,
+        // Quién registró/editó la compra por última vez (Responsable en el
+        // export para contabilidad).
+        usuarioId: user?.id ?? null,
         detalles,
       };
       if (isEditMode && editId) {

@@ -1,4 +1,6 @@
 import React from 'react';
+import { SearchBar } from '../../../shared/components/SearchBar';
+import { filtrarPorTexto } from '../../../shared/utils/search';
 import { exportCostCentersToExcel } from '../functions/exportExcel';
 import { colors } from '../constants/colors';
 import { useTheme } from '../../../shared/contexts/ThemeContext';
@@ -9,6 +11,7 @@ import { CostCenter } from '../../../shared/types/cost-center.types';
 
 export const CoCeManagement: React.FC = () => {
   const { theme } = useTheme();
+  const [busqueda, setBusqueda] = React.useState('');
   const {
     state,
     handleOpenModal,
@@ -27,55 +30,75 @@ export const CoCeManagement: React.FC = () => {
     padding: '20px 0',
   };
 
-  return (
-      <div style={pageStyle}>
-        <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: 16 }}>
-          <button
-            onClick={() => exportCostCentersToExcel(state.costCenters)}
-            style={{
-              backgroundColor: colors.gold,
-              color: colors.lightText,
-              padding: '8px 16px',
-              borderRadius: 8,
-              border: 'none',
-              cursor: 'pointer',
-              fontWeight: 'bold',
-              boxShadow: '0 2px 6px rgba(0,0,0,0.08)',
-            }}
-          >
-            Exportar a Excel
-          </button>
-        </div>
-        <CoCeTable
-          costCenters={state.costCenters}
-          theme={theme}
-          onAddCostCenter={() => handleOpenModal('add')}
-          onViewCostCenter={(costCenter: CostCenter) => handleOpenModal('view', costCenter)}
-          loading={state.loading}
-          error={state.error}
-        />
+  const filtrados = filtrarPorTexto(state.costCenters, busqueda, (c) => [
+    c.name,
+  ]);
 
-        <CoCeModal
-          isOpen={state.isModalOpen}
-          mode={state.modalMode}
-          selectedCostCenter={state.selectedCostCenter}
-          formData={state.formData}
-          theme={theme}
-          showDeleteConfirm={state.showDeleteConfirm}
-          deleteCountdown={state.deleteCountdown}
-          canConfirmDelete={state.canConfirmDelete}
-          loading={state.loading}
-          onClose={handleCloseModal}
-          onInputChange={handleInputChange}
-          onCreateCostCenter={handleCreateCostCenter}
-          onUpdateCostCenter={handleUpdateCostCenter}
-          onDeleteClick={handleDeleteClick}
-          onDelete={handleDelete}
-          onEditMode={() =>
-            state.selectedCostCenter &&
-            handleOpenModal('edit', state.selectedCostCenter)
-          }
-        />
+  return (
+    <div style={pageStyle}>
+      <div
+        style={{
+          display: 'flex',
+          justifyContent: 'flex-end',
+          marginBottom: 16,
+        }}
+      >
+        <button
+          onClick={() => exportCostCentersToExcel(state.costCenters)}
+          style={{
+            backgroundColor: colors.gold,
+            color: colors.lightText,
+            padding: '8px 16px',
+            borderRadius: 8,
+            border: 'none',
+            cursor: 'pointer',
+            fontWeight: 'bold',
+            boxShadow: '0 2px 6px rgba(0,0,0,0.08)',
+          }}
+        >
+          Exportar a Excel
+        </button>
       </div>
+      <SearchBar
+        value={busqueda}
+        onChange={setBusqueda}
+        placeholder="Buscar por ID o nombre..."
+        theme={theme}
+        total={state.costCenters.length}
+        resultados={filtrados.length}
+      />
+      <CoCeTable
+        costCenters={filtrados}
+        theme={theme}
+        onAddCostCenter={() => handleOpenModal('add')}
+        onViewCostCenter={(costCenter: CostCenter) =>
+          handleOpenModal('view', costCenter)
+        }
+        loading={state.loading}
+        error={state.error}
+      />
+
+      <CoCeModal
+        isOpen={state.isModalOpen}
+        mode={state.modalMode}
+        selectedCostCenter={state.selectedCostCenter}
+        formData={state.formData}
+        theme={theme}
+        showDeleteConfirm={state.showDeleteConfirm}
+        deleteCountdown={state.deleteCountdown}
+        canConfirmDelete={state.canConfirmDelete}
+        loading={state.loading}
+        onClose={handleCloseModal}
+        onInputChange={handleInputChange}
+        onCreateCostCenter={handleCreateCostCenter}
+        onUpdateCostCenter={handleUpdateCostCenter}
+        onDeleteClick={handleDeleteClick}
+        onDelete={handleDelete}
+        onEditMode={() =>
+          state.selectedCostCenter &&
+          handleOpenModal('edit', state.selectedCostCenter)
+        }
+      />
+    </div>
   );
 };

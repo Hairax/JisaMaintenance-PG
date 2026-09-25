@@ -1,4 +1,6 @@
 import React from 'react';
+import { SearchBar } from '../../../shared/components/SearchBar';
+import { filtrarPorTexto } from '../../../shared/utils/search';
 import { TipoMantenimientoTable } from '../components/tipoMantenimientoTable';
 import { TipoMantenimientoModal } from '../components/tipoMantenimientoModal';
 import { useTipoMantenimiento } from '../hooks/useTipoMantenimiento';
@@ -28,11 +30,15 @@ export const TipoMantenimientoPage: React.FC = () => {
   } = useTipoMantenimiento();
 
   const { theme } = useTheme();
+  const [busqueda, setBusqueda] = React.useState('');
   const textColor = theme === 'dark' ? colors.lightText : colors.darkText;
   const bgColor = theme === 'dark' ? colors.darkBg : colors.lightBg;
   const buttonBgColor = colors.gold;
   const buttonHoverColor = '#E69D00';
 
+  const filtrados = filtrarPorTexto(state.tiposMantenimiento, busqueda, (t) => [
+    t.nombre,
+  ]);
 
   return (
     <div
@@ -76,14 +82,24 @@ export const TipoMantenimientoPage: React.FC = () => {
             onMouseOut={(e) =>
               (e.currentTarget.style.backgroundColor = buttonBgColor)
             }
-            onClick={() => exportTipoMantenimientoToExcel(state.tiposMantenimiento)}
+            onClick={() =>
+              exportTipoMantenimientoToExcel(state.tiposMantenimiento)
+            }
           >
             Exportar a Excel
           </button>
         </div>
       </div>
+      <SearchBar
+        value={busqueda}
+        onChange={setBusqueda}
+        placeholder="Buscar por ID o nombre..."
+        theme={theme}
+        total={state.tiposMantenimiento.length}
+        resultados={filtrados.length}
+      />
       <TipoMantenimientoTable
-        tiposMantenimiento={state.tiposMantenimiento}
+        tiposMantenimiento={filtrados}
         loading={state.loading}
         error={state.error}
         onView={(tipo) => handleOpenModal('view', tipo)}

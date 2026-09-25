@@ -38,7 +38,11 @@ export type PermissionKey =
   | 'visualizarKpis'
   | 'crearTicketServicio'
   | 'verEstadoTicket'
-  | 'recibirNotificaciones';
+  | 'recibirNotificaciones'
+  | 'verRepuestos'
+  | 'gestionarCompras'
+  | 'verReporteCompras'
+  | 'cambiarContrasenas';
 
 type RoleMap = Record<UserRole, boolean>;
 
@@ -50,6 +54,7 @@ const roles = (
   jefeMantenimiento: boolean,
   encargadoAlmacen: boolean,
   usuarioContable: boolean,
+  encargadoCompras = false,
 ): RoleMap => ({
   [UserRole.ADMIN]: admin,
   [UserRole.SUPERVISOR]: supervisor,
@@ -58,16 +63,18 @@ const roles = (
   [UserRole.JEFE_MANTENIMIENTO]: jefeMantenimiento,
   [UserRole.ENCARGADO_ALMACEN]: encargadoAlmacen,
   [UserRole.USUARIO_CONTABLE]: usuarioContable,
+  [UserRole.ENCARGADO_COMPRAS]: encargadoCompras,
 });
 
-// admin, supervisor, tecnico, externo, jefeMantenimiento, encargadoAlmacen, usuarioContable
+// admin, supervisor, tecnico, externo, jefeMantenimiento, encargadoAlmacen, usuarioContable, encargadoCompras
+// prettier-ignore
 export const PERMISSIONS_MATRIX: Record<PermissionKey, RoleMap> = {
   crearUsuarios: roles(true, false, false, false, true, false, false),
   editarUsuarios: roles(true, false, false, false, true, false, false),
   eliminarUsuarios: roles(true, false, false, false, true, false, false),
   verHistorialUsuarios: roles(true, true, false, false, true, true, true),
   asignarRoles: roles(true, false, false, false, true, false, false),
-  iniciarSesion: roles(true, true, true, true, true, true, true),
+  iniciarSesion: roles(true, true, true, true, true, true, true, true),
   crearOt: roles(true, true, false, false, true, false, false),
   editarOt: roles(true, true, false, false, true, false, false),
   cerrarOt: roles(true, true, false, false, true, false, false),
@@ -90,7 +97,14 @@ export const PERMISSIONS_MATRIX: Record<PermissionKey, RoleMap> = {
   visualizarKpis: roles(true, true, true, false, true, true, true),
   crearTicketServicio: roles(true, true, true, true, true, true, false),
   verEstadoTicket: roles(true, true, true, true, true, true, false),
-  recibirNotificaciones: roles(true, true, true, true, true, true, true),
+  recibirNotificaciones: roles(true, true, true, true, true, true, true, true),
+  // Pantallas a las que también entra el encargado de compras: mismos roles
+  // que verInventario / verReportesBi, más encargadoCompras.
+  verRepuestos: roles(true, true, true, false, true, true, true, true),
+  gestionarCompras: roles(true, true, true, false, true, true, true, true),
+  verReporteCompras: roles(true, true, false, false, true, false, true, true),
+  // Solo el administrador (el backend también lo exige).
+  cambiarContrasenas: roles(true, false, false, false, false, false, false, false),
 };
 
 export const ROLE_LABELS: Record<UserRole, string> = {
@@ -101,6 +115,7 @@ export const ROLE_LABELS: Record<UserRole, string> = {
   [UserRole.JEFE_MANTENIMIENTO]: 'Jefe de Mantenimiento',
   [UserRole.ENCARGADO_ALMACEN]: 'Encargado de Almacén',
   [UserRole.USUARIO_CONTABLE]: 'Usuario Contable',
+  [UserRole.ENCARGADO_COMPRAS]: 'Encargado de Compras',
 };
 
 export function hasPermission(

@@ -58,10 +58,20 @@ export class AuthService {
     };
   }
 
-  async validateToken(payload: any) {
+  async verifyToken(token?: string) {
+    if (!token) throw new UnauthorizedException('Token requerido');
+    let payload: { sub: number };
+    try {
+      payload = this.jwtService.verify<{ sub: number }>(token);
+    } catch {
+      throw new UnauthorizedException('Token inválido o expirado');
+    }
+    return this.validateToken(payload);
+  }
+
+  async validateToken(payload: { sub: number }) {
     try {
       const user = await this.userRepository.findOne({
-        // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-member-access
         where: { id: payload.sub },
       });
 

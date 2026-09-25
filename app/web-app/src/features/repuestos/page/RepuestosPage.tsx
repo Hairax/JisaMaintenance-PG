@@ -74,6 +74,7 @@ interface Repuesto {
   costoUnitario: number;
   cantidad: number;
   stockCritico: number;
+  contable?: boolean;
   correlativo: number;
   centroCosto_id: number;
   proceso_id: number;
@@ -134,6 +135,7 @@ const EMPTY_FORM = {
   costoUnitario: '',
   stockActual: '',
   stockCritico: '',
+  contable: true,
 };
 
 function buildRepuestoCompositeId(
@@ -738,6 +740,7 @@ export default function RepuestosPage() {
       costoUnitario: String(rep.costoUnitarioPonderado ?? rep.costoUnitario),
       stockActual: String(rep.cantidad),
       stockCritico: rep.stockCritico != null ? String(rep.stockCritico) : '',
+      contable: rep.contable ?? true,
     });
     if (rep.centroCosto_id) setCcId(String(rep.centroCosto_id));
     if (rep.proceso_id) setProcId(String(rep.proceso_id));
@@ -770,6 +773,7 @@ export default function RepuestosPage() {
         costoUnitario: Number(form.costoUnitario) || 0,
         cantidad: Number(form.stockActual) || 0,
         stockCritico: form.stockCritico ? Number(form.stockCritico) : undefined,
+        contable: form.contable,
         ...(form.tipo === 'NORMAL' && {
           correlativo: correlativo || undefined,
           centroCosto_id: ccId ? Number(ccId) : undefined,
@@ -2101,6 +2105,36 @@ export default function RepuestosPage() {
                   />
                 </div>
 
+                {/* Contable: uso interno, define si el repuesto entra en los
+                    exports para contabilidad cuando se filtran. */}
+                <div style={row}>
+                  <span style={labelStyle}>Contable</span>
+                  <label
+                    style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: 8,
+                      flex: 1,
+                      cursor: 'pointer',
+                      fontSize: 13,
+                    }}
+                  >
+                    <input
+                      type="checkbox"
+                      checked={form.contable}
+                      onChange={(e) =>
+                        setForm((prev) => ({
+                          ...prev,
+                          contable: e.target.checked,
+                        }))
+                      }
+                    />
+                    {form.contable
+                      ? 'Sí — le interesa a contabilidad'
+                      : 'No — se excluye del export filtrado'}
+                  </label>
+                </div>
+
                 {/* Descripción larga */}
                 <div style={{ marginBottom: 8 }}>
                   <label
@@ -2332,6 +2366,7 @@ export default function RepuestosPage() {
                   ],
                   ['Stock Actual', viewRepuesto.cantidad],
                   ['Stock Crítico', viewRepuesto.stockCritico ?? '—'],
+                  ['Contable', viewRepuesto.contable === false ? 'No' : 'Sí'],
                   ['Correlativo', viewRepuesto.correlativo ?? '—'],
                   ['C.Costo ID', viewRepuesto.centroCosto_id ?? '—'],
                   ['Proceso ID', viewRepuesto.proceso_id ?? '—'],

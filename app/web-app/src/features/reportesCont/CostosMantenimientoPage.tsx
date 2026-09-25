@@ -224,7 +224,13 @@ export default function CostosMantenimientoPage() {
 
   if (loading) {
     return (
-      <div style={{ padding: '2rem', textAlign: 'center', color: '#666' }}>
+      <div
+        style={{
+          padding: '2rem',
+          textAlign: 'center',
+          color: 'var(--app-text-muted)',
+        }}
+      >
         Cargando datos de mantenimiento...
       </div>
     );
@@ -261,9 +267,9 @@ export default function CostosMantenimientoPage() {
     >
       <div
         style={{
-          background: '#fff',
+          background: 'var(--app-surface)',
           borderRadius: 12,
-          boxShadow: '0 2px 8px rgba(0,0,0,0.08)',
+          boxShadow: 'var(--app-shadow)',
           padding: 'clamp(1rem, 4vw, 2rem)',
         }}
       >
@@ -293,7 +299,7 @@ export default function CostosMantenimientoPage() {
             style={{
               padding: '0.5rem 1rem',
               borderRadius: 8,
-              border: '1px solid #ccc',
+              border: '1px solid var(--app-border)',
               maxWidth: 300,
             }}
           >
@@ -381,18 +387,28 @@ export default function CostosMantenimientoPage() {
               style={{
                 flex: 1,
                 minWidth: 160,
-                background: '#F5F5F5',
+                background: 'var(--app-surface-alt)',
                 borderRadius: 10,
                 padding: '1rem',
                 textAlign: 'center',
               }}
             >
               <div
-                style={{ fontSize: '1.4rem', fontWeight: 700, color: '#333' }}
+                style={{
+                  fontSize: '1.4rem',
+                  fontWeight: 700,
+                  color: 'var(--app-text)',
+                }}
               >
                 {c.value}
               </div>
-              <div style={{ fontSize: '0.8rem', color: '#777', marginTop: 4 }}>
+              <div
+                style={{
+                  fontSize: '0.8rem',
+                  color: 'var(--app-text-subtle)',
+                  marginTop: 4,
+                }}
+              >
                 {c.label}
               </div>
             </div>
@@ -409,7 +425,7 @@ export default function CostosMantenimientoPage() {
             }}
           >
             <thead>
-              <tr style={{ background: '#E1CD9B' }}>
+              <tr style={{ background: 'var(--app-head-bg)' }}>
                 <th style={{ padding: '0.75rem', textAlign: 'left' }}>N° OT</th>
                 <th style={{ padding: '0.75rem', textAlign: 'left' }}>Fecha</th>
                 <th style={{ padding: '0.75rem', textAlign: 'left' }}>Tipo</th>
@@ -440,7 +456,12 @@ export default function CostosMantenimientoPage() {
               {dataFiltrada.map((item, i) => (
                 <tr
                   key={item.id}
-                  style={{ background: i % 2 === 0 ? '#fff' : '#F5F5F5' }}
+                  style={{
+                    background:
+                      i % 2 === 0
+                        ? 'var(--app-surface)'
+                        : 'var(--app-surface-alt)',
+                  }}
                 >
                   <td style={{ padding: '0.75rem' }}>{item.id}</td>
                   <td style={{ padding: '0.75rem' }}>{fmtDate(item.fecha)}</td>
@@ -488,7 +509,7 @@ export default function CostosMantenimientoPage() {
                     style={{
                       padding: '1.5rem',
                       textAlign: 'center',
-                      color: '#9E5533',
+                      color: 'var(--app-brand-accent)',
                     }}
                   >
                     No se encontraron resultados.
@@ -498,7 +519,9 @@ export default function CostosMantenimientoPage() {
             </tbody>
             {dataFiltrada.length > 0 && (
               <tfoot>
-                <tr style={{ background: '#E1CD9B', fontWeight: 700 }}>
+                <tr
+                  style={{ background: 'var(--app-head-bg)', fontWeight: 700 }}
+                >
                   <td colSpan={6} style={{ padding: '0.75rem' }}>
                     Total
                   </td>

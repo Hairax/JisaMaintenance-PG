@@ -10,6 +10,7 @@ export class Compra {
   fecha: Date;
   tipoCambio: number;
   nroAutorizacion: string;
+  usuarioId: number;
   subtotal: number;
   descuentoTotal: number;
   total: number;

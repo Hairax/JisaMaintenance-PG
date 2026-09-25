@@ -61,6 +61,11 @@ export class Repuesto {
   @Column({ nullable: true })
   stockCritico: number;
 
+  // Uso interno: marca si el repuesto le interesa a contabilidad (filtra los
+  // exports contables de compras/salidas). No se muestra en otros reportes.
+  @Column({ default: true })
+  contable: boolean;
+
   @Column({ nullable: true })
   correlativo: number;
 

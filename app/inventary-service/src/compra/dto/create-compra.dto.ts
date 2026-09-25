@@ -62,5 +62,9 @@ export class CreateCompraDto {
   @IsOptional()
   nroAutorizacion?: string;
 
+  @IsNumber()
+  @IsOptional()
+  usuarioId?: number;
+
   detalles: ProductoCompraDto[];
 }

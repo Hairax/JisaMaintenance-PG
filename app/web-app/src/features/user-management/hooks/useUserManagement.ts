@@ -2,10 +2,12 @@ import { useState, useCallback, useRef, useEffect } from 'react';
 import { User } from '../../../shared/types/user.types';
 import { UserManagementState, ModalMode } from '../types/user.types';
 import { API_URL } from '../../../shared/config/api';
+import { useAuth } from '../../../shared/contexts/AuthContext';
 
 const API_BASE_URL = API_URL;
 
 export const useUserManagement = () => {
+  const { token } = useAuth();
   const [state, setState] = useState<UserManagementState>({
     users: [],
     loading: true,
@@ -229,6 +231,34 @@ export const useUserManagement = () => {
     }
   };
 
+  // Solo admin (lo valida el backend con el JWT de la sesión). Devuelve el
+  // mensaje de error para mostrarlo en el formulario, o null si salió bien.
+  const handleChangePassword = async (
+    password: string,
+  ): Promise<string | null> => {
+    if (!state.selectedUser) return 'No hay usuario seleccionado';
+    try {
+      const res = await fetch(
+        `${API_BASE_URL}/users/${state.selectedUser.id}/password`,
+        {
+          method: 'PUT',
+          headers: {
+            'Content-Type': 'application/json',
+            ...(token ? { Authorization: `Bearer ${token}` } : {}),
+          },
+          body: JSON.stringify({ password }),
+        },
+      );
+      if (!res.ok) {
+        const data = await res.json().catch(() => null);
+        return data?.message || `Error ${res.status}`;
+      }
+      return null;
+    } catch {
+      return 'No se pudo conectar con el servidor';
+    }
+  };
+
   return {
     state,
     handleOpenModal,
@@ -238,5 +268,6 @@ export const useUserManagement = () => {
     handleUpdateUser,
     handleDeleteClick,
     handleDelete,
+    handleChangePassword,
   };
 };

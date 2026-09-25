@@ -1,4 +1,6 @@
 import React from 'react';
+import { SearchBar } from '../../../shared/components/SearchBar';
+import { filtrarPorTexto } from '../../../shared/utils/search';
 import { exportMaquinasToExcel } from '../functions/exportExcel';
 import { useTheme } from '../../../shared/contexts/ThemeContext';
 import { useMaquina } from '../hooks/useMaquina';
@@ -16,6 +18,7 @@ export const MaquinaPage: React.FC = () => {
     lightText: '#FFFFFF',
   };
   const { theme } = useTheme();
+  const [busqueda, setBusqueda] = React.useState('');
   const {
     state,
     handleOpenModal,
@@ -44,6 +47,13 @@ export const MaquinaPage: React.FC = () => {
     minHeight: '100vh',
     padding: '20px 0',
   };
+  const filtrados = filtrarPorTexto(state.maquinas, busqueda, (m) => [
+    m.name,
+    m.fabricante,
+    m.tipoDeMaquina,
+    m.numeroDeSerie,
+  ]);
+
   return (
     <div style={pageStyle}>
       <div
@@ -77,8 +87,16 @@ export const MaquinaPage: React.FC = () => {
           Exportar a Excel
         </button>
       </div>
+      <SearchBar
+        value={busqueda}
+        onChange={setBusqueda}
+        placeholder="Buscar por ID, nombre, fabricante, tipo o N° de serie..."
+        theme={theme}
+        total={state.maquinas.length}
+        resultados={filtrados.length}
+      />
       <MaquinaTable
-        maquinas={state.maquinas}
+        maquinas={filtrados}
         theme={theme}
         loading={state.loading}
         error={state.error}

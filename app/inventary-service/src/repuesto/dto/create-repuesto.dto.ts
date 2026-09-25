@@ -5,6 +5,7 @@ import {
   Min,
   IsNumber,
   IsEnum,
+  IsBoolean,
 } from 'class-validator';
 
 export class CreateRepuestoDto {
@@ -54,6 +55,10 @@ export class CreateRepuestoDto {
   @Min(0)
   @IsOptional()
   stockCritico?: number;
+
+  @IsBoolean()
+  @IsOptional()
+  contable?: boolean;
 
   @IsInt()
   @Min(1)
