@@ -3,6 +3,7 @@ import { User } from '../../../shared/types/user.types';
 import { UserFormData, ModalMode } from '../types/user.types';
 import { FaTimes, FaEdit, FaTrash, FaSave, FaPlus } from 'react-icons/fa';
 import { ChangePasswordForm } from './ChangePasswordForm';
+import { ROLE_LABELS } from '../../../shared/permissions/permissions';
 
 // Roles disponibles
 const CARGO_OPTIONS: { value: string; label: string }[] = [
@@ -82,7 +83,7 @@ export const UserModal: React.FC<UserModalProps> = ({
   const bgColor = theme === 'dark' ? colors.darkBg : colors.lightBg;
   const inputBgColor = theme === 'dark' ? '#2A2A2A' : '#F5F5F5';
   const inputBorderColor = theme === 'dark' ? '#3A3A3A' : '#D6D6D6';
-  const overlayBgColor = 'rgba(0, 0, 0, 0.75)';
+  const overlayBgColor = 'rgba(0, 0, 0, 0.55)';
   const borderColor = theme === 'dark' ? '#3A3A3A' : '#D6D6D6';
   const primaryButtonBg = colors.gold;
   const primaryButtonHover = '#E69D00'; // Versión oscurecida del gold
@@ -131,14 +132,14 @@ export const UserModal: React.FC<UserModalProps> = ({
   return (
     <div
       style={{ backgroundColor: overlayBgColor }}
-      className="fixed inset-0 flex items-center justify-center z-50 p-4 transition-opacity duration-300"
+      className="fixed inset-0 flex items-center justify-center z-50 p-4 backdrop-blur-sm transition-opacity duration-300"
     >
       <div
         style={{
           backgroundColor: bgColor,
           color: textColor,
         }}
-        className="rounded-lg max-w-lg w-full p-6 shadow-xl relative flex flex-col max-h-[90vh]"
+        className="rounded-2xl max-w-lg w-full p-6 shadow-2xl border border-black/5 dark:border-white/10 relative flex flex-col max-h-[90vh]"
       >
         {!showDeleteConfirm && (
           <button
@@ -263,7 +264,9 @@ export const UserModal: React.FC<UserModalProps> = ({
               </p>
               <p>
                 <strong style={{ color: secondaryTextColor }}>Cargo:</strong>{' '}
-                <span style={{ color: textColor }}>{selectedUser.cargo}</span>
+                <span style={{ color: textColor }}>
+                  {ROLE_LABELS[selectedUser.cargo] ?? selectedUser.cargo}
+                </span>
               </p>
               <p>
                 <strong style={{ color: secondaryTextColor }}>Hora:</strong>{' '}
@@ -319,7 +322,7 @@ export const UserModal: React.FC<UserModalProps> = ({
                 .
               </p>
               <p className="text-sm mb-4">
-                Esta acción eliminara de manera permanente el usuario.
+                Esta acción eliminará de manera permanente el usuario.
               </p>
               {deleteCountdown > 0 && (
                 <p

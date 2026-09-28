@@ -149,10 +149,20 @@ const getName = (obj?: { nombre?: string; name?: string }) =>
   obj?.nombre ?? obj?.name ?? '—';
 
 const ESTADO_COLORS: Record<string, { bg: string; color: string }> = {
-  Abierta: { bg: '#E3F2FD', color: '#1565C0' },
-  'En Progreso Técnico': { bg: '#FFF3E0', color: '#E65100' },
-  'En Progreso Almacén': { bg: '#F3E5F5', color: '#6A1B9A' },
-  Cerrada: { bg: '#E8F5E9', color: '#2E7D32' },
+  Abierta: { bg: 'rgba(21, 101, 192, 0.15)', color: 'var(--badge-info)' },
+  'En Progreso': {
+    bg: 'rgba(230, 81, 0, 0.15)',
+    color: 'var(--badge-warning)',
+  },
+  'En Progreso Técnico': {
+    bg: 'rgba(230, 81, 0, 0.15)',
+    color: 'var(--badge-warning)',
+  },
+  'En Progreso Almacén': {
+    bg: 'rgba(106, 27, 154, 0.15)',
+    color: 'var(--badge-purple)',
+  },
+  Cerrada: { bg: 'rgba(46, 125, 50, 0.15)', color: 'var(--badge-success)' },
 };
 
 const estadoBadge = (estado: string) => {
@@ -458,7 +468,7 @@ export default function MantenimientoPorActivoPage() {
   if (error) {
     return (
       <div className="p-8 text-center">
-        <p className="text-red-600 mb-3">{error}</p>
+        <p className="text-red-600 dark:text-red-400 mb-3">{error}</p>
         <button
           onClick={cargarDatos}
           className="px-4 py-2 bg-yellow-500 hover:bg-yellow-600 text-white rounded-lg font-medium"
@@ -483,12 +493,12 @@ export default function MantenimientoPorActivoPage() {
             placeholder="Buscar por nombre o N° de serie..."
             value={filtroNombre}
             onChange={(e) => setFiltroNombre(e.target.value)}
-            className="p-2 px-4 border border-gray-200 dark:border-[#3A3A3A] rounded-lg flex-1 min-w-[200px] focus:ring-2 focus:ring-yellow-400 bg-[#F7FAFC]"
+            className="p-2 px-4 border border-gray-200 dark:border-[#3A3A3A] rounded-lg flex-1 min-w-[200px] focus:ring-2 focus:ring-yellow-400 bg-[#F7FAFC] text-[#1A1A1A] dark:bg-[#2A2A2A] dark:text-gray-100 dark:placeholder-gray-500"
           />
           <select
             value={filtroTipo}
             onChange={(e) => setFiltroTipo(e.target.value)}
-            className="p-2 px-3 border border-gray-200 dark:border-[#3A3A3A] rounded-lg bg-[#F7FAFC]"
+            className="p-2 px-3 border border-gray-200 dark:border-[#3A3A3A] rounded-lg bg-[#F7FAFC] text-[#1A1A1A] dark:bg-[#2A2A2A] dark:text-gray-100"
           >
             {tiposDeMaquina.map((t) => (
               <option key={t} value={t}>
@@ -525,42 +535,42 @@ export default function MantenimientoPorActivoPage() {
             {
               label: 'Activos',
               value: filtrados.length,
-              color: 'text-[#5D3312]',
+              color: 'text-[#5D3312] dark:text-[#E1CD9B]',
             },
             {
               label: 'Total OTs',
               value: filtrados.reduce((s, r) => s + r.totalOTs, 0),
-              color: 'text-[#1565C0]',
+              color: 'text-[#1565C0] dark:text-[#90CAF9]',
             },
             {
               label: 'OTs Cerradas',
               value: filtrados.reduce((s, r) => s + r.otsCerradas, 0),
-              color: 'text-[#2E7D32]',
+              color: 'text-[#2E7D32] dark:text-[#81C784]',
             },
             {
               label: 'OTs Abiertas',
               value: filtrados.reduce((s, r) => s + r.otsAbiertas, 0),
-              color: 'text-[#E65100]',
+              color: 'text-[#E65100] dark:text-[#FFB74D]',
             },
             {
               label: 'Horas Totales',
               value: fmtHours(filtrados.reduce((s, r) => s + r.totalHoras, 0)),
-              color: 'text-[#6A1B9A]',
+              color: 'text-[#6A1B9A] dark:text-[#CE93D8]',
             },
             {
               label: 'Costo M.O. Total',
               value: `Bs ${fmtCurrency(filtrados.reduce((s, r) => s + r.totalManoObra, 0))}`,
-              color: 'text-[#6A1B9A]',
+              color: 'text-[#6A1B9A] dark:text-[#CE93D8]',
             },
             {
               label: 'Costo Mat. Total',
               value: `Bs ${fmtCurrency(filtrados.reduce((s, r) => s + r.totalMateriales, 0))}`,
-              color: 'text-[#D32F2F]',
+              color: 'text-[#D32F2F] dark:text-[#EF9A9A]',
             },
             {
               label: 'Costo Total',
               value: `Bs ${fmtCurrency(filtrados.reduce((s, r) => s + r.costoTotal, 0))}`,
-              color: 'text-[#2E7D32]',
+              color: 'text-[#2E7D32] dark:text-[#81C784]',
             },
           ].map((s) => (
             <div
@@ -577,7 +587,7 @@ export default function MantenimientoPorActivoPage() {
 
         {/* Maquina accordion list */}
         {filtrados.length === 0 && (
-          <p className="text-center text-yellow-900 p-6">
+          <p className="text-center text-yellow-900 dark:text-yellow-200 p-6">
             No se encontraron activos.
           </p>
         )}
@@ -592,7 +602,7 @@ export default function MantenimientoPorActivoPage() {
               >
                 {/* Maquina header row */}
                 <div
-                  className="flex items-center gap-4 p-4 bg-yellow-50 cursor-pointer hover:bg-yellow-100 transition flex-wrap"
+                  className="flex items-center gap-4 p-4 bg-yellow-50 dark:bg-[#2A241C] cursor-pointer hover:bg-yellow-100 dark:hover:bg-[#342C20] transition flex-wrap"
                   onClick={() => {
                     setExpandedMaq(isMaqExp ? null : r.maquina.id);
                     setExpandedOT(null);
@@ -642,7 +652,7 @@ export default function MantenimientoPorActivoPage() {
                       <div className="text-xs text-gray-400 dark:text-gray-500">
                         OTs
                       </div>
-                      <div className="font-bold text-blue-700">
+                      <div className="font-bold text-blue-700 dark:text-blue-300">
                         {r.totalOTs}
                       </div>
                     </div>
@@ -650,7 +660,7 @@ export default function MantenimientoPorActivoPage() {
                       <div className="text-xs text-gray-400 dark:text-gray-500">
                         Horas
                       </div>
-                      <div className="font-bold text-purple-700">
+                      <div className="font-bold text-purple-700 dark:text-purple-300">
                         {r.totalHoras > 0 ? fmtHours(r.totalHoras) : '—'}
                       </div>
                     </div>
@@ -658,7 +668,7 @@ export default function MantenimientoPorActivoPage() {
                       <div className="text-xs text-gray-400 dark:text-gray-500">
                         Mat. (Bs)
                       </div>
-                      <div className="font-bold text-red-700">
+                      <div className="font-bold text-red-700 dark:text-red-300">
                         {r.totalMateriales > 0
                           ? fmtCurrency(r.totalMateriales)
                           : '—'}
@@ -668,7 +678,7 @@ export default function MantenimientoPorActivoPage() {
                       <div className="text-xs text-gray-400 dark:text-gray-500">
                         Costo Total (Bs)
                       </div>
-                      <div className="font-bold text-green-700">
+                      <div className="font-bold text-green-700 dark:text-green-400">
                         {r.costoTotal > 0 ? fmtCurrency(r.costoTotal) : '—'}
                       </div>
                     </div>
@@ -679,7 +689,7 @@ export default function MantenimientoPorActivoPage() {
                 {isMaqExp && (
                   <div className="p-5 bg-white dark:bg-[#1E1E1E] border-t border-gray-100 dark:border-[#2E2E2E]">
                     {/* Maquina info grid */}
-                    <div className="grid grid-cols-2 md:grid-cols-4 gap-3 p-4 bg-yellow-50 rounded-xl mb-5 text-sm border border-yellow-200">
+                    <div className="grid grid-cols-2 md:grid-cols-4 gap-3 p-4 bg-yellow-50 dark:bg-[#2A241C] rounded-xl mb-5 text-sm border border-yellow-200 dark:border-[#4A3D28]">
                       {[
                         ['Fabricante', r.maquina.fabricante],
                         ['Tipo', r.maquina.tipoDeMaquina],
@@ -743,7 +753,7 @@ export default function MantenimientoPorActivoPage() {
                               <span className="text-gray-400 dark:text-gray-500 w-3 shrink-0">
                                 {isOTExp ? '▼' : '▶'}
                               </span>
-                              <span className="font-bold text-[#5D3312] w-12 shrink-0">
+                              <span className="font-bold text-[#5D3312] dark:text-[#E1CD9B] w-12 shrink-0">
                                 #{otRow.ot.id}
                               </span>
                               <span className="flex-1 min-w-[140px] truncate">
@@ -755,17 +765,17 @@ export default function MantenimientoPorActivoPage() {
                               <span className="text-gray-400 dark:text-gray-500 shrink-0 w-24 text-right">
                                 {fmtDate(otRow.ot.fechaHora)}
                               </span>
-                              <span className="text-[#6A1B9A] font-semibold shrink-0 w-20 text-right">
+                              <span className="text-[#6A1B9A] dark:text-[#CE93D8] font-semibold shrink-0 w-20 text-right">
                                 {otRow.totalHoras > 0
                                   ? fmtHours(otRow.totalHoras)
                                   : '—'}
                               </span>
-                              <span className="text-[#D32F2F] font-semibold shrink-0 w-24 text-right">
+                              <span className="text-[#D32F2F] dark:text-[#EF9A9A] font-semibold shrink-0 w-24 text-right">
                                 {otRow.totalMateriales > 0
                                   ? `Bs ${fmtCurrency(otRow.totalMateriales)}`
                                   : '—'}
                               </span>
-                              <span className="text-[#2E7D32] font-semibold shrink-0 w-24 text-right">
+                              <span className="text-[#2E7D32] dark:text-[#81C784] font-semibold shrink-0 w-24 text-right">
                                 {otRow.costoTotal > 0
                                   ? `Bs ${fmtCurrency(otRow.costoTotal)}`
                                   : '—'}
@@ -776,7 +786,7 @@ export default function MantenimientoPorActivoPage() {
                             {isOTExp && (
                               <div className="p-4 bg-white dark:bg-[#1E1E1E] border-t border-gray-100 dark:border-[#2E2E2E]">
                                 {/* OT info */}
-                                <div className="grid grid-cols-2 md:grid-cols-4 gap-3 text-xs mb-4 p-3 bg-[#F9F6EE] rounded-lg border border-yellow-100">
+                                <div className="grid grid-cols-2 md:grid-cols-4 gap-3 text-xs mb-4 p-3 bg-[#F9F6EE] dark:bg-[#2A241C] rounded-lg border border-yellow-100 dark:border-[#4A3D28]">
                                   {[
                                     [
                                       'Tipo Mantenimiento',
@@ -854,7 +864,7 @@ export default function MantenimientoPorActivoPage() {
                                 {tab === 'mano' && (
                                   <table className="w-full text-xs border-collapse">
                                     <thead>
-                                      <tr className="bg-yellow-100">
+                                      <tr className="bg-yellow-100 dark:bg-[#3A2F1F] dark:text-[#E1CD9B]">
                                         <th className="p-2 text-left font-semibold text-gray-500 dark:text-gray-400">
                                           Técnico
                                         </th>
@@ -908,10 +918,10 @@ export default function MantenimientoPorActivoPage() {
                                             {mo.horaInicio}
                                           </td>
                                           <td className="p-2">{mo.horaFin}</td>
-                                          <td className="p-2 text-right font-bold text-purple-700">
+                                          <td className="p-2 text-right font-bold text-purple-700 dark:text-purple-300">
                                             {fmtHours(mo.horas)}
                                           </td>
-                                          <td className="p-2 text-right font-bold text-green-700">
+                                          <td className="p-2 text-right font-bold text-green-700 dark:text-green-400">
                                             {fmtCurrency(mo.costo)}
                                           </td>
                                           <td className="p-2 text-gray-500 dark:text-gray-400">
@@ -920,17 +930,17 @@ export default function MantenimientoPorActivoPage() {
                                         </tr>
                                       ))}
                                       {otRow.manoObra.length > 0 && (
-                                        <tr className="bg-purple-50 font-bold text-xs">
+                                        <tr className="bg-purple-50 dark:bg-[#2A2435] font-bold text-xs">
                                           <td
                                             colSpan={4}
                                             className="p-2 text-right"
                                           >
                                             Totales:
                                           </td>
-                                          <td className="p-2 text-right text-purple-700">
+                                          <td className="p-2 text-right text-purple-700 dark:text-purple-300">
                                             {fmtHours(otRow.totalHoras)}
                                           </td>
-                                          <td className="p-2 text-right text-green-700">
+                                          <td className="p-2 text-right text-green-700 dark:text-green-400">
                                             {fmtCurrency(otRow.totalManoObra)}
                                           </td>
                                           <td />
@@ -963,7 +973,7 @@ export default function MantenimientoPorActivoPage() {
                                           <span>Estado: {sal.estado}</span>
                                           <span>
                                             Total:{' '}
-                                            <strong className="text-red-700">
+                                            <strong className="text-red-700 dark:text-red-300">
                                               Bs{' '}
                                               {fmtCurrency(Number(sal.total))}
                                             </strong>
@@ -974,7 +984,7 @@ export default function MantenimientoPorActivoPage() {
                                         </div>
                                         <table className="w-full text-xs border-collapse border border-t-0 border-gray-200 dark:border-[#3A3A3A]">
                                           <thead>
-                                            <tr className="bg-yellow-100">
+                                            <tr className="bg-yellow-100 dark:bg-[#3A2F1F] dark:text-[#E1CD9B]">
                                               <th className="p-2 text-left font-semibold text-gray-500 dark:text-gray-400">
                                                 Producto
                                               </th>
@@ -1017,13 +1027,13 @@ export default function MantenimientoPorActivoPage() {
                                                         background:
                                                           det.tipoProducto ===
                                                           'repuesto'
-                                                            ? '#E3F2FD'
-                                                            : '#F3E5F5',
+                                                            ? 'rgba(21, 101, 192, 0.15)'
+                                                            : 'rgba(106, 27, 154, 0.15)',
                                                         color:
                                                           det.tipoProducto ===
                                                           'repuesto'
-                                                            ? '#1565C0'
-                                                            : '#6A1B9A',
+                                                            ? 'var(--badge-info)'
+                                                            : 'var(--badge-purple)',
                                                         fontSize: '0.72rem',
                                                         fontWeight: 600,
                                                       }}
@@ -1060,7 +1070,7 @@ export default function MantenimientoPorActivoPage() {
                                       </div>
                                     ))}
                                     {otRow.salidas.length > 0 && (
-                                      <div className="text-right text-xs font-bold text-red-700 pt-1">
+                                      <div className="text-right text-xs font-bold text-red-700 dark:text-red-300 pt-1">
                                         Total materiales: Bs{' '}
                                         {fmtCurrency(otRow.totalMateriales)}
                                       </div>

@@ -1,5 +1,6 @@
 import React from 'react';
-import { SearchBar } from '../../../shared/components/SearchBar';
+import { ManagementPage } from '../../../shared/components/management/ManagementPage';
+import { FaCube } from 'react-icons/fa';
 import { filtrarPorTexto } from '../../../shared/utils/search';
 import { useTheme } from '../../../shared/contexts/ThemeContext';
 import { useObjeto } from '../hooks/useObjeto';
@@ -31,55 +32,30 @@ export const ObjetoPage: React.FC = () => {
     handleDeleteObjeto,
   } = useObjeto();
 
-  const pageStyle = {
-    color: theme === 'dark' ? colors.lightText : colors.darkText,
-    minHeight: '100vh',
-    padding: '20px 0',
-  };
-
   const filtrados = filtrarPorTexto(state.objetos, busqueda, (o) => [o.nombre]);
 
   return (
-    <div style={pageStyle}>
-      <div
-        style={{
-          display: 'flex',
-          justifyContent: 'flex-end',
-          marginBottom: 16,
-        }}
-      >
-        <button
-          onClick={() => exportExcel(state.objetos)}
-          style={{
-            background: colors.gold,
-            color: colors.darkText,
-            border: 'none',
-            padding: '8px 16px',
-            borderRadius: 4,
-            cursor: 'pointer',
-            fontWeight: 'bold',
-          }}
-        >
-          Exportar a Excel
-        </button>
-      </div>
-      <SearchBar
-        value={busqueda}
-        onChange={setBusqueda}
-        placeholder="Buscar por ID o nombre..."
-        theme={theme}
+    <>
+      <ManagementPage
+        title="Objetos"
+        subtitle="Tipos de objeto sobre los que se ejecuta una orden de trabajo."
+        icon={<FaCube />}
         total={state.objetos.length}
         resultados={filtrados.length}
-      />
-      <ObjetoTable
-        objetos={filtrados}
-        theme={theme}
-        onAddObjeto={() => handleOpenModal('add')}
-        onViewObjeto={(objeto) => handleOpenModal('view', objeto)}
-        loading={state.loading}
-        error={state.error}
-      />
-
+        busqueda={busqueda}
+        onBusquedaChange={setBusqueda}
+        searchPlaceholder="Buscar por ID o nombre..."
+        onExport={() => exportExcel(state.objetos)}
+        onAdd={() => handleOpenModal('add')}
+        addLabel="Nuevo objeto"
+      >
+        <ObjetoTable
+          objetos={filtrados}
+          onViewObjeto={(objeto) => handleOpenModal('view', objeto)}
+          loading={state.loading}
+          error={state.error}
+        />
+      </ManagementPage>
       <ObjetoModal
         isOpen={state.isModalOpen}
         mode={state.modalMode}
@@ -98,6 +74,6 @@ export const ObjetoPage: React.FC = () => {
         onDelete={handleDeleteObjeto}
         onEditMode={() => handleOpenModal('edit', state.selectedObjeto)}
       />
-    </div>
+    </>
   );
 };

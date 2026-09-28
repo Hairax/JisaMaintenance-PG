@@ -33,6 +33,14 @@
   --app-head-bg: #e1cd9b;
   --app-head-text: #1a1a1a;
   --app-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+  --app-row-hover: rgba(251, 175, 17, 0.1);
+  --app-accent-soft: rgba(251, 175, 17, 0.16);
+  --app-input-bg: #ffffff;
+  --badge-success: #2e7d32;
+  --badge-danger: #c62828;
+  --badge-warning: #e65100;
+  --badge-info: #1565c0;
+  --badge-purple: #6a1b9a;
 }
 
 body.dark {
@@ -52,8 +60,169 @@ body.dark {
   --app-head-bg: #9e5533;
   --app-head-text: #ffffff;
   --app-shadow: 0 2px 8px rgba(0, 0, 0, 0.5);
+  --app-row-hover: rgba(225, 205, 155, 0.08);
+  --app-accent-soft: rgba(251, 175, 17, 0.14);
+  --app-input-bg: #2a2a2a;
+  --badge-success: #81c784;
+  --badge-danger: #ef9a9a;
+  --badge-warning: #ffb74d;
+  --badge-info: #90caf9;
+  --badge-purple: #ce93d8;
   /* Texto heredado claro, y controles nativos (inputs, selects, fechas,
      scrollbars) en su variante oscura cuando no traen colores propios. */
   color: var(--app-text);
   color-scheme: dark;
+  /* Fondo oscuro también fuera del layout (rebote de scroll en móvil). */
+  background-color: #1a1a1a;
+}
+
+/* Reportes en móvil: vista resumida ocultando columnas secundarias de la
+   tabla principal (el detalle sigue disponible al expandir cada fila, y
+   desde `md` se ven todas). Selectores de hijo directo para no afectar las
+   tablas anidadas del detalle. */
+@media (max-width: 767px) {
+  .rpt-compras > thead > tr > th:nth-child(n + 4):nth-child(-n + 9),
+  .rpt-compras > tbody > tr > td:nth-child(n + 4):nth-child(-n + 9),
+  .rpt-consumo > thead > tr > th:nth-child(n + 5):nth-child(-n + 9),
+  .rpt-consumo > tbody > tr > td:nth-child(n + 5):nth-child(-n + 9),
+  .rpt-costos > thead > tr > th:nth-child(n + 3):nth-child(-n + 9),
+  .rpt-costos > tbody > tr > td:nth-child(n + 3):nth-child(-n + 9),
+  .rpt-costos > tfoot > tr > td:nth-child(n + 2):nth-child(-n + 4),
+  .rpt-costos-ot > thead > tr > th:nth-child(n + 4):nth-child(-n + 10),
+  .rpt-costos-ot > tbody > tr > td:nth-child(n + 4):nth-child(-n + 10),
+  .rpt-toma > thead > tr > th:nth-child(n + 3):nth-child(-n + 7),
+  .rpt-toma > tbody > tr > td:nth-child(n + 3):nth-child(-n + 7),
+  .rpt-toma > thead > tr > th:nth-child(9),
+  .rpt-toma > tbody > tr > td:nth-child(9) {
+    display: none;
+  }
+}
+
+@media (max-width: 767px) {
+  /* Celdas más compactas en la vista resumida (los estilos inline
+     definen padding amplio pensado para escritorio). */
+  :is(.rpt-compras, .rpt-consumo, .rpt-costos, .rpt-costos-ot, .rpt-toma)
+    > :is(thead, tbody, tfoot)
+    > tr
+    > :is(th, td) {
+    padding-left: 0.5rem !important;
+    padding-right: 0.5rem !important;
+  }
+  /* El detalle anidado de cada fila se desplaza dentro de su propio
+     espacio en vez de ensanchar toda la tabla. */
+  :is(.rpt-compras, .rpt-consumo, .rpt-costos, .rpt-costos-ot, .rpt-toma)
+    > tbody
+    > tr
+    > td
+    table {
+    display: block;
+    overflow-x: auto;
+    max-width: calc(100vw - 5.5rem);
+  }
+  :is(.rpt-compras, .rpt-consumo, .rpt-costos, .rpt-costos-ot, .rpt-toma) {
+    font-size: 0.8rem !important;
+  }
+  /* Panel de detalle expandido: menos relleno lateral. */
+  :is(.rpt-compras, .rpt-consumo, .rpt-costos, .rpt-costos-ot, .rpt-toma)
+    > tbody
+    > tr
+    > td
+    > div {
+    padding-left: 0.5rem !important;
+    padding-right: 0.5rem !important;
+    max-width: calc(100vw - 5rem);
+  }
+}
+
+/* Líneas de productos de compra/salida en móvil: cada fila pasa a ser una
+   tarjeta (repuesto a todo el ancho, el resto en grilla con su etiqueta),
+   para que cantidad, precio y quitar queden a mano sin scroll lateral. */
+@media (max-width: 767px) {
+  :is(.lineas-compra, .lineas-salida) > thead {
+    display: none;
+  }
+  :is(.lineas-compra, .lineas-salida),
+  :is(.lineas-compra, .lineas-salida) > tbody {
+    display: block;
+    width: 100%;
+  }
+  :is(.lineas-compra, .lineas-salida) > tbody > tr {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 0.5rem 0.75rem;
+    padding: 0.75rem 2.75rem 0.75rem 0.75rem;
+    position: relative;
+  }
+  :is(.lineas-compra, .lineas-salida) > tbody > tr > td {
+    display: block;
+    padding: 0 !important;
+    min-width: 0 !important;
+    max-width: none !important;
+    width: auto !important;
+    border: 0 !important;
+    text-align: left !important;
+  }
+  :is(.lineas-compra, .lineas-salida) > tbody > tr > td:first-child {
+    grid-column: 1 / -1;
+  }
+  /* Botón quitar: arriba a la derecha de la tarjeta. */
+  :is(.lineas-compra, .lineas-salida)
+    > tbody
+    > tr
+    > td:last-child:not(:first-child) {
+    position: absolute;
+    top: 0.6rem;
+    right: 0.6rem;
+  }
+  :is(.lineas-compra, .lineas-salida) > tbody > tr > td :is(input, select) {
+    width: 100% !important;
+    min-width: 0 !important;
+  }
+  :is(.lineas-compra, .lineas-salida)
+    > tbody
+    > tr
+    > td:not(:first-child):not(:last-child)::before {
+    display: block;
+    font-size: 10.5px;
+    text-transform: uppercase;
+    letter-spacing: 0.03em;
+    opacity: 0.65;
+    margin-bottom: 2px;
+  }
+  .lineas-compra > tbody > tr > td:nth-child(2)::before {
+    content: 'U.M.';
+  }
+  .lineas-compra > tbody > tr > td:nth-child(3)::before {
+    content: 'Stock';
+  }
+  .lineas-compra > tbody > tr > td:nth-child(4)::before {
+    content: 'Cantidad';
+  }
+  .lineas-compra > tbody > tr > td:nth-child(5)::before {
+    content: 'Precio Bs.';
+  }
+  .lineas-compra > tbody > tr > td:nth-child(6)::before {
+    content: 'Importe';
+  }
+  .lineas-compra > tbody > tr > td:nth-child(7)::before {
+    content: 'Descuento';
+  }
+  .lineas-compra > tbody > tr > td:nth-child(8)::before {
+    content: 'Subtotal';
+  }
+  .lineas-salida > tbody > tr > td:nth-child(2)::before {
+    content: 'U.M.';
+  }
+  .lineas-salida > tbody > tr > td:nth-child(3)::before {
+    content: 'Stock actual';
+  }
+  .lineas-salida > tbody > tr > td:nth-child(4)::before {
+    content: 'Cantidad';
+  }
+  .lineas-salida > tbody > tr > td:nth-child(5)::before {
+    content: 'Precio Bs.';
+  }
+  .lineas-salida > tbody > tr > td:nth-child(6)::before {
+    content: 'Subtotal';
+  }
 }

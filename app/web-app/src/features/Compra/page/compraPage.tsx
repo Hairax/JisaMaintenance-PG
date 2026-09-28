@@ -829,7 +829,8 @@ export default function CompraInventarioPage() {
           <div
             style={{
               display: 'grid',
-              gridTemplateColumns: '1.8fr 1fr',
+              gridTemplateColumns:
+                'repeat(auto-fit, minmax(min(100%, 280px), 1fr))',
               gap: '0.75rem',
               alignItems: 'end',
             }}
@@ -837,7 +838,7 @@ export default function CompraInventarioPage() {
             <div
               style={{
                 display: 'grid',
-                gridTemplateColumns: 'repeat(5, minmax(120px, 1fr))',
+                gridTemplateColumns: 'repeat(auto-fit, minmax(120px, 1fr))',
                 gap: '0.75rem',
               }}
             >
@@ -914,7 +915,7 @@ export default function CompraInventarioPage() {
                   handleSearchFilterChange('subId', e.target.value)
                 }
               >
-                <option value="">SubUnidad</option>
+                <option value="">Subunidad</option>
                 {subUnidades
                   .filter((s) =>
                     searchFilter.maqId
@@ -967,6 +968,7 @@ export default function CompraInventarioPage() {
         </div>
         <div style={{ overflowX: 'auto' }}>
           <table
+            className="lineas-compra"
             style={{
               width: '100%',
               borderCollapse: 'collapse',

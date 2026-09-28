@@ -2,6 +2,7 @@ import { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useTheme } from '../../../shared/contexts/ThemeContext';
 import { informeService } from '../services/informe.service';
+import { MobileCardList } from '../../../shared/components/MobileCardList';
 import {
   FaEye,
   FaTrash,
@@ -519,181 +520,237 @@ export default function ListInformePage() {
               : 'Ningún informe coincide con el técnico seleccionado'}
           </div>
         ) : (
-          <div
-            style={{
-              overflowX: 'auto',
-              backgroundColor: inputBgColor,
-              borderRadius: '8px',
-              border: `1px solid ${inputBorderColor}`,
-            }}
-          >
-            <table
+          <>
+            <div
+              className="md:hidden"
               style={{
-                width: '100%',
-                borderCollapse: 'collapse',
-                textAlign: 'left',
+                backgroundColor: inputBgColor,
+                borderRadius: '8px',
+                border: `1px solid ${inputBorderColor}`,
+                overflow: 'hidden',
               }}
             >
-              <thead>
-                <tr
-                  style={{
-                    backgroundColor: theadBgColor,
-                    color: theadTextColor,
-                  }}
-                >
-                  <th
-                    style={{
-                      padding: '12px',
-                      borderBottom: `1px solid ${inputBorderColor}`,
-                    }}
-                  >
-                    ID
-                  </th>
-                  <th
-                    style={{
-                      padding: '12px',
-                      borderBottom: `1px solid ${inputBorderColor}`,
-                    }}
-                  >
-                    Técnico
-                  </th>
-                  <th
-                    style={{
-                      padding: '12px',
-                      borderBottom: `1px solid ${inputBorderColor}`,
-                    }}
-                  >
-                    Cantidad de Detalles
-                  </th>
-                  <th
-                    style={{
-                      padding: '12px',
-                      borderBottom: `1px solid ${inputBorderColor}`,
-                    }}
-                  >
-                    Creado
-                  </th>
-                  <th
-                    style={{
-                      padding: '12px',
-                      borderBottom: `1px solid ${inputBorderColor}`,
-                      textAlign: 'center',
-                    }}
-                  >
-                    Acciones
-                  </th>
-                </tr>
-              </thead>
-              <tbody>
-                {informesFiltrados.map((informe: Informe, index: number) => (
+              <MobileCardList
+                vacio="No hay informes registrados"
+                items={informesFiltrados.map((informe: Informe) => ({
+                  id: informe.id,
+                  titulo: `Informe #${informe.id}`,
+                  subtitulo:
+                    tecnicoNombres[informe.userId] ??
+                    `Técnico #${informe.userId}`,
+                  datos: [
+                    {
+                      label: 'Detalles',
+                      value: informe.detalles?.length || 0,
+                    },
+                    {
+                      label: 'Creado',
+                      value: new Date(informe.createdAt).toLocaleDateString(),
+                    },
+                  ],
+                  onClick: () => handleViewInforme(informe),
+                  acciones: (
+                    <>
+                      <button
+                        type="button"
+                        onClick={() => handleEditInforme(informe)}
+                        disabled={loading}
+                        className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold border"
+                        style={{ borderColor: '#1565C0', color: '#1565C0' }}
+                      >
+                        <FaEdit /> Editar
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => handleDeleteInforme(informe.id)}
+                        disabled={loading}
+                        className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold border"
+                        style={{ borderColor: '#D32F2F', color: '#D32F2F' }}
+                      >
+                        <FaTrash /> Eliminar
+                      </button>
+                    </>
+                  ),
+                }))}
+              />
+            </div>
+            <div
+              className="hidden md:block"
+              style={{
+                overflowX: 'auto',
+                backgroundColor: inputBgColor,
+                borderRadius: '8px',
+                border: `1px solid ${inputBorderColor}`,
+              }}
+            >
+              <table
+                style={{
+                  width: '100%',
+                  borderCollapse: 'collapse',
+                  textAlign: 'left',
+                }}
+              >
+                <thead>
                   <tr
-                    key={informe.id}
                     style={{
-                      backgroundColor:
-                        index % 2 === 0 ? tbodyBgColor : 'transparent',
+                      backgroundColor: theadBgColor,
+                      color: theadTextColor,
                     }}
                   >
-                    <td
+                    <th
                       style={{
                         padding: '12px',
                         borderBottom: `1px solid ${inputBorderColor}`,
                       }}
                     >
-                      {informe.id}
-                    </td>
-                    <td
+                      ID
+                    </th>
+                    <th
                       style={{
                         padding: '12px',
                         borderBottom: `1px solid ${inputBorderColor}`,
                       }}
                     >
-                      {tecnicoNombres[informe.userId] ??
-                        `Técnico #${informe.userId}`}
-                    </td>
-                    <td
+                      Técnico
+                    </th>
+                    <th
                       style={{
                         padding: '12px',
                         borderBottom: `1px solid ${inputBorderColor}`,
                       }}
                     >
-                      {informe.detalles?.length || 0}
-                    </td>
-                    <td
+                      Cantidad de Detalles
+                    </th>
+                    <th
                       style={{
                         padding: '12px',
                         borderBottom: `1px solid ${inputBorderColor}`,
                       }}
                     >
-                      {new Date(informe.createdAt).toLocaleDateString()}
-                    </td>
-                    <td
+                      Creado
+                    </th>
+                    <th
                       style={{
                         padding: '12px',
                         borderBottom: `1px solid ${inputBorderColor}`,
                         textAlign: 'center',
                       }}
                     >
-                      <button
-                        onClick={() => handleViewInforme(informe)}
-                        disabled={loading}
-                        style={{
-                          display: 'inline-flex',
-                          alignItems: 'center',
-                          gap: '5px',
-                          backgroundColor: '#2196F3',
-                          color: '#FFF',
-                          border: 'none',
-                          padding: '6px 10px',
-                          borderRadius: '4px',
-                          cursor: 'pointer',
-                          marginRight: '5px',
-                          fontSize: '12px',
-                        }}
-                      >
-                        <FaEye /> Ver
-                      </button>
-                      <button
-                        onClick={() => handleDeleteInforme(informe.id)}
-                        disabled={loading}
-                        style={{
-                          display: 'inline-flex',
-                          alignItems: 'center',
-                          gap: '5px',
-                          backgroundColor: errorColor,
-                          color: '#FFF',
-                          border: 'none',
-                          padding: '6px 10px',
-                          borderRadius: '4px',
-                          cursor: 'pointer',
-                          fontSize: '12px',
-                        }}
-                      >
-                        <FaTrash /> Eliminar
-                      </button>
-                      <button
-                        onClick={() => handleEditInforme(informe)}
-                        disabled={loading}
-                        style={{
-                          display: 'inline-flex',
-                          alignItems: 'center',
-                          gap: '5px',
-                          backgroundColor: colors.brown,
-                          color: '#FFF',
-                          border: 'none',
-                          padding: '6px 10px',
-                          borderRadius: '4px',
-                          cursor: 'pointer',
-                          fontSize: '12px',
-                        }}
-                      >
-                        <FaEdit /> Editar
-                      </button>
-                    </td>
+                      Acciones
+                    </th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+                </thead>
+                <tbody>
+                  {informesFiltrados.map((informe: Informe, index: number) => (
+                    <tr
+                      key={informe.id}
+                      style={{
+                        backgroundColor:
+                          index % 2 === 0 ? tbodyBgColor : 'transparent',
+                      }}
+                    >
+                      <td
+                        style={{
+                          padding: '12px',
+                          borderBottom: `1px solid ${inputBorderColor}`,
+                        }}
+                      >
+                        {informe.id}
+                      </td>
+                      <td
+                        style={{
+                          padding: '12px',
+                          borderBottom: `1px solid ${inputBorderColor}`,
+                        }}
+                      >
+                        {tecnicoNombres[informe.userId] ??
+                          `Técnico #${informe.userId}`}
+                      </td>
+                      <td
+                        style={{
+                          padding: '12px',
+                          borderBottom: `1px solid ${inputBorderColor}`,
+                        }}
+                      >
+                        {informe.detalles?.length || 0}
+                      </td>
+                      <td
+                        style={{
+                          padding: '12px',
+                          borderBottom: `1px solid ${inputBorderColor}`,
+                        }}
+                      >
+                        {new Date(informe.createdAt).toLocaleDateString()}
+                      </td>
+                      <td
+                        style={{
+                          padding: '12px',
+                          borderBottom: `1px solid ${inputBorderColor}`,
+                          textAlign: 'center',
+                        }}
+                      >
+                        <button
+                          onClick={() => handleViewInforme(informe)}
+                          disabled={loading}
+                          style={{
+                            display: 'inline-flex',
+                            alignItems: 'center',
+                            gap: '5px',
+                            backgroundColor: '#2196F3',
+                            color: '#FFF',
+                            border: 'none',
+                            padding: '6px 10px',
+                            borderRadius: '4px',
+                            cursor: 'pointer',
+                            marginRight: '5px',
+                            fontSize: '12px',
+                          }}
+                        >
+                          <FaEye /> Ver
+                        </button>
+                        <button
+                          onClick={() => handleDeleteInforme(informe.id)}
+                          disabled={loading}
+                          style={{
+                            display: 'inline-flex',
+                            alignItems: 'center',
+                            gap: '5px',
+                            backgroundColor: errorColor,
+                            color: '#FFF',
+                            border: 'none',
+                            padding: '6px 10px',
+                            borderRadius: '4px',
+                            cursor: 'pointer',
+                            fontSize: '12px',
+                          }}
+                        >
+                          <FaTrash /> Eliminar
+                        </button>
+                        <button
+                          onClick={() => handleEditInforme(informe)}
+                          disabled={loading}
+                          style={{
+                            display: 'inline-flex',
+                            alignItems: 'center',
+                            gap: '5px',
+                            backgroundColor: colors.brown,
+                            color: '#FFF',
+                            border: 'none',
+                            padding: '6px 10px',
+                            borderRadius: '4px',
+                            cursor: 'pointer',
+                            fontSize: '12px',
+                          }}
+                        >
+                          <FaEdit /> Editar
+                        </button>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </>
         )}
 
         {/* Modal de detalles */}

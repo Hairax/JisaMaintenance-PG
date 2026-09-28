@@ -157,7 +157,8 @@ export default function CalendarioProgramacionPage() {
 
   return (
     <div
-      style={{ backgroundColor: bgColor, minHeight: '100vh', padding: '20px' }}
+      className="p-3 sm:p-5"
+      style={{ backgroundColor: bgColor, minHeight: '100vh' }}
     >
       <div style={{ maxWidth: '1200px', margin: '0 auto' }}>
         <div
@@ -278,104 +279,225 @@ export default function CalendarioProgramacionPage() {
             Cargando calendario...
           </div>
         ) : (
-          <div style={{ overflowX: 'auto' }}>
-            <div
-              style={{
-                display: 'grid',
-                gridTemplateColumns: 'repeat(7, minmax(120px, 1fr))',
-                minWidth: '840px',
-                border: `1px solid ${borderColor}`,
-                borderRadius: '8px',
-                overflow: 'hidden',
-              }}
-            >
-              {DIAS_SEMANA.map((d) => (
-                <div
-                  key={d}
-                  style={{
-                    background: isDark ? colors.brown : colors.gold,
-                    color: isDark ? colors.lightText : colors.darkText,
-                    padding: '10px',
-                    fontWeight: 'bold',
-                    fontSize: '13px',
-                    textAlign: 'center',
-                    borderBottom: `1px solid ${borderColor}`,
-                  }}
-                >
-                  {d}
-                </div>
-              ))}
-
-              {grid.map((day) => {
-                const inMonth = day.getMonth() === month;
-                const isToday = sameDay(day, today);
-                const eventos = ocurrenciasPorDia[formatDateOnly(day)] ?? [];
-                return (
-                  <div
-                    key={day.toISOString()}
-                    onClick={() => eventos.length > 0 && setSelectedDay(day)}
-                    style={{
-                      backgroundColor: isToday ? todayBg : cardBg,
-                      minHeight: '110px',
-                      padding: '6px',
-                      borderRight: `1px solid ${borderColor}`,
-                      borderBottom: `1px solid ${borderColor}`,
-                      cursor: eventos.length > 0 ? 'pointer' : 'default',
-                      display: 'flex',
-                      flexDirection: 'column',
-                      gap: '4px',
-                    }}
-                  >
-                    <span
+          <>
+            {/* Móvil: agenda (solo los días del mes con mantenimientos). */}
+            <div className="md:hidden flex flex-col gap-3">
+              {grid
+                .filter(
+                  (day) =>
+                    day.getMonth() === month &&
+                    (ocurrenciasPorDia[formatDateOnly(day)] ?? []).length > 0,
+                )
+                .map((day) => {
+                  const eventos = ocurrenciasPorDia[formatDateOnly(day)] ?? [];
+                  const isToday = sameDay(day, today);
+                  return (
+                    <div
+                      key={day.toISOString()}
                       style={{
-                        fontSize: '12px',
-                        fontWeight: isToday ? 'bold' : 'normal',
-                        color: inMonth ? textColor : outsideMonthColor,
+                        backgroundColor: isToday ? todayBg : cardBg,
+                        border: `1px solid ${isToday ? colors.gold : borderColor}`,
+                        borderRadius: '10px',
+                        padding: '10px 12px',
                       }}
                     >
-                      {day.getDate()}
-                    </span>
-                    {eventos.slice(0, 3).map((ev, i) => {
-                      const c = TIPO_COLORS[ev.tipoEjecucion] ?? {
-                        bg: isDark ? `${colors.brown}40` : `${colors.beige}80`,
-                        color: secondaryTextColor,
-                      };
-                      return (
-                        <div
-                          key={`${ev.programacionId}-${i}`}
-                          style={{
-                            background: c.bg,
-                            color: c.color,
-                            fontSize: '11px',
-                            padding: '2px 5px',
-                            borderRadius: '4px',
-                            overflow: 'hidden',
-                            textOverflow: 'ellipsis',
-                            whiteSpace: 'nowrap',
-                          }}
-                          title={`${maquinaNombres[ev.maquina_id] ?? `Máquina #${ev.maquina_id}`} — ${ev.descripcionTarea}`}
-                        >
-                          {maquinaNombres[ev.maquina_id] ??
-                            `Máq. #${ev.maquina_id}`}
-                        </div>
-                      );
-                    })}
-                    {eventos.length > 3 && (
-                      <span
+                      <div
                         style={{
-                          fontSize: '10px',
+                          fontSize: '13px',
+                          fontWeight: 700,
                           color: secondaryTextColor,
-                          fontWeight: 'bold',
+                          marginBottom: '6px',
                         }}
                       >
-                        +{eventos.length - 3} más
-                      </span>
-                    )}
-                  </div>
-                );
-              })}
+                        {(() => {
+                          const t = day.toLocaleDateString('es-BO', {
+                            weekday: 'long',
+                            day: 'numeric',
+                            month: 'long',
+                          });
+                          return t.charAt(0).toUpperCase() + t.slice(1);
+                        })()}
+                        {isToday && ' · Hoy'}
+                      </div>
+                      <div
+                        style={{
+                          display: 'flex',
+                          flexDirection: 'column',
+                          gap: '6px',
+                        }}
+                      >
+                        {eventos.map((ev, i) => {
+                          const c = TIPO_COLORS[ev.tipoEjecucion] ?? {
+                            bg: isDark
+                              ? `${colors.brown}40`
+                              : `${colors.beige}80`,
+                            color: secondaryTextColor,
+                          };
+                          return (
+                            <div
+                              key={`${ev.programacionId}-${i}`}
+                              style={{
+                                background: c.bg,
+                                borderRadius: '6px',
+                                padding: '6px 8px',
+                              }}
+                            >
+                              <div
+                                style={{
+                                  fontSize: '13px',
+                                  fontWeight: 600,
+                                  color: c.color,
+                                }}
+                              >
+                                {maquinaNombres[ev.maquina_id] ??
+                                  `Máquina #${ev.maquina_id}`}
+                              </div>
+                              <div
+                                style={{
+                                  fontSize: '12px',
+                                  color: textColor,
+                                  opacity: 0.85,
+                                }}
+                              >
+                                {ev.descripcionTarea}
+                              </div>
+                              <div
+                                style={{
+                                  fontSize: '11px',
+                                  color: c.color,
+                                  marginTop: '2px',
+                                }}
+                              >
+                                {ev.tipoEjecucion}
+                              </div>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  );
+                })}
+              {grid.every(
+                (day) =>
+                  day.getMonth() !== month ||
+                  (ocurrenciasPorDia[formatDateOnly(day)] ?? []).length === 0,
+              ) && (
+                <div
+                  style={{
+                    textAlign: 'center',
+                    padding: '40px 16px',
+                    color: secondaryTextColor,
+                    backgroundColor: cardBg,
+                    border: `1px solid ${borderColor}`,
+                    borderRadius: '10px',
+                  }}
+                >
+                  No hay mantenimientos programados en este mes.
+                </div>
+              )}
             </div>
-          </div>
+
+            <div className="hidden md:block" style={{ overflowX: 'auto' }}>
+              <div
+                style={{
+                  display: 'grid',
+                  gridTemplateColumns: 'repeat(7, minmax(120px, 1fr))',
+                  minWidth: '840px',
+                  border: `1px solid ${borderColor}`,
+                  borderRadius: '8px',
+                  overflow: 'hidden',
+                }}
+              >
+                {DIAS_SEMANA.map((d) => (
+                  <div
+                    key={d}
+                    style={{
+                      background: isDark ? colors.brown : colors.gold,
+                      color: isDark ? colors.lightText : colors.darkText,
+                      padding: '10px',
+                      fontWeight: 'bold',
+                      fontSize: '13px',
+                      textAlign: 'center',
+                      borderBottom: `1px solid ${borderColor}`,
+                    }}
+                  >
+                    {d}
+                  </div>
+                ))}
+
+                {grid.map((day) => {
+                  const inMonth = day.getMonth() === month;
+                  const isToday = sameDay(day, today);
+                  const eventos = ocurrenciasPorDia[formatDateOnly(day)] ?? [];
+                  return (
+                    <div
+                      key={day.toISOString()}
+                      onClick={() => eventos.length > 0 && setSelectedDay(day)}
+                      style={{
+                        backgroundColor: isToday ? todayBg : cardBg,
+                        minHeight: '110px',
+                        padding: '6px',
+                        borderRight: `1px solid ${borderColor}`,
+                        borderBottom: `1px solid ${borderColor}`,
+                        cursor: eventos.length > 0 ? 'pointer' : 'default',
+                        display: 'flex',
+                        flexDirection: 'column',
+                        gap: '4px',
+                      }}
+                    >
+                      <span
+                        style={{
+                          fontSize: '12px',
+                          fontWeight: isToday ? 'bold' : 'normal',
+                          color: inMonth ? textColor : outsideMonthColor,
+                        }}
+                      >
+                        {day.getDate()}
+                      </span>
+                      {eventos.slice(0, 3).map((ev, i) => {
+                        const c = TIPO_COLORS[ev.tipoEjecucion] ?? {
+                          bg: isDark
+                            ? `${colors.brown}40`
+                            : `${colors.beige}80`,
+                          color: secondaryTextColor,
+                        };
+                        return (
+                          <div
+                            key={`${ev.programacionId}-${i}`}
+                            style={{
+                              background: c.bg,
+                              color: c.color,
+                              fontSize: '11px',
+                              padding: '2px 5px',
+                              borderRadius: '4px',
+                              overflow: 'hidden',
+                              textOverflow: 'ellipsis',
+                              whiteSpace: 'nowrap',
+                            }}
+                            title={`${maquinaNombres[ev.maquina_id] ?? `Máquina #${ev.maquina_id}`} — ${ev.descripcionTarea}`}
+                          >
+                            {maquinaNombres[ev.maquina_id] ??
+                              `Máq. #${ev.maquina_id}`}
+                          </div>
+                        );
+                      })}
+                      {eventos.length > 3 && (
+                        <span
+                          style={{
+                            fontSize: '10px',
+                            color: secondaryTextColor,
+                            fontWeight: 'bold',
+                          }}
+                        >
+                          +{eventos.length - 3} más
+                        </span>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          </>
         )}
 
         <p
@@ -387,7 +509,7 @@ export default function CalendarioProgramacionPage() {
         >
           Se muestran las fechas en que cada programación activa generará (o
           generó) una orden de trabajo. Las programaciones inactivas no aparecen
-          acá.
+          aquí.
         </p>
       </div>
 

@@ -377,21 +377,17 @@ export default function CostosOrdenesTrabajoPage() {
   const generarCierreExcel = async (conDetalle: boolean) => {
     if (otsDelMesCierre.length === 0) return;
     const [anio, mes] = mesCierre.split('-').map(Number);
-    const codigo = (v?: number | null) => (v != null ? v : '');
     const fecha = (d?: string | null) => (d ? new Date(d) : null);
 
     const filas: CierreOtFila[] = otsDelMesCierre.map((r) => ({
       numOt: `OT${String(r.ot.id).padStart(6, '0')}`,
-      tipoOt: codigo(r.ot.tipoOT_id),
+      tipoOt: r.ot.tipoOT ? getName(r.ot.tipoOT) : '',
       fechaOt: fecha(r.ot.fechaHora),
       fechaFin: fecha(r.ot.fechaCierre),
-      codCentroCosto: codigo(r.ot.costCenter?.id),
-      codProceso: codigo(r.ot.proceso?.correlativo),
-      codMaquina: codigo(r.ot.maquina?.correlativo),
-      codElemento: codigo(r.ot.subUnidad?.correlativo),
       centroCosto: r.ot.costCenter ? getName(r.ot.costCenter) : '',
       proceso: r.ot.proceso ? getName(r.ot.proceso) : '',
       maquina: r.ot.maquina ? getName(r.ot.maquina) : '',
+      subunidad: r.ot.subUnidad?.descripcion ?? '',
       descripcion: r.ot.descripcionTarea,
       totManoObra: r.totalManoObra,
       totRepuestos: r.totalMateriales,
@@ -466,7 +462,7 @@ export default function CostosOrdenesTrabajoPage() {
   return (
     <div
       style={{
-        padding: 'clamp(1rem, 4vw, 2rem)',
+        padding: 'clamp(0.5rem, 3vw, 2rem)',
         maxWidth: 1300,
         margin: '0 auto',
       }}
@@ -476,7 +472,7 @@ export default function CostosOrdenesTrabajoPage() {
           background: 'var(--app-surface)',
           borderRadius: 12,
           boxShadow: 'var(--app-shadow)',
-          padding: 'clamp(1rem, 4vw, 2rem)',
+          padding: 'clamp(0.5rem, 3vw, 2rem)',
         }}
       >
         <h2
@@ -703,6 +699,7 @@ export default function CostosOrdenesTrabajoPage() {
         {/* Main table */}
         <div style={{ overflowX: 'auto' }}>
           <table
+            className="rpt-costos-ot"
             style={{
               width: '100%',
               borderCollapse: 'collapse',

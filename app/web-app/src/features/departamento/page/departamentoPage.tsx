@@ -1,5 +1,6 @@
 import React from 'react';
-import { SearchBar } from '../../../shared/components/SearchBar';
+import { ManagementPage } from '../../../shared/components/management/ManagementPage';
+import { FaBuilding } from 'react-icons/fa';
 import { filtrarPorTexto } from '../../../shared/utils/search';
 import { exportDepartamentoExcel } from '../functions/exportExcel';
 import { useTheme } from '../../../shared/contexts/ThemeContext';
@@ -111,32 +112,27 @@ export const DepartamentoPage: React.FC = () => {
   const filtrados = filtrarPorTexto(departamentos, busqueda, (d) => [d.nombre]);
 
   return (
-    <div className="w-full h-full">
-      <div className="flex justify-between items-center mb-4">
-        <h2 className="text-xl font-bold">Departamentos</h2>
-        <button
-          className="px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700"
-          onClick={() => exportDepartamentoExcel(departamentos)}
-        >
-          Exportar a Excel
-        </button>
-      </div>
-      <SearchBar
-        value={busqueda}
-        onChange={setBusqueda}
-        placeholder="Buscar por ID o nombre..."
-        theme={theme}
+    <>
+      <ManagementPage
+        title="Departamentos"
+        subtitle="Áreas técnicas responsables de las órdenes de trabajo."
+        icon={<FaBuilding />}
         total={departamentos.length}
         resultados={filtrados.length}
-      />
-      <DepartamentoTable
-        departamentos={filtrados}
-        theme={theme}
-        onAddDepartamento={handleAddDepartamento}
-        onViewDepartamento={handleViewDepartamento}
-        loading={loading}
-        error={error}
-      />
+        busqueda={busqueda}
+        onBusquedaChange={setBusqueda}
+        searchPlaceholder="Buscar por ID o nombre..."
+        onExport={() => exportDepartamentoExcel(departamentos)}
+        onAdd={handleAddDepartamento}
+        addLabel="Nuevo departamento"
+      >
+        <DepartamentoTable
+          departamentos={filtrados}
+          onViewDepartamento={handleViewDepartamento}
+          loading={loading}
+          error={error}
+        />
+      </ManagementPage>
       <DepartamentoModal
         isOpen={isModalOpen}
         mode={modalMode}
@@ -155,6 +151,6 @@ export const DepartamentoPage: React.FC = () => {
         onDelete={handleDelete}
         onEditMode={handleEditMode}
       />
-    </div>
+    </>
   );
 };

@@ -33,9 +33,11 @@ export interface OrdenTrabajo {
     nombre: string;
     name?: string;
   };
+  // La API devuelve la subunidad con `descripcion` (no `nombre`).
   subUnidad?: {
     id: number;
-    nombre: string;
+    nombre?: string;
+    descripcion?: string;
   } | null;
   tipoEjecucion?: string;
   departamento?: {
@@ -49,9 +51,12 @@ export interface OrdenTrabajo {
     updatedAt: string | Date;
   };
   tiempoEstimado?: number;
+  // La API devuelve el usuario completo (name / lastName).
   supervisor?: {
     id: number;
-    nombre: string;
+    nombre?: string;
+    name?: string;
+    lastName?: string;
   };
   descripcionTarea?: string;
   indicacionesEspeciales?: string;

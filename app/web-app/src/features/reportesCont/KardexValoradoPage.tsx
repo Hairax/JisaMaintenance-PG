@@ -406,7 +406,7 @@ export default function KardexValoradoPage() {
 
   const exportarExcel = () => {
     const datosParaExportar = dataFiltrada.map((item) => ({
-      CODIGO: item.codigo,
+      CÓDIGO: item.codigo,
       PRODUCTO: item.producto,
       Tipo: item.movimiento,
       Fecha: fmtDate(item.fecha),
@@ -427,7 +427,7 @@ export default function KardexValoradoPage() {
       const rango = `Rango de fechas: ${fechaInicio || '...'} a ${fechaFin || '...'}`;
       datosFinal = [
         {
-          CODIGO: '',
+          CÓDIGO: '',
           PRODUCTO: '',
           Tipo: 'SALDO INICIAL' as const,
           Fecha: rango,
@@ -489,7 +489,7 @@ export default function KardexValoradoPage() {
   return (
     <div
       style={{
-        padding: 'clamp(1rem, 4vw, 2rem)',
+        padding: 'clamp(0.5rem, 3vw, 2rem)',
         maxWidth: 1200,
         margin: '0 auto',
       }}
@@ -499,7 +499,7 @@ export default function KardexValoradoPage() {
           background: bgColor,
           borderRadius: 12,
           boxShadow: 'var(--app-shadow)',
-          padding: 'clamp(1rem, 4vw, 2rem)',
+          padding: 'clamp(0.5rem, 3vw, 2rem)',
         }}
       >
         <h2

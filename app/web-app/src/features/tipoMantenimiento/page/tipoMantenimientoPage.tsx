@@ -1,21 +1,12 @@
 import React from 'react';
-import { SearchBar } from '../../../shared/components/SearchBar';
+import { ManagementPage } from '../../../shared/components/management/ManagementPage';
+import { FaTools } from 'react-icons/fa';
 import { filtrarPorTexto } from '../../../shared/utils/search';
 import { TipoMantenimientoTable } from '../components/tipoMantenimientoTable';
 import { TipoMantenimientoModal } from '../components/tipoMantenimientoModal';
 import { useTipoMantenimiento } from '../hooks/useTipoMantenimiento';
 import { useTheme } from '../../../shared/contexts/ThemeContext';
 import { exportTipoMantenimientoToExcel } from '../functions/exportExcel';
-
-const colors = {
-  brown: '#9E5533',
-  beige: '#E1CD9B',
-  gold: '#FBAF11',
-  darkBg: '#1A1A1A',
-  lightBg: '#E6E6E6',
-  darkText: '#000000',
-  lightText: '#FFFFFF',
-};
 
 export const TipoMantenimientoPage: React.FC = () => {
   const {
@@ -31,85 +22,35 @@ export const TipoMantenimientoPage: React.FC = () => {
 
   const { theme } = useTheme();
   const [busqueda, setBusqueda] = React.useState('');
-  const textColor = theme === 'dark' ? colors.lightText : colors.darkText;
-  const bgColor = theme === 'dark' ? colors.darkBg : colors.lightBg;
-  const buttonBgColor = colors.gold;
-  const buttonHoverColor = '#E69D00';
 
   const filtrados = filtrarPorTexto(state.tiposMantenimiento, busqueda, (t) => [
     t.nombre,
   ]);
 
   return (
-    <div
-      style={{
-        backgroundColor: bgColor,
-        color: textColor,
-        minHeight: '100vh',
-        padding: '20px 0',
-      }}
-    >
-      <div className="flex justify-between items-center mb-6 px-4 sm:px-6 lg:px-8 max-w-screen-xl mx-auto">
-        <h1 style={{ color: textColor }} className="text-2xl font-bold">
-          Tipos de Mantenimiento
-        </h1>
-        <div className="flex gap-2">
-          <button
-            style={{
-              backgroundColor: buttonBgColor,
-              color: colors.darkText,
-            }}
-            className="flex items-center gap-2 px-4 py-2 rounded-lg shadow transition duration-150 ease-in-out"
-            onMouseOver={(e) =>
-              (e.currentTarget.style.backgroundColor = buttonHoverColor)
-            }
-            onMouseOut={(e) =>
-              (e.currentTarget.style.backgroundColor = buttonBgColor)
-            }
-            onClick={() => handleOpenModal('create')}
-          >
-            Nuevo Tipo de Mantenimiento
-          </button>
-          <button
-            style={{
-              backgroundColor: buttonBgColor,
-              color: colors.darkText,
-            }}
-            className="flex items-center gap-2 px-4 py-2 rounded-lg shadow transition duration-150 ease-in-out"
-            onMouseOver={(e) =>
-              (e.currentTarget.style.backgroundColor = buttonHoverColor)
-            }
-            onMouseOut={(e) =>
-              (e.currentTarget.style.backgroundColor = buttonBgColor)
-            }
-            onClick={() =>
-              exportTipoMantenimientoToExcel(state.tiposMantenimiento)
-            }
-          >
-            Exportar a Excel
-          </button>
-        </div>
-      </div>
-      <SearchBar
-        value={busqueda}
-        onChange={setBusqueda}
-        placeholder="Buscar por ID o nombre..."
-        theme={theme}
+    <>
+      <ManagementPage
+        title="Tipos de Mantenimiento"
+        subtitle="Clasificación de las órdenes de trabajo (preventivo, correctivo...)."
+        icon={<FaTools />}
         total={state.tiposMantenimiento.length}
         resultados={filtrados.length}
-      />
-      <TipoMantenimientoTable
-        tiposMantenimiento={filtrados}
-        loading={state.loading}
-        error={state.error}
-        onView={(tipo) => handleOpenModal('view', tipo)}
-        onEdit={(tipo) => handleOpenModal('edit', tipo)}
-        onDelete={(tipo) => {
-          handleOpenModal('view', tipo);
-          handleDeleteClick();
-        }}
-        theme={theme}
-      />
+        busqueda={busqueda}
+        onBusquedaChange={setBusqueda}
+        searchPlaceholder="Buscar por ID o nombre..."
+        onExport={() =>
+          exportTipoMantenimientoToExcel(state.tiposMantenimiento)
+        }
+        onAdd={() => handleOpenModal('create')}
+        addLabel="Nuevo tipo"
+      >
+        <TipoMantenimientoTable
+          tiposMantenimiento={filtrados}
+          loading={state.loading}
+          error={state.error}
+          onView={(tipo) => handleOpenModal('view', tipo)}
+        />
+      </ManagementPage>
       <TipoMantenimientoModal
         isOpen={state.isModalOpen}
         mode={state.modalMode}
@@ -131,6 +72,6 @@ export const TipoMantenimientoPage: React.FC = () => {
         }
         theme={theme}
       />
-    </div>
+    </>
   );
 };

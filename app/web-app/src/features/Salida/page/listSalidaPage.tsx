@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useTheme } from '../../../shared/contexts/ThemeContext';
 import { salidaService } from '../services/salida.service';
+import { MobileCardList } from '../../../shared/components/MobileCardList';
 import {
   FaEdit,
   FaEye,
@@ -331,7 +332,7 @@ export const ListSalidaPage: React.FC = () => {
         />
         <input
           type="text"
-          placeholder="Buscar por id salida, usuario (id/nombre), OT (id/descripcion), repuesto..."
+          placeholder="Buscar por N° de salida, usuario (ID/nombre), OT (ID/descripción), repuesto..."
           value={searchQ}
           onChange={(e) => setSearchQ(e.target.value)}
           style={{
@@ -378,7 +379,41 @@ export const ListSalidaPage: React.FC = () => {
               : '0 2px 12px rgba(0,0,0,0.08)',
         }}
       >
-        <div style={{ overflowX: 'auto' }}>
+        {!loading && (
+          <MobileCardList
+            vacio={
+              searchQ
+                ? `No se encontraron resultados para "${searchQ}".`
+                : 'No hay salidas registradas.'
+            }
+            items={filteredSalidas.map((salida) => ({
+              id: salida.id,
+              titulo: `Salida #${salida.id}`,
+              subtitulo:
+                getOtDescripcion(getOtById(salida.otId)) || `OT ${salida.otId}`,
+              derecha: (
+                <span style={{ color: colors.gold }}>
+                  {salida.total.toFixed(2)} Bs.
+                </span>
+              ),
+              datos: [
+                {
+                  label: 'Usuario',
+                  value:
+                    getUsuarioNombreCompleto(
+                      getUsuarioById(salida.usuarioId),
+                    ) || `Usuario ${salida.usuarioId}`,
+                },
+                {
+                  label: 'Fecha',
+                  value: new Date(salida.fecha).toLocaleDateString('es-ES'),
+                },
+              ],
+              onClick: () => handleViewSalida(salida),
+            }))}
+          />
+        )}
+        <div className="hidden md:block" style={{ overflowX: 'auto' }}>
           <table
             style={{
               width: '100%',
@@ -652,7 +687,7 @@ export const ListSalidaPage: React.FC = () => {
                         ).toLocaleDateString('es-ES'),
                       },
                       {
-                        label: 'Almacen',
+                        label: 'Almacén',
                         value: selectedSalida.almacen || '-',
                       },
                     ].map(({ label, value }) => (
@@ -873,11 +908,11 @@ export const ListSalidaPage: React.FC = () => {
                       marginBottom: '0.75rem',
                     }}
                   >
-                    Estas seguro?
+                    ¿Estás seguro?
                   </p>
                   <p style={{ marginBottom: '0.75rem', lineHeight: 1.6 }}>
                     Estas a punto de eliminar la salida{' '}
-                    <strong>#{selectedSalida.id}</strong>. Esta accion es
+                    <strong>#{selectedSalida.id}</strong>. Esta acción es
                     permanente.
                   </p>
                   {deleteCountdown > 0 ? (
@@ -899,7 +934,7 @@ export const ListSalidaPage: React.FC = () => {
                         margin: '1rem 0',
                       }}
                     >
-                      Puedes confirmar la eliminacion.
+                      Puedes confirmar la eliminación.
                     </p>
                   )}
                 </div>
@@ -1058,7 +1093,7 @@ export const ListSalidaPage: React.FC = () => {
                   >
                     <FaTrash />{' '}
                     {canConfirmDelete
-                      ? 'Confirmar Eliminacion'
+                      ? 'Confirmar Eliminación'
                       : `Confirmar (${deleteCountdown})`}
                   </button>
                 </>

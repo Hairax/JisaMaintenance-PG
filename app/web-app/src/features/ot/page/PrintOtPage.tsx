@@ -131,6 +131,12 @@ export default function PrintOtPage() {
     );
   }
 
+  const supervisorNombre = ot.supervisor
+    ? [ot.supervisor.name ?? ot.supervisor.nombre, ot.supervisor.lastName]
+        .filter(Boolean)
+        .join(' ')
+    : '';
+
   const nombresTecnicos = (ot.tecnicos ?? []).map(
     (tid) => tecnicoNombres[tid] || `Técnico #${tid}`,
   );
@@ -284,7 +290,11 @@ export default function PrintOtPage() {
           <div style={{ borderBottom: `1px solid ${colors.border}` }}>
             <Campo
               label="Subunidad"
-              value={ot.subUnidad ? getName(ot.subUnidad) : '—'}
+              value={
+                ot.subUnidad
+                  ? (ot.subUnidad.descripcion ?? getName(ot.subUnidad))
+                  : '—'
+              }
             />
           </div>
 
@@ -429,8 +439,8 @@ export default function PrintOtPage() {
         </div>
 
         {/* Firmas: una línea por cada técnico asignado (para que cada uno
-            pueda firmar su propia participación), más el Vo.Bo. del jefe de
-            mantenimiento. Si hay muchos técnicos, la grilla arma más filas
+            pueda firmar su propia participación), más el Vo.Bo. del supervisor
+            de la OT. Si hay muchos técnicos, la grilla arma más filas
             sola — no depende de un número fijo de columnas. */}
         <div
           style={{
@@ -479,7 +489,9 @@ export default function PrintOtPage() {
               color: colors.darkText,
             }}
           >
-            Vo.Bo. Jefe de Mantenimiento
+            {supervisorNombre
+              ? `Vo.Bo. ${supervisorNombre} — Supervisor`
+              : 'Vo.Bo. Supervisor'}
           </div>
         </div>
       </div>

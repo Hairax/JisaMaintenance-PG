@@ -59,7 +59,7 @@ export const CoCeModal: React.FC<CostCenterModalProps> = ({
   const bgColor = theme === 'dark' ? colors.darkBg : colors.lightBg;
   const inputBgColor = theme === 'dark' ? '#2A2A2A' : '#F5F5F5';
   const inputBorderColor = theme === 'dark' ? '#3A3A3A' : '#D6D6D6';
-  const overlayBgColor = 'rgba(0, 0, 0, 0.75)';
+  const overlayBgColor = 'rgba(0, 0, 0, 0.55)';
   const borderColor = theme === 'dark' ? '#3A3A3A' : '#D6D6D6';
   const primaryButtonBg = colors.gold;
   const primaryButtonHover = '#E69D00'; // Versión oscurecida del gold
@@ -109,7 +109,7 @@ export const CoCeModal: React.FC<CostCenterModalProps> = ({
 
   return (
     <div
-      className="fixed inset-0 flex items-center justify-center z-50"
+      className="fixed inset-0 flex items-center justify-center z-50 p-4 backdrop-blur-sm transition-opacity duration-300"
       style={{ backgroundColor: overlayBgColor }}
     >
       <div
@@ -117,7 +117,7 @@ export const CoCeModal: React.FC<CostCenterModalProps> = ({
           backgroundColor: bgColor,
           color: textColor,
         }}
-        className="rounded-lg max-w-lg w-full p-6 shadow-xl relative flex flex-col max-h-[90vh]"
+        className="rounded-2xl max-w-lg w-full p-6 shadow-2xl border border-black/5 dark:border-white/10 relative flex flex-col max-h-[90vh]"
       >
         <button
           style={{ color: secondaryTextColor }}
@@ -157,7 +157,7 @@ export const CoCeModal: React.FC<CostCenterModalProps> = ({
                 .
               </p>
               <p className="text-sm mb-4">
-                Esta acción eliminara de manera permanete el centro de costo.
+                Esta acción eliminará de manera permanente el centro de costo.
               </p>
               {deleteCountdown > 0 && (
                 <p

@@ -1,8 +1,8 @@
 import React from 'react';
-import { SearchBar } from '../../../shared/components/SearchBar';
+import { ManagementPage } from '../../../shared/components/management/ManagementPage';
+import { FaCoins } from 'react-icons/fa';
 import { filtrarPorTexto } from '../../../shared/utils/search';
 import { exportCostCentersToExcel } from '../functions/exportExcel';
-import { colors } from '../constants/colors';
 import { useTheme } from '../../../shared/contexts/ThemeContext';
 import { useCoCeManagement } from '../hooks/useCoCeManagement';
 import { CoCeTable } from '../components/CoCeTable';
@@ -24,60 +24,35 @@ export const CoCeManagement: React.FC = () => {
   } = useCoCeManagement();
 
   // Define estilos basados en el tema
-  const pageStyle = {
-    color: theme === 'dark' ? colors.lightText : colors.darkText,
-    minHeight: '100vh',
-    padding: '20px 0',
-  };
 
   const filtrados = filtrarPorTexto(state.costCenters, busqueda, (c) => [
     c.name,
   ]);
 
   return (
-    <div style={pageStyle}>
-      <div
-        style={{
-          display: 'flex',
-          justifyContent: 'flex-end',
-          marginBottom: 16,
-        }}
-      >
-        <button
-          onClick={() => exportCostCentersToExcel(state.costCenters)}
-          style={{
-            backgroundColor: colors.gold,
-            color: colors.lightText,
-            padding: '8px 16px',
-            borderRadius: 8,
-            border: 'none',
-            cursor: 'pointer',
-            fontWeight: 'bold',
-            boxShadow: '0 2px 6px rgba(0,0,0,0.08)',
-          }}
-        >
-          Exportar a Excel
-        </button>
-      </div>
-      <SearchBar
-        value={busqueda}
-        onChange={setBusqueda}
-        placeholder="Buscar por ID o nombre..."
-        theme={theme}
+    <>
+      <ManagementPage
+        title="Centros de Costo"
+        subtitle="Áreas a las que se imputan los costos de mantenimiento."
+        icon={<FaCoins />}
         total={state.costCenters.length}
         resultados={filtrados.length}
-      />
-      <CoCeTable
-        costCenters={filtrados}
-        theme={theme}
-        onAddCostCenter={() => handleOpenModal('add')}
-        onViewCostCenter={(costCenter: CostCenter) =>
-          handleOpenModal('view', costCenter)
-        }
-        loading={state.loading}
-        error={state.error}
-      />
-
+        busqueda={busqueda}
+        onBusquedaChange={setBusqueda}
+        searchPlaceholder="Buscar por ID o nombre..."
+        onExport={() => exportCostCentersToExcel(state.costCenters)}
+        onAdd={() => handleOpenModal('add')}
+        addLabel="Nuevo centro de costo"
+      >
+        <CoCeTable
+          costCenters={filtrados}
+          onViewCostCenter={(costCenter: CostCenter) =>
+            handleOpenModal('view', costCenter)
+          }
+          loading={state.loading}
+          error={state.error}
+        />
+      </ManagementPage>
       <CoCeModal
         isOpen={state.isModalOpen}
         mode={state.modalMode}
@@ -99,6 +74,6 @@ export const CoCeManagement: React.FC = () => {
           handleOpenModal('edit', state.selectedCostCenter)
         }
       />
-    </div>
+    </>
   );
 };

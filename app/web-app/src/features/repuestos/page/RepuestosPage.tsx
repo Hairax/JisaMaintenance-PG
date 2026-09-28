@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useTheme } from '../../../shared/contexts/ThemeContext';
 import * as XLSX from 'xlsx';
+import { coincideCodigo, normalizarTexto } from '../../../shared/utils/search';
 import { API_URL } from '../../../shared/config/api';
 
 const API = API_URL;
@@ -270,12 +271,12 @@ function exportRepuestosToExcel(
     buildRepuestoCompositeId(r, costCenters, processes, maquinas, subUnidades);
 
   const data = [
-    ['LISTA DE MAESTRA'],
+    ['LISTA MAESTRA'],
     [`Fecha reporte: ${dateStr}`],
     [],
     [
       'Item', // Se corrigió visualmente el orden de cabeceras según el mapping de abajo
-      'Almacen',
+      'Almacén',
       'Nombre',
       'Descripción extendida',
       'Unid.',
@@ -494,7 +495,7 @@ function exportCriticalStockToExcel(
     ['Número de Requerimiento:', ''],
     [],
     [
-      'ALMACEN',
+      'ALMACÉN',
       'CÓDIGO',
       'DESCRIPCIÓN',
       'MEDIDA',
@@ -818,11 +819,14 @@ export default function RepuestosPage() {
     if (procId && String(r.proceso_id) !== procId) return false;
     if (maqId && String(r.maquina_id) !== maqId) return false;
     if (subId && String(r.subUnidad_id) !== subId) return false;
-    // Text search: composite ID or nombre
-    if (searchQ) {
-      const q = searchQ.toLowerCase();
-      const cid = getRepuestoCompositeId(r).toLowerCase();
-      return cid.includes(q) || r.nombre.toLowerCase().includes(q);
+    // Búsqueda: por código (1.01.02… por segmentos) o por nombre/código libre.
+    if (searchQ.trim()) {
+      const q = normalizarTexto(searchQ);
+      const cid = normalizarTexto(getRepuestoCompositeId(r));
+      if (/^\d+(\.\d*)*$/.test(q) && r.tipo !== 'LIBRE') {
+        return coincideCodigo(cid, q);
+      }
+      return cid.includes(q) || normalizarTexto(r.nombre).includes(q);
     }
     return true;
   });
@@ -985,6 +989,7 @@ export default function RepuestosPage() {
     borderRadius: 3,
     fontSize: 13,
     minWidth: 0,
+    maxWidth: '100%',
   };
   const selectStyle: React.CSSProperties = {
     ...inputStyle,
@@ -1119,6 +1124,8 @@ export default function RepuestosPage() {
           display: 'flex',
           justifyContent: 'space-between',
           alignItems: 'center',
+          flexWrap: 'wrap',
+          gap: 12,
           marginBottom: 12,
         }}
       >
@@ -1133,7 +1140,7 @@ export default function RepuestosPage() {
         >
           MAESTRO DE REPUESTOS
         </h2>
-        <div style={{ display: 'flex', gap: 8 }}>
+        <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
           <button
             onClick={loadAll}
             disabled={loading}
@@ -1383,7 +1390,7 @@ export default function RepuestosPage() {
 
           {/* SubUnidad */}
           <div style={row}>
-            <span style={labelStyle}>SubUnidad</span>
+            <span style={labelStyle}>Subunidad</span>
             <select
               value={subId}
               onChange={(e) => setSubId(e.target.value)}
@@ -1434,7 +1441,7 @@ export default function RepuestosPage() {
             }}
           >
             Selecciona la jerarquía completa para filtrar los repuestos de la
-            tabla o para asignar un nuevo repuesto a una sub-unidad específica.
+            tabla o para asignar un nuevo repuesto a una subunidad específica.
           </p>
         </div>
 
@@ -1459,7 +1466,7 @@ export default function RepuestosPage() {
             Relación de Repuestos
           </h3>
           <input
-            placeholder="Buscar por ID o nombre..."
+            placeholder="Buscar por código o nombre..."
             value={searchQ}
             onChange={(e) => setSearchQ(e.target.value)}
             style={{
@@ -1488,7 +1495,7 @@ export default function RepuestosPage() {
                 >
                   {[
                     'Almacén',
-                    'Codigo',
+                    'Código',
                     'Nombre',
                     'Unidad',
                     'Ubicación',
@@ -1715,7 +1722,7 @@ export default function RepuestosPage() {
             alignItems: 'flex-start',
             zIndex: 1000,
             overflowY: 'auto',
-            padding: '40px 20px',
+            padding: 'clamp(12px, 4vw, 40px) clamp(8px, 3vw, 20px)',
           }}
           onClick={() => setShowModal(false)}
         >
@@ -1723,10 +1730,12 @@ export default function RepuestosPage() {
             style={{
               backgroundColor: card,
               color: text,
-              padding: 24,
+              padding: 'clamp(14px, 4vw, 24px)',
               borderRadius: 8,
               width: '100%',
               maxWidth: 720,
+              minWidth: 0,
+              overflowWrap: 'anywhere',
               border: `1px solid ${inputBorder}`,
             }}
             onClick={(e) => e.stopPropagation()}
@@ -1775,7 +1784,9 @@ export default function RepuestosPage() {
 
             {/* Tipo de Repuesto */}
             <div style={{ marginBottom: 16, gridColumn: '1 / -1' }}>
-              <label style={labelStyle}>Tipo de Repuesto:</label>
+              <label style={{ ...labelStyle, textAlign: 'left' }}>
+                Tipo de Repuesto:
+              </label>
               <select
                 value={form.tipo}
                 onChange={(e) =>
@@ -1810,12 +1821,15 @@ export default function RepuestosPage() {
             <div
               style={{
                 display: 'grid',
-                gridTemplateColumns: '1fr 1fr',
+                // 2 columnas si hay espacio, 1 en pantallas angostas; mínimo fijo
+                // para que un nombre largo en un select no ensanche la columna.
+                gridTemplateColumns:
+                  'repeat(auto-fit, minmax(min(100%, 300px), 1fr))',
                 gap: '0 24px',
               }}
             >
               {/* ─── LEFT COLUMN: cascading selects ─────────────────────── */}
-              <div>
+              <div style={{ minWidth: 0 }}>
                 <p
                   style={{
                     fontSize: 12,
@@ -1887,7 +1901,7 @@ export default function RepuestosPage() {
 
                 {/* SubUnidad */}
                 <div style={row}>
-                  <span style={labelStyle}>SubUnidad</span>
+                  <span style={labelStyle}>Subunidad</span>
                   <select
                     value={subId}
                     onChange={(e) => setSubId(e.target.value)}
@@ -1937,7 +1951,7 @@ export default function RepuestosPage() {
               </div>
 
               {/* ─── RIGHT COLUMN: repuesto fields ──────────────────────── */}
-              <div>
+              <div style={{ minWidth: 0 }}>
                 <p
                   style={{
                     fontSize: 12,
@@ -1966,7 +1980,9 @@ export default function RepuestosPage() {
                 {/* U.Medida */}
                 <div style={{ ...row, flex: 1 }}>
                   <span style={labelStyle}>U.Medida</span>
-                  <div style={{ display: 'flex', gap: 4, flex: 1 }}>
+                  <div
+                    style={{ display: 'flex', gap: 4, flex: 1, minWidth: 0 }}
+                  >
                     <select
                       name="uMedida"
                       value={form.uMedida}
@@ -1998,7 +2014,9 @@ export default function RepuestosPage() {
                 {/* ALMACEN */}
                 <div style={{ ...row, flex: 1 }}>
                   <span style={labelStyle}>Almacén</span>
-                  <div style={{ display: 'flex', gap: 4, flex: 1 }}>
+                  <div
+                    style={{ display: 'flex', gap: 4, flex: 1, minWidth: 0 }}
+                  >
                     <select
                       name="almacen"
                       value={form.almacen}
@@ -2301,7 +2319,7 @@ export default function RepuestosPage() {
                           r.id === updatedRepuesto.id ? updatedRepuesto : r,
                         ),
                       );
-                      alert('Recalculo completado');
+                      alert('Recálculo completado');
                     } catch (error) {
                       console.error(error);
                       alert(
@@ -2371,7 +2389,7 @@ export default function RepuestosPage() {
                   ['C.Costo ID', viewRepuesto.centroCosto_id ?? '—'],
                   ['Proceso ID', viewRepuesto.proceso_id ?? '—'],
                   ['Máquina ID', viewRepuesto.maquina_id ?? '—'],
-                  ['SubUnidad ID', viewRepuesto.subUnidad_id ?? '—'],
+                  ['Subunidad ID', viewRepuesto.subUnidad_id ?? '—'],
                 ] as [string, unknown][]
               ).map(([label, value]) => (
                 <div
@@ -2954,7 +2972,7 @@ export default function RepuestosPage() {
                   value={alForm.nombre}
                   onChange={handleAlFormChange}
                   style={inputStyle}
-                  placeholder="Ej: Alacen 1, Almacen a, etc."
+                  placeholder="Ej.: Almacén 1, Almacén A, etc."
                 />
               </div>
 

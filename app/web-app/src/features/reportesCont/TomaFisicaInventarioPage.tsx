@@ -235,7 +235,7 @@ export default function TomaFisicaInventarioPage() {
       datos.push({
         Nombre: row.nombre,
         Tipo: row.tipo === 'repuesto' ? 'Repuesto' : 'Repuesto Máquina',
-        Descripcion: row.descripcion,
+        Descripción: row.descripcion,
         'Costo Unitario': row.costoUnitario,
         'Stock Inicial (est.)': row.stockInicial,
         'Total Entradas': row.totalEntradas,
@@ -252,7 +252,7 @@ export default function TomaFisicaInventarioPage() {
         datos.push({
           Nombre: '',
           Tipo: '',
-          Descripcion: '',
+          Descripción: '',
           'Costo Unitario': '',
           'Stock Inicial (est.)': '',
           'Total Entradas': '',
@@ -319,7 +319,7 @@ export default function TomaFisicaInventarioPage() {
   return (
     <div
       style={{
-        padding: 'clamp(1rem, 4vw, 2rem)',
+        padding: 'clamp(0.5rem, 3vw, 2rem)',
         maxWidth: 1200,
         margin: '0 auto',
       }}
@@ -329,7 +329,7 @@ export default function TomaFisicaInventarioPage() {
           background: 'var(--app-surface)',
           borderRadius: 12,
           boxShadow: 'var(--app-shadow)',
-          padding: 'clamp(1rem, 4vw, 2rem)',
+          padding: 'clamp(0.5rem, 3vw, 2rem)',
         }}
       >
         <h2
@@ -494,6 +494,7 @@ export default function TomaFisicaInventarioPage() {
         {/* Main table */}
         <div style={{ overflowX: 'auto' }}>
           <table
+            className="rpt-toma"
             style={{
               width: '100%',
               borderCollapse: 'collapse',

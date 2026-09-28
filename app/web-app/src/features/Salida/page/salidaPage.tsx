@@ -576,7 +576,7 @@ export default function SalidaPage() {
 
       <div style={cardStyle}>
         <div style={cardHeaderStyle}>
-          <h3 style={cardTitleStyle}>Informacion de Salida</h3>
+          <h3 style={cardTitleStyle}>Información de Salida</h3>
         </div>
         <div
           style={{
@@ -590,7 +590,7 @@ export default function SalidaPage() {
             <label style={labelStyle}>Nro. Salida</label>
             <input
               style={{ ...inputStyle, fontWeight: 700 }}
-              value={isEditMode ? `#${editId}` : 'Se asigna automaticamente'}
+              value={isEditMode ? `#${editId}` : 'Se asigna automáticamente'}
               readOnly
             />
           </div>
@@ -636,17 +636,17 @@ export default function SalidaPage() {
           </div>
 
           <div>
-            <label style={labelStyle}>Almacen</label>
+            <label style={labelStyle}>Almacén</label>
             <input
               style={inputStyle}
-              placeholder="Ej. Almacen Central"
+              placeholder="Ej. Almacén Central"
               value={almacen}
               onChange={(e) => setAlmacen(e.target.value)}
             />
           </div>
 
           <div style={{ gridColumn: '1 / -1' }}>
-            <label style={labelStyle}>Observacion</label>
+            <label style={labelStyle}>Observación</label>
             <textarea
               style={{ ...inputStyle, minHeight: 72, resize: 'vertical' }}
               placeholder="Detalle u observaciones de la salida"
@@ -718,7 +718,7 @@ export default function SalidaPage() {
           </div>
 
           <div>
-            <label style={labelStyle}>Maquina</label>
+            <label style={labelStyle}>Máquina</label>
             <select
               style={inputStyle}
               value={maqId}
@@ -740,7 +740,7 @@ export default function SalidaPage() {
           </div>
 
           <div>
-            <label style={labelStyle}>Sub-Unidad</label>
+            <label style={labelStyle}>Subunidad</label>
             <select
               style={inputStyle}
               value={subId}
@@ -787,6 +787,7 @@ export default function SalidaPage() {
 
         <div style={{ overflowX: 'auto' }}>
           <table
+            className="lineas-salida"
             style={{
               width: '100%',
               borderCollapse: 'collapse',

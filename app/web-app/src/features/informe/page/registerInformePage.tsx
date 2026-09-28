@@ -446,7 +446,7 @@ export default function RegisterInformePage() {
               <div
                 style={{
                   display: 'grid',
-                  gridTemplateColumns: 'repeat(2, 1fr)',
+                  gridTemplateColumns: 'repeat(auto-fit, minmax(210px, 1fr))',
                   gap: '15px',
                   marginBottom: '15px',
                 }}

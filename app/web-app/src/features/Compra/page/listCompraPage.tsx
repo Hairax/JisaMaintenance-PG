@@ -9,6 +9,7 @@ import {
   FaEdit,
   FaSearch,
 } from 'react-icons/fa';
+import { MobileCardList } from '../../../shared/components/MobileCardList';
 import { API_URL } from '../../../shared/config/api';
 
 const colors = {
@@ -357,7 +358,34 @@ export const ListCompraPage: React.FC = () => {
               : '0 2px 12px rgba(0,0,0,0.08)',
         }}
       >
-        <div style={{ overflowX: 'auto' }}>
+        {!loading && (
+          <MobileCardList
+            vacio={
+              searchQ
+                ? `No se encontraron resultados para "${searchQ}".`
+                : 'No hay compras registradas.'
+            }
+            items={filteredCompras.map((compra) => ({
+              id: compra.id,
+              titulo: compra.nroDocumento,
+              subtitulo: `${compra.tipoDocumento}${compra.nroFactura ? ` · Fact. ${compra.nroFactura}` : ''}`,
+              derecha: (
+                <span style={{ color: colors.gold }}>
+                  {compra.total.toFixed(2)} Bs.
+                </span>
+              ),
+              datos: [
+                {
+                  label: 'Fecha',
+                  value: new Date(compra.fecha).toLocaleDateString('es-ES'),
+                },
+                { label: 'NIT', value: compra.nit || '—' },
+              ],
+              onClick: () => handleViewCompra(compra),
+            }))}
+          />
+        )}
+        <div className="hidden md:block" style={{ overflowX: 'auto' }}>
           <table
             style={{
               width: '100%',

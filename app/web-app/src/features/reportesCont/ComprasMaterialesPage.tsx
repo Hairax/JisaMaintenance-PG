@@ -427,7 +427,7 @@ export default function ComprasMaterialesPage() {
   return (
     <div
       style={{
-        padding: 'clamp(1rem, 4vw, 2rem)',
+        padding: 'clamp(0.5rem, 3vw, 2rem)',
         maxWidth: 1200,
         margin: '0 auto',
       }}
@@ -437,7 +437,7 @@ export default function ComprasMaterialesPage() {
           background: 'var(--app-surface)',
           borderRadius: 12,
           boxShadow: 'var(--app-shadow)',
-          padding: 'clamp(1rem, 4vw, 2rem)',
+          padding: 'clamp(0.5rem, 3vw, 2rem)',
         }}
       >
         <h2
@@ -641,6 +641,7 @@ export default function ComprasMaterialesPage() {
         {/* Table */}
         <div style={{ overflowX: 'auto' }}>
           <table
+            className="rpt-compras"
             style={{
               width: '100%',
               borderCollapse: 'collapse',

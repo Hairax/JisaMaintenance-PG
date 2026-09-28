@@ -13,6 +13,13 @@ import {
 import { useTheme } from '../../../shared/contexts/ThemeContext';
 import { SearchableSelect } from '../../../shared/components/SearchableSelect';
 import { SearchBar } from '../../../shared/components/SearchBar';
+import { MobileCardList } from '../../../shared/components/MobileCardList';
+import { Badge } from '../../../shared/components/management/Badge';
+import {
+  ManagementHeader,
+  PrimaryButton,
+  SecondaryButton,
+} from '../../../shared/components/management/ManagementPage';
 import { filtrarPorTexto } from '../../../shared/utils/search';
 import { programacionOtService } from '../services/programacionOt.service';
 import {
@@ -431,70 +438,27 @@ export default function ProgramacionOtPage() {
 
   return (
     <div
-      style={{
-        backgroundColor: bgColor,
-        color: textColor,
-        minHeight: '100vh',
-        padding: '20px',
-      }}
+      className="w-full max-w-screen-xl mx-auto px-4 sm:px-6 lg:px-8 py-6 pb-24 md:pb-8"
+      style={{ color: textColor }}
     >
-      <div style={{ maxWidth: '1300px', margin: '0 auto' }}>
-        <div
-          style={{
-            display: 'flex',
-            justifyContent: 'space-between',
-            alignItems: 'center',
-            marginBottom: '10px',
-            flexWrap: 'wrap',
-            gap: '10px',
-          }}
-        >
-          <div>
-            <h1 style={{ color: secondaryTextColor, margin: 0 }}>
-              Programación Automática de OTs
-            </h1>
-            <p style={{ fontSize: '13px', opacity: 0.7, margin: '4px 0 0' }}>
-              Define cada cuánto tiempo se debe crear automáticamente una orden
-              de trabajo para un activo (ideal para mantenimiento preventivo).
-            </p>
-          </div>
-          <div style={{ display: 'flex', gap: '10px' }}>
-            <button
-              onClick={() => navigate('/programacion-ot/calendario')}
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: '8px',
-                backgroundColor: 'transparent',
-                color: secondaryTextColor,
-                border: `1px solid ${secondaryTextColor}`,
-                padding: '10px 16px',
-                borderRadius: '4px',
-                cursor: 'pointer',
-                fontWeight: 'bold',
-              }}
-            >
-              <FaCalendarAlt /> Ver Calendario
-            </button>
-            <button
-              onClick={openCreateModal}
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: '8px',
-                backgroundColor: colors.gold,
-                color: colors.darkText,
-                border: 'none',
-                padding: '10px 16px',
-                borderRadius: '4px',
-                cursor: 'pointer',
-                fontWeight: 'bold',
-              }}
-            >
-              <FaPlus /> Nueva Programación
-            </button>
-          </div>
-        </div>
+      <div>
+        <ManagementHeader
+          title="Programación Automática de OTs"
+          subtitle="Define cada cuánto se crea automáticamente una orden de trabajo para un activo (mantenimiento preventivo)."
+          icon={<FaClock />}
+          actions={
+            <>
+              <SecondaryButton
+                onClick={() => navigate('/programacion-ot/calendario')}
+              >
+                <FaCalendarAlt /> Ver calendario
+              </SecondaryButton>
+              <PrimaryButton onClick={openCreateModal}>
+                <FaPlus /> Nueva programación
+              </PrimaryButton>
+            </>
+          }
+        />
 
         {error && (
           <div
@@ -515,7 +479,6 @@ export default function ProgramacionOtPage() {
             value={busqueda}
             onChange={setBusqueda}
             placeholder="Buscar por ID, nombre, descripción, máquina o tipo..."
-            theme={theme}
             total={programaciones.length}
             resultados={programacionesFiltradas.length}
             sinContenedor
@@ -544,233 +507,328 @@ export default function ProgramacionOtPage() {
             </p>
           </div>
         ) : (
-          <div
-            style={{
-              overflowX: 'auto',
-              backgroundColor: cardBg,
-              borderRadius: '8px',
-              border: `1px solid ${inputBorderColor}`,
-              marginTop: '15px',
-            }}
-          >
-            <table
+          <>
+            <div
+              className="md:hidden"
               style={{
-                width: '100%',
-                borderCollapse: 'collapse',
-                textAlign: 'left',
-                fontSize: '0.88rem',
+                backgroundColor: cardBg,
+                borderRadius: '8px',
+                border: `1px solid ${inputBorderColor}`,
+                marginTop: '15px',
+                overflow: 'hidden',
               }}
             >
-              <thead>
-                <tr
-                  style={{
-                    backgroundColor:
-                      theme === 'dark' ? colors.brown : colors.gold,
-                  }}
-                >
-                  {[
-                    'Programación',
-                    'Activo / SubUnidad',
-                    'Tipo',
-                    'Frecuencia',
-                    'Próxima Ejecución',
-                    'Última Ejecución',
-                    'Estado',
-                    'Acciones',
-                  ].map((h) => (
-                    <th
-                      key={h}
-                      style={{
-                        padding: '12px',
-                        borderBottom: `1px solid ${inputBorderColor}`,
-                      }}
-                    >
-                      {h}
-                    </th>
-                  ))}
-                </tr>
-              </thead>
-              <tbody>
-                {programacionesFiltradas.map((p, idx) => {
+              <MobileCardList
+                vacio="Ninguna programación coincide con la búsqueda."
+                items={programacionesFiltradas.map((p) => {
                   const dias = diasHasta(p.proximaEjecucion);
                   const vencida = dias <= 0;
-                  return (
-                    <tr
-                      key={p.id}
-                      style={{
-                        backgroundColor:
-                          idx % 2 === 0
-                            ? 'transparent'
-                            : theme === 'dark'
-                              ? '#1D1D1D'
-                              : '#FAFAFA',
-                      }}
-                    >
-                      <td style={{ padding: '12px', fontWeight: 600 }}>
-                        {p.nombre || `Programación #${p.id}`}
-                        <div
-                          style={{
-                            fontSize: '11px',
-                            opacity: 0.6,
-                            fontWeight: 400,
-                            maxWidth: 220,
-                          }}
-                        >
-                          {p.descripcionTarea}
-                        </div>
-                      </td>
-                      <td style={{ padding: '12px' }}>
-                        {maquinaMap[p.maquina_id] ?? `Máquina #${p.maquina_id}`}
-                        {p.subUnidad_id && (
-                          <div style={{ fontSize: '11px', opacity: 0.7 }}>
-                            {subUnidadMap[p.subUnidad_id] ??
-                              `SubUnidad #${p.subUnidad_id}`}
-                          </div>
-                        )}
-                      </td>
-                      <td style={{ padding: '12px' }}>
-                        {tipoMap[p.tipoOT_id] ?? '—'}
-                      </td>
-                      <td style={{ padding: '12px' }}>
-                        Cada {p.frecuenciaValor}{' '}
-                        {FRECUENCIA_LABEL[p.frecuenciaUnidad]}
-                      </td>
-                      <td style={{ padding: '12px' }}>
-                        <span
-                          style={{
-                            fontWeight: 600,
-                            color: !p.activo
-                              ? textColor
-                              : vencida
-                                ? '#E65100'
-                                : '#2E7D32',
-                          }}
-                        >
-                          {fmtDate(p.proximaEjecucion)}
-                        </span>
-                        {p.activo && (
-                          <div style={{ fontSize: '11px', opacity: 0.7 }}>
-                            {vencida
-                              ? 'Vencida — se generará pronto'
-                              : `en ${dias} día(s)`}
-                          </div>
-                        )}
-                      </td>
-                      <td style={{ padding: '12px' }}>
-                        {fmtDate(p.ultimaEjecucion)}
-                      </td>
-                      <td style={{ padding: '12px' }}>
+                  return {
+                    id: p.id,
+                    titulo: p.nombre || `Programación #${p.id}`,
+                    subtitulo: `${maquinaMap[p.maquina_id] ?? `Máquina #${p.maquina_id}`}${p.subUnidad_id ? ` · ${subUnidadMap[p.subUnidad_id] ?? ''}` : ''}`,
+                    badge: (
+                      <Badge tone={p.activo ? 'success' : 'neutral'}>
+                        {p.activo ? 'Activo' : 'Inactivo'}
+                      </Badge>
+                    ),
+                    datos: [
+                      { label: 'Tipo', value: tipoMap[p.tipoOT_id] ?? '—' },
+                      {
+                        label: 'Frecuencia',
+                        value: `Cada ${p.frecuenciaValor} ${FRECUENCIA_LABEL[p.frecuenciaUnidad]}`,
+                      },
+                      {
+                        label: 'Próxima',
+                        value: (
+                          <span
+                            style={{
+                              color:
+                                p.activo && vencida ? '#D32F2F' : undefined,
+                              fontWeight: p.activo && vencida ? 700 : undefined,
+                            }}
+                          >
+                            {fmtDate(p.proximaEjecucion)}
+                            {p.activo &&
+                              (vencida ? ' · vencida' : ` · en ${dias} día(s)`)}
+                          </span>
+                        ),
+                      },
+                      { label: 'Última', value: fmtDate(p.ultimaEjecucion) },
+                    ],
+                    acciones: (
+                      <>
                         <button
-                          onClick={() => handleToggleActivo(p)}
-                          title={p.activo ? 'Desactivar' : 'Activar'}
-                          style={{
-                            display: 'flex',
-                            alignItems: 'center',
-                            gap: '6px',
-                            background: 'none',
-                            border: 'none',
-                            cursor: 'pointer',
-                            color: p.activo ? '#2E7D32' : '#999',
-                            fontWeight: 600,
-                            fontSize: '12px',
-                          }}
+                          type="button"
+                          onClick={() => handleEjecutarAhora(p.id)}
+                          disabled={ejecutandoId === p.id}
+                          className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold border"
+                          style={{ borderColor: '#2E7D32', color: '#2E7D32' }}
                         >
-                          {p.activo ? (
-                            <FaToggleOn size={18} />
-                          ) : (
-                            <FaToggleOff size={18} />
-                          )}
-                          {p.activo ? 'Activo' : 'Inactivo'}
+                          <FaPlay />{' '}
+                          {ejecutandoId === p.id ? '...' : 'Ejecutar'}
                         </button>
-                      </td>
-                      <td style={{ padding: '12px' }}>
-                        <div
-                          style={{
-                            display: 'flex',
-                            gap: '6px',
-                            flexWrap: 'wrap',
-                          }}
+                        <button
+                          type="button"
+                          onClick={() => openEditModal(p)}
+                          className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold border"
+                          style={{ borderColor: '#1565C0', color: '#1565C0' }}
                         >
-                          <button
-                            onClick={() => handleEjecutarAhora(p.id)}
-                            disabled={ejecutandoId === p.id}
-                            title="Generar la OT ahora mismo"
+                          <FaEdit /> Editar
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => handleToggleActivo(p)}
+                          className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold border"
+                          style={{ borderColor: '#9E5533', color: '#9E5533' }}
+                        >
+                          {p.activo ? <FaToggleOn /> : <FaToggleOff />}{' '}
+                          {p.activo ? 'Desactivar' : 'Activar'}
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => handleEliminar(p.id)}
+                          className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold border"
+                          style={{ borderColor: '#D32F2F', color: '#D32F2F' }}
+                        >
+                          <FaTrash /> Eliminar
+                        </button>
+                      </>
+                    ),
+                  };
+                })}
+              />
+            </div>
+            <div
+              className="hidden md:block"
+              style={{
+                overflowX: 'auto',
+                backgroundColor: cardBg,
+                borderRadius: '8px',
+                border: `1px solid ${inputBorderColor}`,
+                marginTop: '15px',
+              }}
+            >
+              <table
+                style={{
+                  width: '100%',
+                  borderCollapse: 'collapse',
+                  textAlign: 'left',
+                  fontSize: '0.88rem',
+                }}
+              >
+                <thead>
+                  <tr
+                    style={{
+                      backgroundColor:
+                        theme === 'dark' ? colors.brown : colors.gold,
+                    }}
+                  >
+                    {[
+                      'Programación',
+                      'Activo / SubUnidad',
+                      'Tipo',
+                      'Frecuencia',
+                      'Próxima Ejecución',
+                      'Última Ejecución',
+                      'Estado',
+                      'Acciones',
+                    ].map((h) => (
+                      <th
+                        key={h}
+                        style={{
+                          padding: '12px',
+                          borderBottom: `1px solid ${inputBorderColor}`,
+                        }}
+                      >
+                        {h}
+                      </th>
+                    ))}
+                  </tr>
+                </thead>
+                <tbody>
+                  {programacionesFiltradas.map((p, idx) => {
+                    const dias = diasHasta(p.proximaEjecucion);
+                    const vencida = dias <= 0;
+                    return (
+                      <tr
+                        key={p.id}
+                        style={{
+                          backgroundColor:
+                            idx % 2 === 0
+                              ? 'transparent'
+                              : theme === 'dark'
+                                ? '#1D1D1D'
+                                : '#FAFAFA',
+                        }}
+                      >
+                        <td style={{ padding: '12px', fontWeight: 600 }}>
+                          {p.nombre || `Programación #${p.id}`}
+                          <div
                             style={{
-                              display: 'inline-flex',
-                              alignItems: 'center',
-                              gap: '5px',
-                              backgroundColor: '#2196F3',
-                              color: '#FFF',
-                              border: 'none',
-                              padding: '6px 9px',
-                              borderRadius: '4px',
-                              cursor:
-                                ejecutandoId === p.id
-                                  ? 'not-allowed'
-                                  : 'pointer',
                               fontSize: '11px',
-                              opacity: ejecutandoId === p.id ? 0.6 : 1,
+                              opacity: 0.6,
+                              fontWeight: 400,
+                              maxWidth: 220,
                             }}
                           >
-                            <FaPlay />{' '}
-                            {ejecutandoId === p.id ? '...' : 'Ejecutar'}
-                          </button>
-                          <button
-                            onClick={() => openEditModal(p)}
+                            {p.descripcionTarea}
+                          </div>
+                        </td>
+                        <td style={{ padding: '12px' }}>
+                          {maquinaMap[p.maquina_id] ??
+                            `Máquina #${p.maquina_id}`}
+                          {p.subUnidad_id && (
+                            <div style={{ fontSize: '11px', opacity: 0.7 }}>
+                              {subUnidadMap[p.subUnidad_id] ??
+                                `SubUnidad #${p.subUnidad_id}`}
+                            </div>
+                          )}
+                        </td>
+                        <td style={{ padding: '12px' }}>
+                          {tipoMap[p.tipoOT_id] ?? '—'}
+                        </td>
+                        <td style={{ padding: '12px' }}>
+                          Cada {p.frecuenciaValor}{' '}
+                          {FRECUENCIA_LABEL[p.frecuenciaUnidad]}
+                        </td>
+                        <td style={{ padding: '12px' }}>
+                          <span
                             style={{
-                              display: 'inline-flex',
+                              fontWeight: 600,
+                              color: !p.activo
+                                ? textColor
+                                : vencida
+                                  ? '#E65100'
+                                  : '#2E7D32',
+                            }}
+                          >
+                            {fmtDate(p.proximaEjecucion)}
+                          </span>
+                          {p.activo && (
+                            <div style={{ fontSize: '11px', opacity: 0.7 }}>
+                              {vencida
+                                ? 'Vencida — se generará pronto'
+                                : `en ${dias} día(s)`}
+                            </div>
+                          )}
+                        </td>
+                        <td style={{ padding: '12px' }}>
+                          {fmtDate(p.ultimaEjecucion)}
+                        </td>
+                        <td style={{ padding: '12px' }}>
+                          <button
+                            onClick={() => handleToggleActivo(p)}
+                            title={p.activo ? 'Desactivar' : 'Activar'}
+                            style={{
+                              display: 'flex',
                               alignItems: 'center',
-                              gap: '5px',
-                              backgroundColor: colors.brown,
-                              color: '#FFF',
+                              gap: '6px',
+                              background: 'none',
                               border: 'none',
-                              padding: '6px 9px',
-                              borderRadius: '4px',
                               cursor: 'pointer',
-                              fontSize: '11px',
+                              color: p.activo ? '#2E7D32' : '#999',
+                              fontWeight: 600,
+                              fontSize: '12px',
                             }}
                           >
-                            <FaEdit /> Editar
+                            {p.activo ? (
+                              <FaToggleOn size={18} />
+                            ) : (
+                              <FaToggleOff size={18} />
+                            )}
+                            {p.activo ? 'Activo' : 'Inactivo'}
                           </button>
-                          <button
-                            onClick={() => handleEliminar(p.id)}
+                        </td>
+                        <td style={{ padding: '12px' }}>
+                          <div
                             style={{
-                              display: 'inline-flex',
-                              alignItems: 'center',
-                              gap: '5px',
-                              backgroundColor: errorColor,
-                              color: '#FFF',
-                              border: 'none',
-                              padding: '6px 9px',
-                              borderRadius: '4px',
-                              cursor: 'pointer',
-                              fontSize: '11px',
+                              display: 'flex',
+                              gap: '6px',
+                              flexWrap: 'wrap',
                             }}
                           >
-                            <FaTrash /> Eliminar
-                          </button>
-                        </div>
+                            <button
+                              onClick={() => handleEjecutarAhora(p.id)}
+                              disabled={ejecutandoId === p.id}
+                              title="Generar la OT ahora mismo"
+                              style={{
+                                display: 'inline-flex',
+                                alignItems: 'center',
+                                gap: '5px',
+                                backgroundColor: '#2196F3',
+                                color: '#FFF',
+                                border: 'none',
+                                padding: '6px 9px',
+                                borderRadius: '4px',
+                                cursor:
+                                  ejecutandoId === p.id
+                                    ? 'not-allowed'
+                                    : 'pointer',
+                                fontSize: '11px',
+                                opacity: ejecutandoId === p.id ? 0.6 : 1,
+                              }}
+                            >
+                              <FaPlay />{' '}
+                              {ejecutandoId === p.id ? '...' : 'Ejecutar'}
+                            </button>
+                            <button
+                              onClick={() => openEditModal(p)}
+                              style={{
+                                display: 'inline-flex',
+                                alignItems: 'center',
+                                gap: '5px',
+                                backgroundColor: colors.brown,
+                                color: '#FFF',
+                                border: 'none',
+                                padding: '6px 9px',
+                                borderRadius: '4px',
+                                cursor: 'pointer',
+                                fontSize: '11px',
+                              }}
+                            >
+                              <FaEdit /> Editar
+                            </button>
+                            <button
+                              onClick={() => handleEliminar(p.id)}
+                              style={{
+                                display: 'inline-flex',
+                                alignItems: 'center',
+                                gap: '5px',
+                                backgroundColor: errorColor,
+                                color: '#FFF',
+                                border: 'none',
+                                padding: '6px 9px',
+                                borderRadius: '4px',
+                                cursor: 'pointer',
+                                fontSize: '11px',
+                              }}
+                            >
+                              <FaTrash /> Eliminar
+                            </button>
+                          </div>
+                        </td>
+                      </tr>
+                    );
+                  })}
+                  {programacionesFiltradas.length === 0 && (
+                    <tr>
+                      <td
+                        colSpan={8}
+                        style={{
+                          padding: '20px',
+                          textAlign: 'center',
+                          opacity: 0.7,
+                        }}
+                      >
+                        Ninguna programación coincide con la búsqueda.
                       </td>
                     </tr>
-                  );
-                })}
-                {programacionesFiltradas.length === 0 && (
-                  <tr>
-                    <td
-                      colSpan={8}
-                      style={{
-                        padding: '20px',
-                        textAlign: 'center',
-                        opacity: 0.7,
-                      }}
-                    >
-                      Ninguna programación coincide con la búsqueda.
-                    </td>
-                  </tr>
-                )}
-              </tbody>
-            </table>
-          </div>
+                  )}
+                </tbody>
+              </table>
+            </div>
+          </>
         )}
       </div>
 
@@ -894,7 +952,7 @@ export default function ProgramacionOtPage() {
                 />
               </div>
               <div>
-                <label style={labelStyle}>Sub Unidad (opcional)</label>
+                <label style={labelStyle}>Subunidad (opcional)</label>
                 <SearchableSelect
                   options={subUnidadesFiltradas}
                   value={formData.subUnidad_id}
@@ -904,7 +962,7 @@ export default function ProgramacionOtPage() {
                   inputBorder={inputBorderColor}
                   textColor={textColor}
                   secondaryTextColor={secondaryTextColor}
-                  label="Sub Unidad"
+                  label="Subunidad"
                   placeholder={
                     !formData.maquina_id
                       ? 'Selecciona una máquina primero'

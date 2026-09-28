@@ -1,5 +1,6 @@
 import React from 'react';
-import { SearchBar } from '../../../shared/components/SearchBar';
+import { ManagementPage } from '../../../shared/components/management/ManagementPage';
+import { FaUsers } from 'react-icons/fa';
 import { filtrarPorTexto } from '../../../shared/utils/search';
 import { ROLE_LABELS } from '../../../shared/permissions/permissions';
 import { exportUsersToExcel } from '../functions/exportExcel';
@@ -36,11 +37,6 @@ export const UserManagementPage: React.FC = () => {
   } = useUserManagement();
 
   // Define estilos basados en el tema
-  const pageStyle = {
-    color: theme === 'dark' ? colors.lightText : colors.darkText,
-    minHeight: '100vh',
-    padding: '20px 0',
-  };
 
   const filtrados = filtrarPorTexto(state.users, busqueda, (u) => [
     u.name,
@@ -52,41 +48,27 @@ export const UserManagementPage: React.FC = () => {
   ]);
 
   return (
-    <div style={pageStyle}>
-      <button
-        style={{
-          marginBottom: '16px',
-          padding: '8px 16px',
-          backgroundColor: colors.gold,
-          color: colors.darkText,
-          border: 'none',
-          borderRadius: '4px',
-          cursor: 'pointer',
-        }}
-        onClick={() => exportUsersToExcel(state.users)}
-      >
-        Exportar a Excel
-      </button>
-
-      <SearchBar
-        value={busqueda}
-        onChange={setBusqueda}
-        placeholder="Buscar por ID, nombre, usuario, email o cargo..."
-        theme={theme}
+    <>
+      <ManagementPage
+        title="Usuarios"
+        subtitle="Cuentas del personal, sus cargos y su estado de acceso."
+        icon={<FaUsers />}
         total={state.users.length}
         resultados={filtrados.length}
-      />
-
-      <UserTable
-        users={filtrados}
-        theme={theme}
-        onAddUser={() => handleOpenModal('add')}
-        onViewUser={(user) => handleOpenModal('view', user)}
-        loading={state.loading}
-        error={state.error}
-        canCreate={can('crearUsuarios')}
-      />
-
+        busqueda={busqueda}
+        onBusquedaChange={setBusqueda}
+        searchPlaceholder="Buscar por ID, nombre, usuario, email o cargo..."
+        onExport={() => exportUsersToExcel(state.users)}
+        onAdd={can('crearUsuarios') ? () => handleOpenModal('add') : undefined}
+        addLabel="Nuevo usuario"
+      >
+        <UserTable
+          users={filtrados}
+          onViewUser={(user) => handleOpenModal('view', user)}
+          loading={state.loading}
+          error={state.error}
+        />
+      </ManagementPage>
       <UserModal
         isOpen={state.isModalOpen}
         mode={state.modalMode}
@@ -111,6 +93,6 @@ export const UserManagementPage: React.FC = () => {
         canChangePassword={can('cambiarContrasenas')}
         onChangePassword={handleChangePassword}
       />
-    </div>
+    </>
   );
 };

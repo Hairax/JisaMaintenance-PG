@@ -227,7 +227,7 @@ export default function ProfilePage() {
               Cambiar contraseña
             </h2>
             <p style={{ color: secondaryTextColor }} className="text-sm mb-2">
-              Dejá estos campos vacíos si no querés cambiar tu contraseña.
+              Deja estos campos vacíos si no quieres cambiar tu contraseña.
             </p>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>

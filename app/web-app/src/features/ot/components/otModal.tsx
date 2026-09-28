@@ -114,7 +114,7 @@ export const OtModal: React.FC<OtModalProps> = ({
   const bgColor = theme === 'dark' ? colors.darkBg : colors.lightBg;
   const inputBgColor = theme === 'dark' ? '#2A2A2A' : '#F5F5F5';
   const inputBorderColor = theme === 'dark' ? '#3A3A3A' : '#D6D6D6';
-  const overlayBgColor = 'rgba(0, 0, 0, 0.75)';
+  const overlayBgColor = 'rgba(0, 0, 0, 0.55)';
   const borderColor = theme === 'dark' ? '#3A3A3A' : '#D6D6D6';
   const primaryButtonBg = colors.gold;
   const editColor = '#1E90FF';
@@ -345,14 +345,14 @@ export const OtModal: React.FC<OtModalProps> = ({
   return (
     <div
       style={{ backgroundColor: overlayBgColor }}
-      className="fixed inset-0 flex items-center justify-center z-50 p-4 transition-opacity duration-300"
+      className="fixed inset-0 flex items-center justify-center z-50 p-4 backdrop-blur-sm transition-opacity duration-300"
     >
       <div
         style={{
           backgroundColor: bgColor,
           color: textColor,
         }}
-        className="rounded-lg max-w-lg w-full p-6 shadow-xl relative flex flex-col max-h-[90vh]"
+        className="rounded-2xl max-w-lg w-full p-6 shadow-2xl border border-black/5 dark:border-white/10 relative flex flex-col max-h-[90vh]"
       >
         {!showDeleteConfirm && (
           <button
@@ -417,7 +417,7 @@ export const OtModal: React.FC<OtModalProps> = ({
                     typeof formProcesoId === 'undefined',
                   )}
                   {renderSelectField(
-                    'Sub Unidad',
+                    'Subunidad',
                     'subUnidad_id',
                     filteredSubUnidades.map((su) => ({
                       id: su.id,
@@ -746,7 +746,21 @@ export const OtModal: React.FC<OtModalProps> = ({
                     <strong style={{ color: secondaryTextColor }}>
                       Supervisor:
                     </strong>{' '}
-                    {selectedOT.supervisor?.nombre || '—'}
+                    {(() => {
+                      const s = selectedOT.supervisor;
+                      const nombre = s
+                        ? [s.name ?? s.nombre, s.lastName]
+                            .filter(Boolean)
+                            .join(' ')
+                        : '';
+                      return (
+                        nombre ||
+                        supervisores.find(
+                          (u) => u.id === selectedOT.supervisor_id,
+                        )?.nombre ||
+                        '—'
+                      );
+                    })()}
                   </p>
                 </div>
                 <div>

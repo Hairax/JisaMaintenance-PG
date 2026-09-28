@@ -1,6 +1,6 @@
 // Excel de cierre mensual de OTs, con el formato del "Cuadro resumen de
 // órdenes de trabajo" que usa contabilidad (Proceso OT_<MES>.xlsx):
-// título + periodo, una fila por OT con sus códigos y costos, y una fila
+// título + periodo, una fila por OT con sus datos y costos, y una fila
 // final de totales. Por pedido de contabilidad no se incluye TOT_MAQ, y los
 // repuestos van solo como TOT_REP (el sistema no distingue T_REPC / T_REPS).
 //
@@ -23,46 +23,42 @@ export interface CierreOtRepuesto {
 
 export interface CierreOtFila {
   numOt: string;
-  tipoOt: number | string;
+  tipoOt: string;
   fechaOt: Date | null;
   fechaFin: Date | null;
-  codCentroCosto: number | string;
-  codProceso: number | string;
-  codMaquina: number | string;
-  codElemento: number | string;
   centroCosto: string;
   proceso: string;
   maquina: string;
+  subunidad: string;
   descripcion: string;
   totManoObra: number;
   totRepuestos: number;
   repuestos: CierreOtRepuesto[];
 }
 
+// Por pedido de contabilidad, tipo, centro de costo, proceso, máquina y
+// subunidad van con su nombre (no con códigos/IDs).
 const HEADERS = [
   'NUM_OT',
   'TIPO_OT',
   'FECHA O.T.',
   'FECHA FIN',
-  'C.C',
-  'COD_PRO',
-  'COD_MAQ',
-  'COD_ELE',
   'C.DE COSTO',
   'PROCESO',
   'MAQUINA',
+  'SUBUNIDAD',
   'DESCRIPCION DE O.T.',
   'TOT_MOBRA',
   'TOT_REP',
   'TOTAL',
 ];
-const WIDTHS = [11, 9, 11, 11, 6, 9, 9, 9, 30, 30, 30, 46, 14, 14, 14];
+const WIDTHS = [11, 16, 11, 11, 26, 26, 30, 26, 46, 14, 14, 14];
 const COL_NUM_OT = 1;
 const COL_FECHA_OT = 3;
-const COL_DESCRIPCION = 12;
-const COL_MOBRA = 13;
-const COL_REP = 14;
-const COL_TOTAL = 15;
+const COL_DESCRIPCION = 9;
+const COL_MOBRA = 10;
+const COL_REP = 11;
+const COL_TOTAL = 12;
 const HEADER_ROW = 6;
 const FMT_MONEDA = '#,##0.00';
 const FMT_FECHA = 'dd/mm/yyyy';
@@ -131,13 +127,10 @@ export async function exportCierreOtExcel({
       f.tipoOt,
       soloFecha(f.fechaOt),
       soloFecha(f.fechaFin),
-      f.codCentroCosto,
-      f.codProceso,
-      f.codMaquina,
-      f.codElemento,
       f.centroCosto,
       f.proceso,
       f.maquina,
+      f.subunidad,
       f.descripcion,
       round2(f.totManoObra),
       round2(f.totRepuestos),

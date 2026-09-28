@@ -1,5 +1,6 @@
 import React from 'react';
-import { SearchBar } from '../../../shared/components/SearchBar';
+import { ManagementPage } from '../../../shared/components/management/ManagementPage';
+import { FaTruck } from 'react-icons/fa';
 import { filtrarPorTexto } from '../../../shared/utils/search';
 import { useTheme } from '../../../shared/contexts/ThemeContext';
 import { useProveedores } from '../hooks/useProveedores';
@@ -31,12 +32,6 @@ export const ProovedoresPage: React.FC = () => {
     handleDelete,
   } = useProveedores();
 
-  const pageStyle = {
-    color: theme === 'dark' ? colors.lightText : colors.darkText,
-    minHeight: '100vh',
-    padding: '20px 0',
-  };
-
   const filtrados = filtrarPorTexto(state.proveedores, busqueda, (p) => [
     p.nombre,
     p.ruc,
@@ -46,54 +41,27 @@ export const ProovedoresPage: React.FC = () => {
   ]);
 
   return (
-    <div style={pageStyle}>
-      <div
-        style={{
-          display: 'flex',
-          justifyContent: 'flex-end',
-          marginBottom: 16,
-        }}
-      >
-        <button
-          onClick={() => exportProveedoresToExcel(state.proveedores)}
-          style={{
-            backgroundColor: colors.gold,
-            color: colors.darkText,
-            padding: '8px 16px',
-            borderRadius: 8,
-            fontWeight: 'bold',
-            boxShadow: '0 2px 6px rgba(0,0,0,0.08)',
-            border: 'none',
-            cursor: 'pointer',
-            marginRight: 16,
-          }}
-          onMouseOver={(e) =>
-            (e.currentTarget.style.backgroundColor = '#E69D00')
-          }
-          onMouseOut={(e) =>
-            (e.currentTarget.style.backgroundColor = colors.gold)
-          }
-        >
-          Exportar a Excel
-        </button>
-      </div>
-      <SearchBar
-        value={busqueda}
-        onChange={setBusqueda}
-        placeholder="Buscar por ID, nombre, NIT, correo o teléfono..."
-        theme={theme}
+    <>
+      <ManagementPage
+        title="Proveedores"
+        subtitle="Empresas que suministran repuestos, equipos y servicios."
+        icon={<FaTruck />}
         total={state.proveedores.length}
         resultados={filtrados.length}
-      />
-      <ProveedoresTable
-        proveedores={filtrados}
-        theme={theme}
-        onAddProveedor={() => handleOpenModal('create')}
-        onViewProveedor={(proveedor) => handleOpenModal('view', proveedor)}
-        loading={state.loading}
-        error={state.error}
-      />
-
+        busqueda={busqueda}
+        onBusquedaChange={setBusqueda}
+        searchPlaceholder="Buscar por ID, nombre, NIT, correo o teléfono..."
+        onExport={() => exportProveedoresToExcel(state.proveedores)}
+        onAdd={() => handleOpenModal('create')}
+        addLabel="Nuevo proveedor"
+      >
+        <ProveedoresTable
+          proveedores={filtrados}
+          onViewProveedor={(proveedor) => handleOpenModal('view', proveedor)}
+          loading={state.loading}
+          error={state.error}
+        />
+      </ManagementPage>
       <ProveedoresModal
         isOpen={state.isModalOpen}
         mode={state.modalMode}
@@ -112,6 +80,6 @@ export const ProovedoresPage: React.FC = () => {
         onDelete={handleDelete}
         onEditMode={() => handleOpenModal('edit', state.selectedProveedor)}
       />
-    </div>
+    </>
   );
 };

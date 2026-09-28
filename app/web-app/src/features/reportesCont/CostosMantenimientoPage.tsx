@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 import * as XLSX from 'xlsx';
 import { minutosTrabajados, costoManoObra } from '../../shared/utils/laborCost';
 import { API_URL } from '../../shared/config/api';
+import { useEsMovil } from '../../shared/hooks/useEsMovil';
 
 const API = API_URL;
 
@@ -90,6 +91,7 @@ const fmtHours = (h: number): string => {
 // ── Component ─────────────────────────────────────────────────────────────────
 
 export default function CostosMantenimientoPage() {
+  const esMovil = useEsMovil();
   const [rows, setRows] = useState<MantenimientoRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -260,7 +262,7 @@ export default function CostosMantenimientoPage() {
   return (
     <div
       style={{
-        padding: 'clamp(1rem, 4vw, 2rem)',
+        padding: 'clamp(0.5rem, 3vw, 2rem)',
         maxWidth: 1000,
         margin: '0 auto',
       }}
@@ -270,7 +272,7 @@ export default function CostosMantenimientoPage() {
           background: 'var(--app-surface)',
           borderRadius: 12,
           boxShadow: 'var(--app-shadow)',
-          padding: 'clamp(1rem, 4vw, 2rem)',
+          padding: 'clamp(0.5rem, 3vw, 2rem)',
         }}
       >
         <h2
@@ -418,6 +420,7 @@ export default function CostosMantenimientoPage() {
         {/* Tabla */}
         <div style={{ overflowX: 'auto' }}>
           <table
+            className="rpt-costos"
             style={{
               width: '100%',
               borderCollapse: 'collapse',
@@ -522,7 +525,7 @@ export default function CostosMantenimientoPage() {
                 <tr
                   style={{ background: 'var(--app-head-bg)', fontWeight: 700 }}
                 >
-                  <td colSpan={6} style={{ padding: '0.75rem' }}>
+                  <td colSpan={esMovil ? 2 : 6} style={{ padding: '0.75rem' }}>
                     Total
                   </td>
                   <td style={{ padding: '0.75rem', textAlign: 'right' }}>

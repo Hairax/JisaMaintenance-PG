@@ -52,7 +52,7 @@ export const ordenes: OrdenTrabajo[] = [
   {
     id: 201,
     maquina_id: 2,
-    descripcionTarea: 'Alineacion',
+    descripcionTarea: 'Alineación',
     fechaCreacion: '2025-08-01T08:00:00',
     fechaHora: '2025-08-01T08:00:00',
     estado: 'CERRADA',

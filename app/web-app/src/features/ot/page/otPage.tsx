@@ -1,5 +1,6 @@
 import React from 'react';
-import { SearchBar } from '../../../shared/components/SearchBar';
+import { ManagementPage } from '../../../shared/components/management/ManagementPage';
+import { FaClipboardList } from 'react-icons/fa';
 import { filtrarPorTexto } from '../../../shared/utils/search';
 import { useTheme } from '../../../shared/contexts/ThemeContext';
 import { useOt } from '../hooks/useOt';
@@ -41,12 +42,6 @@ export const OtPage: React.FC = () => {
   } = useOt();
 
   // Estilos de la página según el tema
-  const pageStyle = {
-    backgroundColor: theme === 'dark' ? colors.darkBg : colors.lightBg,
-    color: theme === 'dark' ? colors.lightText : colors.darkText,
-    minHeight: '100vh',
-    padding: '20px 0',
-  };
 
   const filtrados = filtrarPorTexto(state.ots, busqueda, (o) => [
     o.descripcionTarea,
@@ -62,48 +57,29 @@ export const OtPage: React.FC = () => {
   ]);
 
   return (
-    <div style={pageStyle}>
-      <div
-        style={{
-          display: 'flex',
-          justifyContent: 'flex-end',
-          marginBottom: 16,
-        }}
-      >
-        <button
-          onClick={() => exportOtsToExcel(state.ots)}
-          style={{
-            padding: '8px 16px',
-            backgroundColor: colors.gold,
-            color: colors.darkText,
-            border: 'none',
-            borderRadius: 4,
-            cursor: 'pointer',
-            fontWeight: 'bold',
-          }}
-        >
-          Exportar a Excel
-        </button>
-      </div>
-      <SearchBar
-        value={busqueda}
-        onChange={setBusqueda}
-        placeholder="Buscar por N° de OT, descripción, máquina, tipo, centro de costo, estado..."
-        theme={theme}
+    <>
+      <ManagementPage
+        title="Órdenes de Trabajo"
+        subtitle="Órdenes de mantenimiento registradas y su estado actual."
+        icon={<FaClipboardList />}
         total={state.ots.length}
         resultados={filtrados.length}
-      />
-      <OtTable
-        ots={filtrados}
-        theme={theme}
-        onAddOt={() => handleOpenModal('create')}
-        onViewOt={(ot) => handleOpenModal('view', ot)}
-        loading={state.loading}
-        error={state.error}
-        tiposMantenimiento={tiposMantenimiento}
-        centrosCosto={centrosCosto}
-      />
-
+        busqueda={busqueda}
+        onBusquedaChange={setBusqueda}
+        searchPlaceholder="Buscar por N° de OT, descripción, máquina, tipo, centro de costo, estado..."
+        onExport={() => exportOtsToExcel(state.ots)}
+        onAdd={() => handleOpenModal('create')}
+        addLabel="Nueva OT"
+      >
+        <OtTable
+          ots={filtrados}
+          onViewOt={(ot) => handleOpenModal('view', ot)}
+          loading={state.loading}
+          error={state.error}
+          tiposMantenimiento={tiposMantenimiento}
+          centrosCosto={centrosCosto}
+        />
+      </ManagementPage>
       <OtModal
         isOpen={state.isModalOpen}
         mode={state.modalMode}
@@ -133,6 +109,6 @@ export const OtPage: React.FC = () => {
         supervisores={supervisores}
         subUnidades={subUnidades}
       />
-    </div>
+    </>
   );
 };

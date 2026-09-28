@@ -2,8 +2,6 @@ import { useEffect, useRef, useState } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import {
   FaCog,
-  FaChevronUp,
-  FaChevronDown,
   FaSun,
   FaMoon,
   FaSignOutAlt,
@@ -106,7 +104,10 @@ export const BottomNav = () => {
   const textColor = isDark ? colors.lightText : colors.darkText;
   const menuBgColor = isDark ? colors.darkBg : colors.beige;
   const borderColor = isDark ? `${colors.brown}40` : `${colors.brown}40`;
-  const iconColor = colors.brown;
+  const iconColor = isDark ? colors.gold : colors.brown;
+  const activeBg = isDark
+    ? 'rgba(251, 175, 17, 0.12)'
+    : 'rgba(158, 85, 51, 0.12)';
   // Color de hover de los ítems dentro de los desplegables, coherente en
   // ambos temas (antes era un gris claro fijo, invisible/feo en modo oscuro).
   const dropdownHoverBg = isDark ? `${colors.brown}40` : `${colors.gold}30`;
@@ -152,6 +153,16 @@ export const BottomNav = () => {
     </button>
   );
 
+  // Ítem de la barra: ícono + etiqueta corta, mismo ancho para todos.
+  const itemClass =
+    'w-full flex flex-col items-center justify-center gap-0.5 py-1.5 rounded-lg transition-colors';
+  const itemStyle = (activo: boolean) => ({
+    color: activo ? iconColor : textColor,
+    backgroundColor: activo ? activeBg : 'transparent',
+  });
+  const labelClass =
+    'text-[10.5px] leading-tight font-medium truncate max-w-full';
+
   const MenuTrigger = ({
     menuKey,
     icon,
@@ -165,39 +176,33 @@ export const BottomNav = () => {
   }) => {
     if (items.length === 0) return null;
     const isOpen = openMenu === menuKey;
+    const activo =
+      isOpen || items.some((i) => location.pathname.startsWith(i.to));
     return (
-      <li className="relative">
+      <li className="flex-1 min-w-0">
         <button
+          type="button"
           onClick={() => setOpenMenu(isOpen ? null : menuKey)}
-          className="flex flex-col items-center py-1"
-          style={{ color: textColor }}
+          className={itemClass}
+          style={itemStyle(activo)}
+          aria-expanded={isOpen}
         >
           <span style={{ color: iconColor }}>{icon}</span>
-          <span className="mt-1 flex items-center">
-            {text}
-            {isOpen ? (
-              <FaChevronUp className="ml-1" size={12} />
-            ) : (
-              <FaChevronDown className="ml-1" size={12} />
-            )}
-          </span>
+          <span className={labelClass}>{text}</span>
         </button>
-        {isOpen && (
-          <div
-            className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 w-[220px] max-h-[60vh] overflow-y-auto shadow-lg rounded-lg overflow-hidden"
-            style={{
-              backgroundColor: menuBgColor,
-              border: `1px solid ${borderColor}`,
-            }}
-          >
-            {items.map((item) => (
-              <DropdownLink key={item.to} item={item} />
-            ))}
-          </div>
-        )}
       </li>
     );
   };
+
+  // Submenú abierto: hoja inferior a todo el ancho (no se sale de pantalla).
+  const menuAbierto: { titulo: string; items: NavLinkItem[] } | null =
+    openMenu === 'gestion'
+      ? { titulo: 'Gestión', items: managementItems }
+      : openMenu === 'reportes'
+        ? { titulo: 'Reportes contables', items: reportesContItems }
+        : openMenu === 'kpis'
+          ? { titulo: 'KPIs', items: kpis }
+          : null;
 
   return (
     <nav
@@ -206,32 +211,61 @@ export const BottomNav = () => {
       style={{
         backgroundColor: navBgColor,
         borderTop: `1px solid ${borderColor}`,
+        paddingBottom: 'env(safe-area-inset-bottom)',
       }}
     >
-      <ul className="flex justify-around text-sm py-2">
-        <li>
+      {(menuAbierto || openMenu === 'settings') && (
+        <div
+          className="absolute bottom-full left-2 right-2 mb-2 max-h-[65vh] overflow-y-auto shadow-xl rounded-xl"
+          style={{
+            backgroundColor: menuBgColor,
+            border: `1px solid ${borderColor}`,
+          }}
+        >
+          <div
+            className="px-4 pt-3 pb-2 text-xs font-semibold uppercase tracking-wide"
+            style={{ color: iconColor }}
+          >
+            {menuAbierto ? menuAbierto.titulo : 'Ajustes'}
+          </div>
+          {menuAbierto
+            ? menuAbierto.items.map((item) => (
+                <DropdownLink key={item.to} item={item} />
+              ))
+            : settingsItems.map((item) => (
+                <DropdownButton
+                  key={item.text}
+                  icon={item.icon}
+                  text={item.text}
+                  onClick={item.onClick}
+                />
+              ))}
+        </div>
+      )}
+      <ul className="flex items-stretch gap-1 px-1.5 py-1.5">
+        <li className="flex-1 min-w-0">
           <Link
             to="/home"
-            className="flex flex-col items-center py-1"
-            style={{ color: textColor }}
+            className={itemClass}
+            style={itemStyle(location.pathname === '/home')}
           >
             <span style={{ color: iconColor }}>
               <FaHome size={18} />
             </span>
-            <span className="mt-1">Inicio</span>
+            <span className={labelClass}>Inicio</span>
           </Link>
         </li>
         {canRoute('/dashboard') && (
-          <li>
+          <li className="flex-1 min-w-0">
             <Link
               to="/dashboard"
-              className="flex flex-col items-center py-1"
-              style={{ color: textColor }}
+              className={itemClass}
+              style={itemStyle(location.pathname === '/dashboard')}
             >
               <span style={{ color: iconColor }}>
                 <FaChartBar size={18} />
               </span>
-              <span className="mt-1">Dashboard</span>
+              <span className={labelClass}>Panel</span>
             </Link>
           </li>
         )}
@@ -253,37 +287,21 @@ export const BottomNav = () => {
           text="KPIs"
           items={kpis}
         />
-        <li className="relative">
+        <li className="flex-1 min-w-0">
           <button
+            type="button"
             onClick={() =>
               setOpenMenu(openMenu === 'settings' ? null : 'settings')
             }
-            className="flex flex-col items-center py-1"
-            style={{ color: textColor }}
+            className={itemClass}
+            style={itemStyle(openMenu === 'settings')}
+            aria-expanded={openMenu === 'settings'}
           >
             <span style={{ color: iconColor }}>
               <FaCog size={18} />
             </span>
-            <span className="mt-1 flex items-center">Configuración</span>
+            <span className={labelClass}>Ajustes</span>
           </button>
-          {openMenu === 'settings' && (
-            <div
-              className="absolute bottom-full right-0 mb-2 w-[200px] shadow-lg rounded-lg overflow-hidden"
-              style={{
-                backgroundColor: menuBgColor,
-                border: `1px solid ${borderColor}`,
-              }}
-            >
-              {settingsItems.map((item) => (
-                <DropdownButton
-                  key={item.text}
-                  icon={item.icon}
-                  text={item.text}
-                  onClick={item.onClick}
-                />
-              ))}
-            </div>
-          )}
         </li>
       </ul>
     </nav>

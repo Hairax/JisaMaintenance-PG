@@ -1,6 +1,8 @@
 import React from 'react';
-import { SearchBar } from '../../../shared/components/SearchBar';
+import { ManagementPage } from '../../../shared/components/management/ManagementPage';
+import { FaCogs } from 'react-icons/fa';
 import { filtrarPorTexto } from '../../../shared/utils/search';
+import { codigoMaquina } from '../../../shared/utils/codigos';
 import { exportMaquinasToExcel } from '../functions/exportExcel';
 import { useTheme } from '../../../shared/contexts/ThemeContext';
 import { useMaquina } from '../hooks/useMaquina';
@@ -8,15 +10,6 @@ import { MaquinaTable } from '../components/maquinaTable';
 import { MaquinaModal } from '../components/maquinaModal';
 
 export const MaquinaPage: React.FC = () => {
-  const colors = {
-    brown: '#9E5533',
-    beige: '#E1CD9B',
-    gold: '#FBAF11',
-    darkBg: '#1A1A1A',
-    lightBg: '#E6E6E6',
-    darkText: '#000000',
-    lightText: '#FFFFFF',
-  };
   const { theme } = useTheme();
   const [busqueda, setBusqueda] = React.useState('');
   const {
@@ -42,71 +35,47 @@ export const MaquinaPage: React.FC = () => {
     handleInputChange(name, parsedValue);
   };
 
-  const pageStyle = {
-    color: theme === 'dark' ? colors.lightText : colors.darkText,
-    minHeight: '100vh',
-    padding: '20px 0',
-  };
-  const filtrados = filtrarPorTexto(state.maquinas, busqueda, (m) => [
-    m.name,
-    m.fabricante,
-    m.tipoDeMaquina,
-    m.numeroDeSerie,
-  ]);
+  const filtrados = filtrarPorTexto(
+    state.maquinas,
+    busqueda,
+    (m) => [m.name, m.fabricante, m.tipoDeMaquina, m.numeroDeSerie],
+    {
+      codigo: (m) => codigoMaquina(m, state.procesos),
+    },
+  );
 
   return (
-    <div style={pageStyle}>
-      <div
-        style={{
-          display: 'flex',
-          justifyContent: 'space-between',
-          alignItems: 'center',
-          marginBottom: 16,
-        }}
-      >
-        <h2>Gestión de Máquinas</h2>
-        <button
-          onClick={() =>
-            exportMaquinasToExcel(
-              state.maquinas,
-              state.procesos,
-              state.centrosCosto,
-              state.proveedores,
-            )
-          }
-          style={{
-            backgroundColor: colors.gold,
-            color: colors.darkText,
-            border: 'none',
-            padding: '8px 16px',
-            borderRadius: 4,
-            cursor: 'pointer',
-            fontWeight: 'bold',
-          }}
-        >
-          Exportar a Excel
-        </button>
-      </div>
-      <SearchBar
-        value={busqueda}
-        onChange={setBusqueda}
-        placeholder="Buscar por ID, nombre, fabricante, tipo o N° de serie..."
-        theme={theme}
+    <>
+      <ManagementPage
+        title="Máquinas"
+        subtitle="Activos de la planta con su código, fabricante y ubicación."
+        icon={<FaCogs />}
         total={state.maquinas.length}
         resultados={filtrados.length}
-      />
-      <MaquinaTable
-        maquinas={filtrados}
-        theme={theme}
-        loading={state.loading}
-        error={state.error}
-        procesos={state.procesos}
-        centrosCosto={state.centrosCosto}
-        proveedores={state.proveedores}
-        onAddMaquina={() => handleOpenModal('create')}
-        onViewMaquina={(maquina) => handleOpenModal('view', maquina)}
-      />
-
+        busqueda={busqueda}
+        onBusquedaChange={setBusqueda}
+        searchPlaceholder="Buscar por código (ej. 1.01.02), nombre, fabricante, tipo o N° de serie..."
+        onExport={() =>
+          exportMaquinasToExcel(
+            state.maquinas,
+            state.procesos,
+            state.centrosCosto,
+            state.proveedores,
+          )
+        }
+        onAdd={() => handleOpenModal('create')}
+        addLabel="Nueva máquina"
+      >
+        <MaquinaTable
+          maquinas={filtrados}
+          loading={state.loading}
+          error={state.error}
+          procesos={state.procesos}
+          centrosCosto={state.centrosCosto}
+          proveedores={state.proveedores}
+          onViewMaquina={(maquina) => handleOpenModal('view', maquina)}
+        />
+      </ManagementPage>
       <MaquinaModal
         isOpen={state.isModalOpen}
         mode={state.modalMode}
@@ -128,6 +97,6 @@ export const MaquinaPage: React.FC = () => {
         onDelete={handleDelete}
         onEditMode={() => handleOpenModal('edit', state.selectedMaquina)}
       />
-    </div>
+    </>
   );
 };

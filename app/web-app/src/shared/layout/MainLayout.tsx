@@ -6,7 +6,7 @@ import { colors } from '../types/colors';
 
 export const MainLayout = () => {
   const { theme } = useTheme();
-  const bottomNavHeightClass = 'pb-16';
+  const bottomNavHeightClass = 'pb-24';
 
   // Usar los colores de fondo de la paleta
   const layoutBgColor = theme === 'dark' ? colors.darkBg : colors.lightBg;
@@ -22,10 +22,10 @@ export const MainLayout = () => {
       </div>
 
       {/* Main Content */}
-      <div className="flex-1 flex flex-col min-h-screen">
+      <div className="flex-1 min-w-0 flex flex-col min-h-screen">
         {/* Contenido Principal */}
         <main
-          className={`flex-1 overflow-y-auto p-4 md:p-6 ${bottomNavHeightClass} md:pb-6`}
+          className={`flex-1 min-w-0 overflow-x-hidden overflow-y-auto p-2 sm:p-4 md:p-6 ${bottomNavHeightClass} md:pb-6`}
         >
           {/* Para resaltar visualmente el contenido principal */}
           <div

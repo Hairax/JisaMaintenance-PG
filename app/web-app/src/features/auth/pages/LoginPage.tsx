@@ -81,7 +81,7 @@ export const LoginPage = () => {
             className="text-2xl font-semibold mb-4"
             style={{ color: colors.brown }}
           >
-            Login
+            Iniciar sesión
           </h2>
           <div
             className="w-20 h-20 bg-white rounded-full flex items-center justify-center mb-6 border-2"
@@ -115,7 +115,7 @@ export const LoginPage = () => {
           <div className="relative">
             <input
               type={showPassword ? 'text' : 'password'}
-              placeholder="Password"
+              placeholder="Contraseña"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               className="w-full px-4 py-3 bg-white rounded-xl focus:outline-none pr-12"
@@ -144,7 +144,7 @@ export const LoginPage = () => {
             className="w-full py-3 text-white rounded-xl transition hover:opacity-90"
             style={{ backgroundColor: colors.brown }}
           >
-            Log in
+            Ingresar
           </button>
         </form>
 
