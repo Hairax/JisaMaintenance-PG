@@ -1,5 +1,6 @@
 import { Module } from '@nestjs/common';
 import { ClientsModule, Transport } from '@nestjs/microservices';
+import { serviceHost } from '../common/service-host';
 import { CostCenterHttpController } from './cost-center/cost-center.controller';
 import { ProcessHttpController } from './process/process.controller';
 import { ProveedorHttpController } from './proveedor/proveedor.controller';
@@ -19,7 +20,7 @@ import { AlmacenesHttpController } from './almacen/almacen.controller';
         name: 'INVENTORY_MICROSERVICE',
         transport: Transport.TCP,
         options: {
-          host: process.env.INVENTORY_SERVICE_HOST || 'localhost',
+          host: serviceHost(process.env.INVENTORY_SERVICE_HOST),
           port: parseInt(process.env.INVENTORY_SERVICE_PORT || '3003'),
         },
       },

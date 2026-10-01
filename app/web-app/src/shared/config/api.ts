@@ -1,7 +1,7 @@
 // URL base del api-gateway.
 //
 // El servidor corre dentro de la red de la empresa y se accede tanto desde
-// la LAN (ej. http://192.168.x.x:5173) como remotamente vía VPN hacia esa
+// la LAN (ej. http://192.168.x.x:8095) como remotamente vía VPN hacia esa
 // misma red. Como las variables VITE_* quedan fijas dentro del build (no se
 // leen en el navegador del usuario), NO conviene fijar acá una IP: en su
 // lugar, se calcula la URL del API a partir del host con el que el usuario

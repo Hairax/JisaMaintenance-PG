@@ -20,7 +20,12 @@ export const databaseProviders = [
     useFactory: async () => {
       const dataSource = new DataSource({
         type: 'mysql',
-        host: process.env.DB_HOST || 'localhost',
+        // IPv4 explícito: 'localhost' puede resolverse a ::1 en Windows.
+        host:
+          !process.env.DB_HOST ||
+          process.env.DB_HOST.trim().toLowerCase() === 'localhost'
+            ? '127.0.0.1'
+            : process.env.DB_HOST.trim(),
         port: parseInt(process.env.DB_PORT || '3010'),
         username: process.env.DB_USERNAME || 'root',
         password: process.env.DB_PASSWORD || 'password_core_db',

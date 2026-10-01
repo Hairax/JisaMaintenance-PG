@@ -1,5 +1,6 @@
 import { Module } from '@nestjs/common';
 import { ClientsModule, Transport } from '@nestjs/microservices';
+import { serviceHost } from '../common/service-host';
 import { TipoMantenimientoHttpController } from './tipoMantenimiento/tipo-mantenimiento.controller';
 import { ObjetoHttpController } from './objeto/objeto.controller';
 import { DepartamentoHttpController } from './departamento/departamento.controller';
@@ -13,7 +14,7 @@ import { ProgramacionOtHttpController } from './programacion-ot/programacion-ot.
         name: 'OT_MICROSERVICE',
         transport: Transport.TCP,
         options: {
-          host: process.env.OT_SERVICE_HOST || 'localhost',
+          host: serviceHost(process.env.OT_SERVICE_HOST),
           port: parseInt(process.env.OT_SERVICE_PORT || '3004'),
         },
       },

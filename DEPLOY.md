@@ -1,115 +1,167 @@
 # Despliegue en producción
 
 Guía para instalar y correr JisaMaintenance en el servidor interno de la
-empresa, de forma que quede accesible tanto desde la red local (LAN) como
-por conexión remota (VPN) a esa misma red, y soportando múltiples usuarios
-trabajando al mismo tiempo.
+empresa (Windows), de forma que quede accesible desde la red local (LAN) y
+por VPN, con varios usuarios trabajando al mismo tiempo.
 
 ## 1. Arquitectura
 
-El sistema son 6 procesos Node independientes:
+| Servicio            | Tipo                | Puerto | Escucha en       | Rol                                               |
+| ------------------- | ------------------- | ------ | ---------------- | ------------------------------------------------- |
+| `web-app` (IIS)     | Frontend (estático) | 8095   | toda la red      | Build de producción (`dist`) publicado en IIS     |
+| `web-app` (Vite)    | Frontend (dev)      | 3333   | `127.0.0.1`      | Servidor de desarrollo (`vite.config.ts`)         |
+| `api-gateway`       | HTTP                | 3000   | toda la red      | Único punto de entrada HTTP del frontend          |
+| `auth-service`      | TCP (microservicio) | 3001   | `127.0.0.1`      | Login / JWT                                       |
+| `users-service`     | TCP (microservicio) | 3002   | `127.0.0.1`      | Usuarios                                          |
+| `inventary-service` | TCP (microservicio) | 3003   | `127.0.0.1`      | Inventario, compras, salidas, repuestos           |
+| `ot-service`        | TCP (microservicio) | 3004   | `127.0.0.1`      | Órdenes de trabajo, informes, programación de OTs |
+| MySQL (Docker)      | Base de datos       | 3010   | → 3306 container | Base `core_db`, compartida por los microservicios |
 
-| Servicio          | Tipo               | Puerto por defecto | Rol                                             |
-| ------------------ | ------------------ | ------------------- | ------------------------------------------------ |
-| `web-app`           | Frontend (estático) | 5173                 | UI en React, servida como archivos estáticos     |
-| `api-gateway`       | HTTP                | 3000                 | Único punto de entrada HTTP del frontend          |
-| `auth-service`      | TCP (microservicio) | 3001                 | Login / JWT                                       |
-| `users-service`     | TCP (microservicio) | 3002                 | Usuarios                                          |
-| `inventary-service` | TCP (microservicio) | 3003                 | Inventario, compras, salidas, repuestos           |
-| `ot-service`        | TCP (microservicio) | 3004                 | Órdenes de trabajo, informes, programación de OTs |
+Flujo de una petición (ej. login):
 
-El frontend solo habla HTTP con `api-gateway` (nunca directo con los
-microservicios). `api-gateway` reenvía cada request al microservicio
+```
+Navegador ──HTTP──▶ IIS :8095 (archivos de dist/)
+Navegador ──HTTP──▶ api-gateway :3000 ──TCP──▶ auth-service 127.0.0.1:3001 ──▶ MySQL 127.0.0.1:3010
+```
+
+El frontend solo habla HTTP con el `api-gateway` (nunca directo con los
+microservicios). El gateway reenvía cada request al microservicio
 correspondiente por TCP interno.
 
-Base de datos: MySQL corriendo en Docker (`infrastructure/docker-compose.yml`),
-puerto `3010`, base `core_db`, compartida por los 4 microservicios. Existe
-además un contenedor `BI` (puerto `3020`, base `bi_db`) que hoy no está en
-uso por ninguna parte del sistema — se puede ignorar o apagar sin impacto.
+Existe además un contenedor `BI` (puerto `3020`, base `bi_db`) que hoy no
+usa ninguna parte del sistema; se puede ignorar o apagar sin impacto.
+
+### Por qué IPv4 (`127.0.0.1`) y no `localhost`
+
+En Windows con Node ≥17, `localhost` se resuelve primero a IPv6 (`::1`). Un
+microservicio configurado con `localhost` quedaba escuchando solo en
+`[::1]:3001`, el gateway intentaba conectarse por IPv4 y el login quedaba
+en **"Pending"**. Por eso microservicios, clientes del gateway y conexión a
+MySQL usan `127.0.0.1`; si algún `.env` todavía dice `localhost`, el código
+lo traduce a `127.0.0.1` automáticamente.
 
 ## 2. Requisitos del servidor
 
-- Node.js 22.14+ y pnpm 10.8+ (`corepack enable` o `npm i -g pnpm`)
-- Docker (para MySQL) — o un MySQL 8 ya instalado, ajustando `DB_HOST`/`DB_PORT`
-- Una IP fija (o reservada por DHCP) para esta máquina dentro de la red de
-  la empresa — ver sección 6
+- **Node.js 22 LTS** (≥22.14) y **pnpm 10.8+** (`corepack enable` o
+  `npm i -g pnpm`). No usar Node 26: una dependencia de JWT
+  (`buffer-equal-constant-time`) falla al arrancar el `auth-service`.
+- **Docker Desktop** para MySQL (o un MySQL 8 instalado, ajustando
+  `DB_HOST`/`DB_PORT`).
+- **IIS** con el módulo **URL Rewrite** instalado, para publicar el frontend.
+- **IP fija** (o reserva DHCP) para el servidor dentro de la red; en el
+  servidor de la empresa es `192.168.5.5`. Ver sección 7.
 
 ## 3. Primera instalación
 
-```bash
-git clone <repo> jisa-maintenance
-cd jisa-maintenance
+```powershell
+git clone <repo> JisaMaintenance-PG
+cd JisaMaintenance-PG
 pnpm install
 ```
 
-Levantar la base de datos:
+Levantar la base de datos (con Docker Desktop iniciado):
 
-```bash
+```powershell
 cd infrastructure
 docker compose up -d
+docker ps   # debe mostrar MYSQL como "Up" con 0.0.0.0:3010->3306/tcp
 ```
 
 ## 4. Variables de entorno
 
 Cada servicio trae un `.env.example` documentando sus variables. Copiarlo a
-`.env` en cada carpeta y ajustar lo necesario:
+`.env` en cada carpeta:
 
-```bash
-cp app/auth-service/.env.example app/auth-service/.env
-cp app/users-service/.env.example app/users-service/.env
-cp app/inventary-service/.env.example app/inventary-service/.env
-cp app/ot-service/.env.example app/ot-service/.env
-cp app/api-gateway/.env.example app/api-gateway/.env
-cp app/web-app/.env.example app/web-app/.env
+```powershell
+Copy-Item app\auth-service\.env.example      app\auth-service\.env
+Copy-Item app\users-service\.env.example     app\users-service\.env
+Copy-Item app\inventary-service\.env.example app\inventary-service\.env
+Copy-Item app\ot-service\.env.example        app\ot-service\.env
+Copy-Item app\api-gateway\.env.example       app\api-gateway\.env
 ```
 
-Con la base de datos por defecto del `docker-compose.yml`, los 4
-microservicios funcionan **sin tocar nada** (los `.env` son opcionales, los
-valores por defecto ya apuntan a `localhost:3010` / `core_db`).
+Con la base de datos por defecto del `docker-compose.yml`, los
+microservicios funcionan **sin tocar nada**: los valores por defecto ya
+apuntan a `127.0.0.1:3010` / `core_db`.
 
-Lo único que **hay que configurar en producción** es `CORS_ORIGINS` en
-`app/api-gateway/.env`, con la dirección real donde va a vivir el frontend:
+### Lo que hay que configurar
 
-```bash
-# app/api-gateway/.env
-CORS_ORIGINS=http://<IP-DEL-SERVIDOR>:5173
+**`CORS_ORIGINS`** en `app\api-gateway\.env`: todas las direcciones desde las
+que se abre el frontend (protocolo + host + puerto exactos). Para el
+servidor de la empresa:
+
+```ini
+CORS_ORIGINS=http://localhost:3333,http://192.168.5.5:3333,http://localhost:8095,http://192.168.5.5:8095
 ```
 
-Esta es la variable que causaba que el sistema solo funcionara en la PC que
-lo corría: sin ella, el navegador bloquea por CORS cualquier request que no
-venga de `localhost:5173`. Con la IP real del servidor acá, tanto un cliente
-en la LAN como uno conectado por VPN pueden usar el sistema, porque ambos
-llegan al mismo origen.
+Sin esto el navegador bloquea por CORS cualquier acceso que no venga del
+propio servidor (sin la variable solo se aceptan `localhost`/`127.0.0.1`
+en los puertos 3333 y 8095). Si se publica con un dominio, agregarlo también
+(ej. `https://mantenimiento.dominio.com`).
 
-El frontend (`app/web-app`) **no necesita ningún `.env`**: en tiempo de
-ejecución calcula sola la URL del `api-gateway` a partir del host con el que
-el usuario entró al sitio (`window.location.hostname`), así que el mismo
-build funciona sin recompilar sea que se acceda por `localhost`, por la IP
-de LAN, o por la dirección que resuelva la VPN. Solo hace falta un `.env` ahí
-si el `api-gateway` corriera en un host o puerto distinto al del frontend
-(por ejemplo, detrás de un proxy reverso) — ver `app/web-app/.env.example`.
+**`JWT_SECRET`** en `app\auth-service\.env`: cambiar `your-secret-key` por un
+valor largo y privado.
 
-## 5. Build y ejecución en producción
+### Variables opcionales
+
+- `MICROSERVICE_TIMEOUT_MS` (gateway, por defecto `15000`): tiempo máximo
+  que el gateway espera a un microservicio antes de responder **504**.
+- `*_SERVICE_HOST` / `*_SERVICE_PORT` (gateway) y `SERVICE_HOST` /
+  `SERVICE_PORT` (microservicios): solo si algún día se separan los
+  servicios en máquinas distintas (en ese caso, `SERVICE_HOST=0.0.0.0` en el
+  microservicio para aceptar conexiones de otra máquina).
+
+### El frontend no necesita `.env`
+
+`app/web-app` calcula sola la URL del gateway a partir de la dirección con la
+que el usuario abrió el sitio: desde `http://192.168.5.5:8095` llama a
+`http://192.168.5.5:3000`; desde `http://localhost:3333`, a
+`http://localhost:3000`. El mismo build sirve sin recompilar, entre por
+`localhost`, por la IP de la LAN o por VPN. Solo haría falta
+`VITE_API_URL` (en `app/web-app/.env`, antes del build) si el gateway se
+publicara en otra dirección, por ejemplo detrás de IIS en `/api`.
+
+## 5. Frontend en desarrollo (Vite, puerto 3333)
+
+`app/web-app/vite.config.ts` fija el servidor de desarrollo en
+`127.0.0.1:3333`:
+
+```ts
+server: {
+  host: '127.0.0.1',
+  port: 3333,
+},
+```
+
+```powershell
+pnpm dev:app          # solo el frontend
+pnpm dev              # todos los servicios en modo desarrollo
+```
+
+- Con `host: '127.0.0.1'` el servidor de desarrollo **solo se abre desde el
+  propio servidor** (`http://localhost:3333`). Para que lo usen otras PCs
+  habría que cambiarlo a `host: '0.0.0.0'`; en producción no hace falta,
+  porque los usuarios entran por IIS (8095).
+- Si el puerto 3333 está ocupado, Vite arranca en otro puerto (lo indica en
+  la consola). Para que falle en vez de cambiar de puerto, agregar
+  `strictPort: true` en `server`.
+- Esta configuración **no afecta al build**: lo que publica IIS es `dist/`.
+
+## 6. Build y ejecución en producción
 
 Compilar todo (los 5 backends a `dist/`, el frontend a `app/web-app/dist/`):
 
-```bash
+```powershell
 pnpm build
 ```
 
-Levantar los 5 servicios backend en modo producción (usa el JS ya compilado,
-no `ts-node`, y no observa cambios de archivos):
+### 6.1 Backend con pm2
 
-```bash
-pnpm start:prod
-```
-
-Esto corre los 5 procesos en paralelo en la terminal actual. Para que sigan
-corriendo tras cerrar la sesión SSH/RDP y se reinicien solos si crashean o si
-el servidor reinicia, usar un gestor de procesos — recomendado
+Para que los servicios sigan corriendo al cerrar la sesión RDP y se
+reinicien solos si fallan o si el servidor reinicia, usar
 [pm2](https://pm2.keymetrics.io/):
 
-```bash
+```powershell
 npm install -g pm2
 
 pm2 start app/auth-service/dist/main.js       --name auth-service
@@ -119,108 +171,159 @@ pm2 start app/ot-service/dist/main.js         --name ot-service
 pm2 start app/api-gateway/dist/main.js        --name api-gateway
 
 pm2 save
-pm2 startup   # imprime el comando para que pm2 arranque solo al bootear el server
 ```
 
-El frontend es un sitio estático (`app/web-app/dist/`) — cualquier servidor
-de archivos estáticos sirve. La opción más simple sin instalar nada extra:
+En Windows, `pm2 startup` no funciona: para que arranque solo al iniciar el
+servidor usar [`pm2-installer`](https://github.com/jessety/pm2-installer)
+(lo instala como servicio de Windows). Alternativa sin pm2, solo para
+pruebas: `pnpm start:prod` (corre los 5 backends en la terminal actual).
 
-```bash
-pm2 serve app/web-app/dist 5173 --name web-app --spa
+### 6.2 Frontend en IIS (puerto 8095)
+
+1. **Ruta física** del sitio: `<repo>\app\web-app\dist`.
+2. **Enlace (binding)**: `http`, IP "Todas las no asignadas", puerto
+   **8095**, nombre de host vacío. (8092 es del Sistema de Inocuidad y 8093
+   ya está asignado a otro sitio.)
+3. **URL Rewrite**: el build ya incluye `dist\web.config` (viene de
+   `app/web-app/public/web.config`) con la regla de SPA: las rutas del
+   frontend (`/login`, `/home`, `/ot`…) devuelven `index.html` y los
+   archivos reales (`assets/…`) se sirven tal cual. No hay que crearlo a mano
+   después de cada build.
+4. **Borrar o desactivar** cualquier regla de *Reverse Proxy* anterior que
+   mande el tráfico a `http://localhost:3333`: con la publicación estática
+   IIS sirve directamente `dist`, sin pasar por Vite.
+5. Agregar `http://localhost:8095` y `http://192.168.5.5:8095` a
+   `CORS_ORIGINS` (sección 4) y reiniciar el gateway (`pm2 restart
+   api-gateway`).
+
+Alternativas a IIS: `pm2 serve app/web-app/dist 8095 --name web-app --spa`,
+o nginx apuntando a `dist` con `try_files $uri /index.html;`.
+
+## 7. Red: IP fija, puertos y firewall
+
+El servidor necesita una **IP fija** dentro de la LAN (o una reserva DHCP en
+el router). Si cambia, deja de coincidir con `CORS_ORIGINS`.
+
+Puertos que deben estar abiertos en el firewall de Windows hacia la LAN (y,
+si aplica, hacia el rango de IPs de la VPN):
+
+- `8095` — frontend publicado en IIS
+- `3000` — api-gateway (el navegador de cada usuario lo llama directamente)
+
+Tráfico **interno** del servidor, que no hay que abrir (y por seguridad
+conviene no hacerlo):
+
+- `3333` — Vite en desarrollo (de todos modos escucha solo en `127.0.0.1`)
+- `3001`–`3004` — microservicios (escuchan solo en `127.0.0.1`)
+- `3010` / `3020` — MySQL
+
+## 8. Verificación
+
+En el servidor (PowerShell):
+
+```powershell
+docker ps                                   # MYSQL "Up"
+netstat -ano | findstr ":3000 :3001 :3002 :3003 :3004"
 ```
 
-(`--spa` es necesario: sin eso, refrescar una ruta interna como `/dashboard`
-directamente en el navegador da 404, porque el archivo físico no existe —
-todas las rutas deben resolver a `index.html` y dejar que React Router las
-maneje del lado del cliente.)
+Debe verse `0.0.0.0:3000` (gateway) y `127.0.0.1:3001` … `127.0.0.1:3004`
+en estado `LISTENING`. Si algún microservicio aparece solo en `[::1]`, está
+corriendo una versión anterior del código (ver sección 9).
 
-Alternativa si el servidor ya tiene nginx: apuntar un `server` block a
-`app/web-app/dist` con `try_files $uri /index.html;` y proxy-pasar `/api` (o
-lo que corresponda) hacia `http://localhost:3000` si se prefiere no exponer
-el puerto del gateway directamente.
+Probar el login contra el gateway (debe responder en menos de un segundo):
 
-## 6. Red: IP fija y puertos
+```powershell
+Invoke-RestMethod -Method Post -Uri http://127.0.0.1:3000/auth/login `
+  -ContentType 'application/json' `
+  -Body '{"userName":"admin","password":"<contraseña>"}'
+```
 
-Para que la URL no cambie cada vez que el router reasigna DHCP, la máquina
-servidor necesita una **IP fija dentro de la LAN** (o una reserva DHCP en el
-router, que es lo mismo en la práctica). Sin esto, cada reinicio del switch/
-router puede darle una IP distinta al servidor y el frontend construido con
-esa IP en `CORS_ORIGINS` dejaría de funcionar hasta reconfigurar.
+- Credenciales correctas → devuelve `access_token` y `user`.
+- Contraseña incorrecta → **401** "Contraseña incorrecta".
+- Microservicio caído → **503** "Servicio no disponible…" (inmediato).
+- Microservicio que no responde → **504** a los 15 s. En ningún caso la
+  petición debería quedar "Pending".
 
-Puertos que deben quedar accesibles desde donde se conecten los usuarios
-(LAN y, si aplica, el rango de IPs que asigna la VPN):
+Luego, desde otra PC de la red, abrir `http://192.168.5.5:8095`, iniciar
+sesión con dos usuarios distintos en dos equipos y confirmar que lo que
+registra uno (una OT, un informe) lo ve el otro al refrescar.
 
-- `5173` — frontend
-- `3000` — api-gateway
+## 9. Actualizar a una nueva versión
 
-Los puertos `3001`-`3004` (microservicios) y `3010`/`3020` (MySQL) son
-tráfico **interno** del servidor — no hace falta abrirlos hacia la LAN ni la
-VPN, y por seguridad es mejor no hacerlo.
+```powershell
+git pull
+pnpm install
+pnpm build
+pm2 restart all
+```
 
-## 7. Verificar que el multiusuario funciona
+IIS no necesita cambios: sigue apuntando a `app\web-app\dist`, que el build
+regenera (con su `web.config`). Si el navegador muestra la versión anterior,
+recargar con Ctrl+F5.
 
-1. Confirmar que `CORS_ORIGINS` en `app/api-gateway/.env` tiene la IP fija
-   del servidor (no `localhost`).
-2. Desde dos máquinas distintas de la LAN (o una LAN y una por VPN), abrir
-   `http://<IP-DEL-SERVIDOR>:5173` y loguearse con dos usuarios distintos.
-3. Confirmar que una acción de un usuario (crear una OT, registrar un
-   informe) es visible para el otro al refrescar — ambos están leyendo/
-   escribiendo la misma base de datos a través de las mismas conexiones
-   pooleadas de TypeORM, no hay estado por-sesión en el backend que aísle a
-   un usuario del otro.
+## 10. Troubleshooting
 
-Si el login falla desde otra máquina con un error de tipo `Failed to fetch` /
-`CORS policy` en la consola del navegador, es casi siempre `CORS_ORIGINS`
-sin la IP correcta (ver troubleshooting abajo).
+**El login queda "Pending"** — el gateway no logra hablar con el
+`auth-service`. Revisar con `netstat` que el auth-service esté en
+`127.0.0.1:3001` (sección 8). Si aparece en `[::1]:3001`, el código del
+servidor es anterior a la corrección de IPv4: actualizar (sección 9). Con la
+versión actual, en vez de "Pending" el gateway responde 503/504.
 
-## 8. Troubleshooting
+**503 "Servicio no disponible"** — algún microservicio no está levantado:
+`pm2 status` y `pm2 logs <servicio>`. Suele ser MySQL caído (Docker Desktop
+cerrado tras un reinicio del servidor) o un error al arrancar.
 
-**"Failed to fetch" / error de CORS en la consola al loguearse desde otra
-máquina** — el origen desde el que se accede al frontend no está en
-`CORS_ORIGINS` del `api-gateway`. Agregarlo (separado por coma si hay más de
-uno, ej. LAN y VPN si usan puertos/hosts distintos) y reiniciar
+**504 "El servicio no respondió a tiempo"** — el microservicio está levantado
+pero no contesta; revisar `pm2 logs <servicio>` (típicamente la conexión a
+MySQL).
+
+**"Failed to fetch" / error de CORS en la consola del navegador** — el
+origen desde el que se abrió el frontend no está en `CORS_ORIGINS` del
+gateway. Agregarlo (protocolo + host + puerto exactos) y reiniciar
 `api-gateway`.
 
+**404 de IIS al refrescar una página interna (ej. `/home`)** — falta el
+módulo URL Rewrite o el `web.config` en `dist`. Volver a hacer `pnpm build`
+(lo copia desde `public/`) y confirmar que URL Rewrite está instalado.
+
+**El `auth-service` no arranca con `TypeError: Cannot read properties of
+undefined (reading 'prototype')`** — se está usando Node 26. Usar Node 22 LTS.
+
 **Los microservicios no arrancan / error de conexión a MySQL** — confirmar
-que `docker compose up -d` está corriendo (`docker ps` debe mostrar `MYSQL`
-como `Up`) y que `DB_HOST`/`DB_PORT` en los `.env` de los microservicios
-apuntan ahí.
+que Docker Desktop está iniciado y `docker ps` muestra `MYSQL` como `Up`, y
+que `DB_HOST`/`DB_PORT` de los `.env` apuntan a `127.0.0.1:3010`.
 
-**Un usuario nuevo no ve el menú correcto** — el sistema de permisos es
-solo de UI (oculta botones/rutas según el rol), no hay una segunda capa de
-autorización en el backend. Esto ya se documentó como limitación conocida al
-implementarlo; no es un bug de la instalación.
+**Un usuario no ve el menú correcto** — los permisos por rol se aplican en
+la interfaz (qué menús y rutas ve cada rol). El cambio de contraseña sí está
+protegido también en el backend (solo administrador, con el token de
+sesión); el resto de la API no tiene una segunda capa de autorización. Es una
+limitación conocida, no un problema de la instalación.
 
-**Un microservicio no arranca con un error `QueryFailedError` sobre un
-índice/columna al hacer `DROP`/`ALTER`** — `ot-service` e `inventary-service`
-declaran copias separadas de las entidades `Process`, `Maquina` y
-`SubUnidad` (ambas apuntan a las mismas tablas físicas de `core_db`, cada
-una con `synchronize: true`). Si se le agrega una columna o un índice a una
-de esas entidades en un servicio, hay que replicar el mismo cambio en la
-copia del otro servicio — si no, el que arranque después intenta "corregir"
-lo que no reconoce y puede fallar al bootear (o, peor, borrar en silencio
-una columna/índice que el otro servicio sí necesita). Esto no es exclusivo
-de estos tres modelos: cualquier entidad compartida entre dos servicios con
-`synchronize: true` tiene el mismo riesgo.
+**Un microservicio no arranca con un `QueryFailedError` sobre un
+índice/columna al hacer `DROP`/`ALTER`** — `ot-service` e
+`inventary-service` declaran copias separadas de las entidades `Process`,
+`Maquina` y `SubUnidad` (apuntan a las mismas tablas de `core_db`, cada una
+con `synchronize: true`). Si se agrega una columna o índice a una de esas
+entidades en un servicio, hay que replicar el cambio en la copia del otro;
+si no, el que arranque después intenta "corregir" lo que no reconoce y puede
+fallar al iniciar (o borrar una columna que el otro servicio necesita). Lo
+mismo aplica a cualquier entidad compartida entre servicios, como `User`
+(definida en auth, users y ot).
 
-## 9. Limitaciones conocidas
+## 11. Limitaciones conocidas
 
 - **Bundle del frontend grande (~1.5 MB sin comprimir, ~390 KB gzip)**: Vite
-  avisa esto en el build. No afecta el funcionamiento, pero en una red
-  interna lenta el primer load puede tardar. Se podría mejorar con
-  code-splitting (`React.lazy` por feature) si en algún momento se vuelve
-  molesto — no es necesario para este despliegue.
+  lo avisa en el build. No afecta el funcionamiento, pero en una red lenta la
+  primera carga puede tardar. Se podría mejorar con code-splitting
+  (`React.lazy` por módulo) si llegara a molestar.
 
 **Corregido**: los correlativos de máquinas, procesos y subunidades
-(`inventary-service/src/{maquina,process,subUnidad}/*.service.ts`) ahora
-calculan el próximo número dentro de una transacción con `SELECT ... FOR
-UPDATE`, que serializa creates/updates concurrentes sobre el mismo proceso/
-centro de costo/máquina en vez de dejarlos leer el mismo "último valor" en
-paralelo. Como respaldo para el caso borde en que no hay ninguna fila previa
-que lockear (la primera máquina de un proceso, por ejemplo), cada entidad
-tiene además un índice único a nivel de base de datos sobre
-`(padre, correlativo)`; si ese caso raro llegara a chocar, el servicio
-reintenta una vez automáticamente (`common/concurrency.util.ts`) en vez de
-devolver un error al usuario. Verificado disparando 6 creaciones
-simultáneas reales contra el mismo proceso: los 6 correlativos salieron
-únicos y consecutivos, sin colisiones.
+(`inventary-service/src/{maquina,process,subUnidad}/*.service.ts`) se
+calculan dentro de una transacción con `SELECT ... FOR UPDATE`, que serializa
+las creaciones concurrentes sobre el mismo proceso/centro de costo/máquina.
+Como respaldo para el caso en que no hay ninguna fila previa que bloquear
+(la primera máquina de un proceso, por ejemplo), cada entidad tiene un índice
+único sobre `(padre, correlativo)`; si ese caso llegara a chocar, el servicio
+reintenta una vez automáticamente (`common/concurrency.util.ts`). Verificado
+con 6 creaciones simultáneas contra el mismo proceso: los 6 correlativos
+salieron únicos y consecutivos.

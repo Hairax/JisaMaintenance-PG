@@ -1,54 +1,41 @@
-# React + TypeScript + Vite
+# web-app
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+Frontend de JisaMaintenance: React + TypeScript + Vite + Tailwind.
 
-Currently, two official plugins are available:
+## Desarrollo
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react/README.md) uses [Babel](https://babeljs.io/) for Fast Refresh
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react-swc) uses [SWC](https://swc.rs/) for Fast Refresh
-
-## Expanding the ESLint configuration
-
-If you are developing a production application, we recommend updating the configuration to enable type-aware lint rules:
-
-```js
-export default tseslint.config({
-  extends: [
-    // Remove ...tseslint.configs.recommended and replace with this
-    ...tseslint.configs.recommendedTypeChecked,
-    // Alternatively, use this for stricter rules
-    ...tseslint.configs.strictTypeChecked,
-    // Optionally, add this for stylistic rules
-    ...tseslint.configs.stylisticTypeChecked,
-  ],
-  languageOptions: {
-    // other options...
-    parserOptions: {
-      project: ['./tsconfig.node.json', './tsconfig.app.json'],
-      tsconfigRootDir: import.meta.dirname,
-    },
-  },
-})
+```bash
+pnpm dev          # desde esta carpeta, o `pnpm dev:app` desde la raíz
 ```
 
-You can also install [eslint-plugin-react-x](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-x) and [eslint-plugin-react-dom](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-dom) for React-specific lint rules:
+El servidor de desarrollo está fijado en `vite.config.ts`:
 
-```js
-// eslint.config.js
-import reactX from 'eslint-plugin-react-x'
-import reactDom from 'eslint-plugin-react-dom'
-
-export default tseslint.config({
-  plugins: {
-    // Add the react-x and react-dom plugins
-    'react-x': reactX,
-    'react-dom': reactDom,
-  },
-  rules: {
-    // other rules...
-    // Enable its recommended typescript rules
-    ...reactX.configs['recommended-typescript'].rules,
-    ...reactDom.configs.recommended.rules,
-  },
-})
+```ts
+server: {
+  host: '127.0.0.1',
+  port: 3333,
+},
 ```
+
+Se abre en `http://localhost:3333`. Con `host: '127.0.0.1'` solo es
+accesible desde la misma máquina; para probarlo desde otras PCs de la red,
+usar `host: '0.0.0.0'`.
+
+## Build y publicación
+
+```bash
+pnpm build        # genera dist/
+```
+
+`dist/` es lo que se publica en IIS (puerto 8095). Incluye `web.config`
+(copiado desde `public/web.config`) con la regla para que las rutas del
+frontend (`/login`, `/home`…) carguen `index.html`. Detalles en
+[DEPLOY.md](../../DEPLOY.md), sección 6.2.
+
+## URL del API
+
+No hace falta configurarla: `src/shared/config/api.ts` usa el mismo host con
+el que se abrió el sitio y el puerto 3000 (ej. desde
+`http://192.168.5.5:8095` llama a `http://192.168.5.5:3000`). Para otro
+destino, definir `VITE_API_URL` en `.env` antes del build (ver
+`.env.example`).
