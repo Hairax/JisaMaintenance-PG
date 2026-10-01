@@ -1,4 +1,4 @@
-import 'dotenv/config';
+import './load-env';
 import { NestFactory } from '@nestjs/core';
 import { AppModule } from './app.module';
 import { MicroserviceInterceptor } from './common/microservice.interceptor';
@@ -28,10 +28,13 @@ function resolveCorsOrigins(): string[] {
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
   app.useGlobalInterceptors(new MicroserviceInterceptor());
+  const origins = resolveCorsOrigins();
   app.enableCors({
-    origin: resolveCorsOrigins(),
+    origin: origins,
     credentials: true,
   });
+  // Visible en `pm2 logs api-gateway`: confirma qué orígenes tomó del .env.
+  console.log(`CORS: orígenes permitidos -> ${origins.join(', ')}`);
   await app.listen(process.env.PORT ?? 3000);
 }
 bootstrap();

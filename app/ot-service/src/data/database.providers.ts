@@ -1,4 +1,4 @@
-import 'dotenv/config';
+import '../load-env';
 import { DataSource } from 'typeorm';
 import { TipoMantenimiento } from '../tipoMantenimiento/entities/tipoMantenimiento.entity';
 import { Departamento } from '../departamento/entities/departamento.entity';

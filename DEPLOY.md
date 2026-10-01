@@ -277,10 +277,20 @@ cerrado tras un reinicio del servidor) o un error al arrancar.
 pero no contesta; revisar `pm2 logs <servicio>` (típicamente la conexión a
 MySQL).
 
-**"Failed to fetch" / error de CORS en la consola del navegador** — el
-origen desde el que se abrió el frontend no está en `CORS_ORIGINS` del
-gateway. Agregarlo (protocolo + host + puerto exactos) y reiniciar
-`api-gateway`.
+**"Failed to fetch" / "CORS header 'Access-Control-Allow-Origin' missing"
+en la consola del navegador** — el origen desde el que se abrió el frontend
+(lo que aparece en la barra de direcciones: protocolo + IP + puerto, ej.
+`http://192.168.5.5:8095`) no está en `CORS_ORIGINS` del gateway. Al
+arrancar, el gateway muestra en su log la lista que tomó:
+
+```powershell
+pm2 logs api-gateway --lines 50   # buscar "CORS: orígenes permitidos -> ..."
+```
+
+Si el origen no aparece, agregarlo en `app\api-gateway\.env` (protocolo +
+host + puerto exactos, separados por coma) y `pm2 restart api-gateway`. Cada
+servicio lee siempre el `.env` de su propia carpeta, sin importar desde dónde
+se lance.
 
 **404 de IIS al refrescar una página interna (ej. `/home`)** — falta el
 módulo URL Rewrite o el `web.config` en `dist`. Volver a hacer `pnpm build`

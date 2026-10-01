@@ -1,4 +1,4 @@
-import 'dotenv/config';
+import './load-env';
 import { NestFactory } from '@nestjs/core';
 import { AppModule } from './app.module';
 import { RpcErrorFilter } from './common/rpc-error.filter';

@@ -1,4 +1,4 @@
-import 'dotenv/config';
+import '../load-env';
 import { DataSource } from 'typeorm';
 import { CostCenter } from '../cost-centers/entities/cost-center.entity';
 import { Process } from '../process/entities/process.entity';
