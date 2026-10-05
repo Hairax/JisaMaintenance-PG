@@ -1,5 +1,10 @@
 import { Entity, Column, PrimaryGeneratedColumn } from 'typeorm';
 
+const decimalANumero = {
+  to: (v?: number | null) => v,
+  from: (v?: string | null) => (v === null || v === undefined ? v : Number(v)),
+};
+
 enum UserRole {
   EXTERNO = 'externo',
   ADMIN = 'admin',
@@ -45,10 +50,28 @@ export class User {
   @Column()
   celphone: string;
 
-  @Column()
+  // DECIMAL para aceptar tarifas con decimales. MySQL devuelve DECIMAL como
+  // string: el transformer lo entrega como number. Debe ser idéntica en
+  // auth-service, users-service y ot-service (misma tabla `user`).
+  @Column({
+    type: 'decimal',
+    precision: 12,
+    scale: 6,
+    default: 0,
+    transformer: decimalANumero,
+  })
   hora$: number;
 
-  @Column()
+  // DECIMAL para aceptar tarifas con decimales. MySQL devuelve DECIMAL como
+  // string: el transformer lo entrega como number. Debe ser idéntica en
+  // auth-service, users-service y ot-service (misma tabla `user`).
+  @Column({
+    type: 'decimal',
+    precision: 12,
+    scale: 6,
+    default: 0,
+    transformer: decimalANumero,
+  })
   minutos$: number;
 
   @Column()

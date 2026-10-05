@@ -6,6 +6,16 @@ import { useAuth } from '../../../shared/contexts/AuthContext';
 
 const API_BASE_URL = API_URL;
 
+// Los inputs entregan texto ("45.75"): las tarifas se envían como número,
+// con decimales.
+const conTarifasNumericas = <T extends { hora$?: unknown; minutos$?: unknown }>(
+  data: T,
+): T => ({
+  ...data,
+  hora$: Number(data.hora$) || 0,
+  minutos$: Number(data.minutos$) || 0,
+});
+
 export const useUserManagement = () => {
   const { token } = useAuth();
   const [state, setState] = useState<UserManagementState>({
@@ -121,7 +131,7 @@ export const useUserManagement = () => {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          ...state.formData,
+          ...conTarifasNumericas(state.formData),
           status: state.formData.status ?? true,
         }),
       });
@@ -139,7 +149,7 @@ export const useUserManagement = () => {
 
   const handleUpdateUser = async () => {
     if (!state.selectedUser) return;
-    const updateData = { ...state.formData };
+    const updateData = conTarifasNumericas(state.formData);
 
     setState((prev) => ({ ...prev, loading: true }));
     try {

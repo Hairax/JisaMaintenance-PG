@@ -5,3 +5,6 @@ node_modules
 # cambian en cada escritura a la base de datos.
 infrastructure/mysql-data/
 infrastructure/mysql-data2/
+
+# Log del inicio automatico (scripts/windows/registrar-inicio-automatico.ps1)
+scripts/windows/ultimo-inicio.log

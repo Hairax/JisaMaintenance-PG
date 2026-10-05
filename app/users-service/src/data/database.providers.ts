@@ -1,5 +1,6 @@
 import '../load-env';
 import { DataSource } from 'typeorm';
+import { migracionesPreviasASync } from './pre-sync-migrations';
 
 export const databaseProviders = [
   {
@@ -18,10 +19,14 @@ export const databaseProviders = [
         password: process.env.DB_PASSWORD || 'password_core_db',
         database: process.env.DB_DATABASE || 'core_db',
         entities: [__dirname + '/../**/*.entity{.ts,.js}'],
-        synchronize: true,
+        // synchronize manual (abajo), después de las migraciones previas.
+        synchronize: false,
       });
 
-      return dataSource.initialize();
+      await dataSource.initialize();
+      await migracionesPreviasASync(dataSource);
+      await dataSource.synchronize();
+      return dataSource;
     },
   },
 ];

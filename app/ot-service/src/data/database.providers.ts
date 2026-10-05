@@ -1,5 +1,6 @@
 import '../load-env';
 import { DataSource } from 'typeorm';
+import { migracionesPreviasASync } from './pre-sync-migrations';
 import { TipoMantenimiento } from '../tipoMantenimiento/entities/tipoMantenimiento.entity';
 import { Departamento } from '../departamento/entities/departamento.entity';
 import { Objeto } from '../objeto/entities/objeto.entity';
@@ -45,10 +46,14 @@ export const databaseProviders = [
           InformeDetalle,
           ProgramacionOt,
         ],
-        synchronize: true,
+        // synchronize manual (abajo), después de las migraciones previas.
+        synchronize: false,
       });
 
-      return dataSource.initialize();
+      await dataSource.initialize();
+      await migracionesPreviasASync(dataSource);
+      await dataSource.synchronize();
+      return dataSource;
     },
   },
 ];

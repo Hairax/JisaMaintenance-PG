@@ -157,26 +157,27 @@ pnpm build
 
 ### 6.1 Backend con pm2
 
-Para que los servicios sigan corriendo al cerrar la sesión RDP y se
-reinicien solos si fallan o si el servidor reinicia, usar
-[pm2](https://pm2.keymetrics.io/):
+[pm2](https://pm2.keymetrics.io/) mantiene los 5 servicios corriendo en
+segundo plano: siguen activos al cerrar la sesión RDP y se reinician solos si
+fallan. La lista de servicios, su orden de arranque y la política de
+reintentos están en `ecosystem.config.cjs` (raíz del repo).
 
 ```powershell
 npm install -g pm2
+```
 
-pm2 start app/auth-service/dist/main.js       --name auth-service
-pm2 start app/users-service/dist/main.js      --name users-service
-pm2 start app/inventary-service/dist/main.js  --name inventary-service
-pm2 start app/ot-service/dist/main.js         --name ot-service
-pm2 start app/api-gateway/dist/main.js        --name api-gateway
+La forma recomendada de levantar todo es el script de la sección 6.3. Si se
+prefiere hacerlo a mano:
 
+```powershell
+pm2 startOrRestart ecosystem.config.cjs
 pm2 save
 ```
 
-En Windows, `pm2 startup` no funciona: para que arranque solo al iniciar el
-servidor usar [`pm2-installer`](https://github.com/jessety/pm2-installer)
-(lo instala como servicio de Windows). Alternativa sin pm2, solo para
-pruebas: `pnpm start:prod` (corre los 5 backends en la terminal actual).
+Comandos útiles: `pm2 status` (estado de cada servicio), `pm2 logs
+<servicio>` (mensajes y errores), `pm2 restart all`, `pm2 stop all`.
+Alternativa sin pm2, solo para pruebas: `pnpm start:prod` (corre los 5
+backends en la terminal actual).
 
 ### 6.2 Frontend en IIS (puerto 8095)
 
@@ -198,6 +199,27 @@ pruebas: `pnpm start:prod` (corre los 5 backends en la terminal actual).
 
 Alternativas a IIS: `pm2 serve app/web-app/dist 8095 --name web-app --spa`,
 o nginx apuntando a `dist` con `try_files $uri /index.html;`.
+
+### 6.3 Scripts de operación (`scripts\windows`)
+
+| Archivo | Para qué |
+| --- | --- |
+| `iniciar-backend.bat` | **Levantar todo tras un reinicio o apagón.** Doble clic: inicia Docker Desktop si hace falta, arranca MySQL y espera a que acepte conexiones, levanta los 5 servicios con pm2, espera a que respondan los puertos 3000–3004, prueba el login y revisa que IIS sirva el frontend. Muestra `[OK]` / `[X]` por paso. |
+| `actualizar-sistema.bat` | **Aplicar una versión nueva**: `git pull`, `pnpm install`, `pnpm build` y reinicio del backend (ver sección 9). |
+| `registrar-inicio-automatico.ps1` | Registra una tarea programada para que `iniciar-backend` corra solo al iniciar sesión en el servidor. Ejecutar **una vez**, en PowerShell como administrador. |
+
+Para el arranque automático completo después de un reinicio:
+
+1. Docker Desktop → Settings → General → activar **"Start Docker Desktop when
+   you sign in"** (el contenedor MySQL ya tiene `restart: unless-stopped`).
+2. Registrar la tarea (una vez, PowerShell como administrador):
+   ```powershell
+   powershell -ExecutionPolicy Bypass -File scripts\windows\registrar-inicio-automatico.ps1
+   ```
+   Cada arranque deja su resultado en `scripts\windows\ultimo-inicio.log`.
+
+Aunque no se registre la tarea, después de cualquier reinicio basta con
+**doble clic en `scripts\windows\iniciar-backend.bat`**.
 
 ## 7. Red: IP fija, puertos y firewall
 
@@ -250,16 +272,30 @@ registra uno (una OT, un informe) lo ve el otro al refrescar.
 
 ## 9. Actualizar a una nueva versión
 
+Doble clic en **`scripts\windows\actualizar-sistema.bat`**, o a mano:
+
 ```powershell
 git pull
 pnpm install
 pnpm build
-pm2 restart all
+pm2 startOrRestart ecosystem.config.cjs
+pm2 save
 ```
+
+Si la compilación falla, el script se detiene y el sistema sigue corriendo
+con la versión anterior.
 
 IIS no necesita cambios: sigue apuntando a `app\web-app\dist`, que el build
 regenera (con su `web.config`). Si el navegador muestra la versión anterior,
 recargar con Ctrl+F5.
+
+**Cambios en la base de datos**: se aplican solos al arrancar los servicios,
+sin pasos manuales. Cuando un cambio modifica el *tipo* de una columna con
+datos, se convierte antes de la sincronización de TypeORM
+(`src/data/pre-sync-migrations.ts` en auth/users/ot-service), porque
+TypeORM borraría y recrearía la columna perdiendo los valores. Ejemplo: las
+tarifas de mano de obra (`hora$`, `minutos$`) pasaron de enteros a
+`DECIMAL(12,6)` conservando los valores existentes.
 
 ## 10. Troubleshooting
 

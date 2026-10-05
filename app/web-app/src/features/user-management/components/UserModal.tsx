@@ -17,6 +17,10 @@ const CARGO_OPTIONS: { value: string; label: string }[] = [
   { value: 'encargado-compras', label: 'Encargado de Compras' },
 ];
 
+// Tarifa en Bs con hasta 6 decimales (ej. "0,758333 Bs").
+const fmtTarifa = (v?: number | string | null) =>
+  `${Number(v ?? 0).toLocaleString('es-BO', { maximumFractionDigits: 6 })} Bs`;
+
 // Paleta de colores
 const colors = {
   brown: '#9E5533',
@@ -115,10 +119,15 @@ export const UserModal: React.FC<UserModalProps> = ({
         value={
           typeof formData[name] === 'boolean'
             ? String(formData[name])
-            : formData[name] || ''
+            : (formData[name] ?? '')
         }
         onChange={onInputChange}
         required={required}
+        // Tarifas con decimales (ej. 45.75): sin step="any" el navegador
+        // solo acepta enteros en los campos numéricos.
+        step={type === 'number' ? 'any' : undefined}
+        min={type === 'number' ? 0 : undefined}
+        inputMode={type === 'number' ? 'decimal' : undefined}
         style={{
           backgroundColor: inputBgColor,
           borderColor: inputBorderColor,
@@ -199,8 +208,8 @@ export const UserModal: React.FC<UserModalProps> = ({
                   ))}
                 </select>
               </div>
-              {renderFormField('Hora', 'hora$', 'number')}
-              {renderFormField('Minutos', 'minutos$', 'number')}
+              {renderFormField('Costo por hora (Bs)', 'hora$', 'number')}
+              {renderFormField('Costo por minuto (Bs)', 'minutos$', 'number')}
               {mode === 'edit' && (
                 <div>
                   <label
@@ -269,13 +278,19 @@ export const UserModal: React.FC<UserModalProps> = ({
                 </span>
               </p>
               <p>
-                <strong style={{ color: secondaryTextColor }}>Hora:</strong>{' '}
-                <span style={{ color: textColor }}>{selectedUser.hora$}</span>
+                <strong style={{ color: secondaryTextColor }}>
+                  Costo por hora:
+                </strong>{' '}
+                <span style={{ color: textColor }}>
+                  {fmtTarifa(selectedUser.hora$)}
+                </span>
               </p>
               <p>
-                <strong style={{ color: secondaryTextColor }}>Minutos:</strong>{' '}
+                <strong style={{ color: secondaryTextColor }}>
+                  Costo por minuto:
+                </strong>{' '}
                 <span style={{ color: textColor }}>
-                  {selectedUser.minutos$}
+                  {fmtTarifa(selectedUser.minutos$)}
                 </span>
               </p>
               <p>

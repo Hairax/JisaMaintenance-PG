@@ -34,3 +34,9 @@ compilados), `pnpm lint`, `pnpm format`.
 Ver [DEPLOY.md](DEPLOY.md): instalación en el servidor Windows, variables de
 entorno (`CORS_ORIGINS`), pm2, publicación del frontend en IIS (puerto 8095),
 firewall, verificación y troubleshooting.
+
+En el servidor, para operar el día a día (`scripts\windows`):
+
+- **`iniciar-backend.bat`**: levanta Docker, MySQL y los 5 servicios tras un
+  reinicio o apagón, y verifica que todo responda.
+- **`actualizar-sistema.bat`**: baja la última versión, compila y reinicia.
