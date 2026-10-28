@@ -1,6 +1,9 @@
 import { Controller } from '@nestjs/common';
 import { MessagePattern, Payload } from '@nestjs/microservices';
-import { ProveedorService } from './proveedor.service';
+import {
+  FilaImportacionProveedor,
+  ProveedorService,
+} from './proveedor.service';
 import { CreateProveedorDto } from './dto/create-proveedor.dto';
 import { UpdateProveedorDto } from './dto/update-proveedor.dto';
 
@@ -11,6 +14,11 @@ export class ProveedorController {
   @MessagePattern('proveedor.create')
   create(@Payload() dto: CreateProveedorDto) {
     return this.proveedorService.create(dto);
+  }
+
+  @MessagePattern('proveedor.importar')
+  importar(@Payload() data: { filas: FilaImportacionProveedor[] }) {
+    return this.proveedorService.importar(data?.filas);
   }
 
   @MessagePattern('proveedor.findAll')

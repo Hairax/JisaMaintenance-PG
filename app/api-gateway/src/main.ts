@@ -1,5 +1,6 @@
 import './load-env';
 import { NestFactory } from '@nestjs/core';
+import { NestExpressApplication } from '@nestjs/platform-express';
 import { AppModule } from './app.module';
 import { MicroserviceInterceptor } from './common/microservice.interceptor';
 
@@ -26,7 +27,10 @@ function resolveCorsOrigins(): string[] {
 }
 
 async function bootstrap() {
-  const app = await NestFactory.create(AppModule);
+  const app = await NestFactory.create<NestExpressApplication>(AppModule);
+  // Límite del cuerpo JSON (por defecto 100 KB): las importaciones por lote
+  // (ej. miles de proveedores) lo superaban.
+  app.useBodyParser('json', { limit: '5mb' });
   app.useGlobalInterceptors(new MicroserviceInterceptor());
   const origins = resolveCorsOrigins();
   app.enableCors({

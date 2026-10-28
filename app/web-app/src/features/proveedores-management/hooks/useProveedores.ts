@@ -67,6 +67,7 @@ export function useProveedores() {
       selectedProveedor: proveedor,
       formData: mode === 'create' ? {} : proveedor ? { ...proveedor } : {},
       isModalOpen: true,
+      error: null,
       showDeleteConfirm: false,
       canConfirmDelete: false,
     }));
@@ -80,6 +81,7 @@ export function useProveedores() {
       isModalOpen: false,
       selectedProveedor: null,
       formData: {},
+      error: null,
       showDeleteConfirm: false,
       canConfirmDelete: false,
     }));
@@ -100,11 +102,15 @@ export function useProveedores() {
 
   const handleCreateProveedor = async () => {
     setState((prev) => ({ ...prev, loading: true, error: null }));
+    // Código (= ID) opcional: vacío se omite para que se asigne solo.
+    const { id, ...resto } = state.formData;
+    const codigo = String(id ?? '').trim();
+    const body = codigo ? { ...resto, id: Number(codigo) } : resto;
     try {
       const res = await fetch(API_BASE_URL, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(state.formData),
+        body: JSON.stringify(body),
       });
       if (!res.ok) {
         const errorData = await res.json().catch(() => ({}));

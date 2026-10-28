@@ -23,6 +23,27 @@ export class ProveedorHttpController {
   create(@Body() dto: CreateProveedorDto): Observable<ResponseProveedorDto> {
     return this.client.send('proveedor.create', dto);
   }
+  // Importación por lote: { filas: [{ fila, codigo, nombre, nit }] },
+  // donde codigo es el ID del proveedor.
+  @Post('importar')
+  importar(
+    @Body()
+    body: {
+      filas: {
+        fila?: number;
+        codigo?: string;
+        nombre?: string;
+        nit?: string;
+      }[];
+    },
+  ): Observable<{
+    total: number;
+    creados: number;
+    omitidos: { fila: number; motivo: string }[];
+  }> {
+    return this.client.send('proveedor.importar', { filas: body?.filas });
+  }
+
   @Get()
   findAll(): Observable<ResponseProveedorDto[]> {
     return this.client.send('proveedor.findAll', {});

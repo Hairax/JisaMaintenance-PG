@@ -11,6 +11,9 @@ interface Repuesto {
   nombre: string;
   cantidad: number;
   costoUnitario: number;
+  // Stock y costo con los que se registró el repuesto (apertura).
+  aperturaCantidad?: number | string | null;
+  aperturaCostoUnitario?: number | string | null;
   descripcion: string;
   createdAt: string;
 }
@@ -20,13 +23,13 @@ interface RepuestoMaquina extends Repuesto {
   subUnidad_id?: number | null;
 }
 
+// Los montos decimales llegan como texto desde la API.
 interface CompraDetalle {
-  tipoProducto: 'repuesto' | 'repuesto-maquina';
-  productoId: number;
+  repuestoId: number | null;
   nombre: string;
-  cantidad: number;
-  precioUnitario: number;
-  subtotal: number;
+  cantidad: number | string;
+  precioUnitario: number | string;
+  subtotal: number | string;
 }
 
 interface Compra {
@@ -38,18 +41,19 @@ interface Compra {
 }
 
 interface SalidaDetalle {
-  tipoProducto: 'repuesto' | 'repuesto-maquina';
-  productoId: number;
+  tipoProducto?: 'repuesto' | 'repuesto-maquina';
+  repuestoId: number | null;
   nombre: string;
-  cantidad: number;
-  precioUnitario: number;
-  subtotal: number;
+  cantidad: number | string;
+  precioUnitario: number | string;
+  subtotal: number | string;
 }
 
 interface Salida {
   id: number;
   nroSalida: string;
   fecha: string;
+  estado?: 'pendiente' | 'completada' | 'cancelada';
   detalles: SalidaDetalle[];
 }
 
@@ -123,23 +127,13 @@ export default function TomaFisicaInventarioPage() {
       ): InventarioRow => {
         const movimientos: Movimiento[] = [];
 
-        // Creation movement
-        movimientos.push({
-          fecha: item.createdAt,
-          tipo: 'Creación',
-          referencia: 'Registro inicial',
-          cantidad: Number(item.cantidad),
-          precioUnitario: Number(item.costoUnitario),
-          subtotal: Number(item.cantidad) * Number(item.costoUnitario),
-        });
-
+        // Las compras solo registran repuestos (detalle.repuestoId); las
+        // salidas indican además el tipo de producto.
         let totalEntradas = 0;
-        for (const compra of Array.isArray(compras) ? compras : []) {
-          for (const det of compra.detalles || []) {
-            if (
-              det.tipoProducto === tipo &&
-              Number(det.productoId) === item.id
-            ) {
+        if (tipo === 'repuesto') {
+          for (const compra of Array.isArray(compras) ? compras : []) {
+            for (const det of compra.detalles || []) {
+              if (Number(det.repuestoId) !== item.id) continue;
               totalEntradas += Number(det.cantidad);
               movimientos.push({
                 fecha: compra.fecha,
@@ -155,21 +149,22 @@ export default function TomaFisicaInventarioPage() {
 
         let totalSalidas = 0;
         for (const salida of Array.isArray(salidas) ? salidas : []) {
+          if (salida.estado === 'cancelada') continue;
           for (const det of salida.detalles || []) {
             if (
-              det.tipoProducto === tipo &&
-              Number(det.productoId) === item.id
-            ) {
-              totalSalidas += Number(det.cantidad);
-              movimientos.push({
-                fecha: salida.fecha,
-                tipo: 'Salida',
-                referencia: `Salida ${salida.nroSalida || `#${salida.id}`}`,
-                cantidad: Number(det.cantidad),
-                precioUnitario: Number(det.precioUnitario),
-                subtotal: Number(det.subtotal),
-              });
-            }
+              (det.tipoProducto ?? 'repuesto') !== tipo ||
+              Number(det.repuestoId) !== item.id
+            )
+              continue;
+            totalSalidas += Number(det.cantidad);
+            movimientos.push({
+              fecha: salida.fecha,
+              tipo: 'Salida',
+              referencia: `Salida ${salida.nroSalida || `#${salida.id}`}`,
+              cantidad: Number(det.cantidad),
+              precioUnitario: Number(det.precioUnitario),
+              subtotal: Number(det.subtotal),
+            });
           }
         }
 
@@ -177,10 +172,29 @@ export default function TomaFisicaInventarioPage() {
           (a, b) => new Date(a.fecha).getTime() - new Date(b.fecha).getTime(),
         );
 
-        const stockInicial = Math.max(
-          0,
-          Number(item.cantidad) + totalSalidas - totalEntradas,
-        );
+        // Stock inicial: el de apertura si el repuesto lo tiene; si no, se
+        // deduce del stock actual deshaciendo entradas y salidas.
+        const apertura =
+          'aperturaCantidad' in item && item.aperturaCantidad != null
+            ? Number(item.aperturaCantidad)
+            : null;
+        const stockInicial =
+          apertura ??
+          Math.max(0, Number(item.cantidad) + totalSalidas - totalEntradas);
+        const costoInicial =
+          'aperturaCostoUnitario' in item && item.aperturaCostoUnitario != null
+            ? Number(item.aperturaCostoUnitario)
+            : Number(item.costoUnitario);
+
+        // El registro inicial siempre va primero.
+        movimientos.unshift({
+          fecha: item.createdAt,
+          tipo: 'Creación',
+          referencia: 'Registro inicial',
+          cantidad: stockInicial,
+          precioUnitario: costoInicial,
+          subtotal: stockInicial * costoInicial,
+        });
 
         return {
           id: item.id,

@@ -42,6 +42,7 @@ export type PermissionKey =
   | 'verRepuestos'
   | 'gestionarCompras'
   | 'verReporteCompras'
+  | 'gestionarProveedores'
   | 'cambiarContrasenas';
 
 type RoleMap = Record<UserRole, boolean>;
@@ -103,6 +104,9 @@ export const PERMISSIONS_MATRIX: Record<PermissionKey, RoleMap> = {
   verRepuestos: roles(true, true, true, false, true, true, true, true),
   gestionarCompras: roles(true, true, true, false, true, true, true, true),
   verReporteCompras: roles(true, true, false, false, true, false, true, true),
+  // Gestión de proveedores (ver, crear, editar, eliminar e importar por lote):
+  // los roles con verInventario más el encargado de compras.
+  gestionarProveedores: roles(true, true, true, false, true, true, true, true),
   // Solo el administrador (el backend también lo exige).
   cambiarContrasenas: roles(true, false, false, false, false, false, false, false),
 };

@@ -20,6 +20,8 @@ interface ManagementPageProps {
   onExport?: () => void;
   onAdd?: () => void;
   addLabel?: string;
+  /** Botones adicionales del encabezado (ej. Importar), antes de Exportar. */
+  extraActions?: React.ReactNode;
   children: React.ReactNode;
 }
 
@@ -35,6 +37,7 @@ export function ManagementPage({
   onExport,
   onAdd,
   addLabel,
+  extraActions,
   children,
 }: ManagementPageProps) {
   return (
@@ -48,6 +51,7 @@ export function ManagementPage({
         icon={icon}
         actions={
           <>
+            {extraActions}
             {onExport && (
               <SecondaryButton onClick={onExport}>
                 <FaFileExcel style={{ color: '#2E7D32' }} /> Exportar Excel

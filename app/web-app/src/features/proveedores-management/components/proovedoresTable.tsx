@@ -18,9 +18,9 @@ export const ProveedoresTable = ({
   error,
 }: ProveedoresTableProps) => {
   const columns: Columna<Proveedor>[] = [
-    { header: 'ID', render: (r) => r.id, className: 'w-20 font-medium' },
+    { header: 'Código', render: (r) => r.id, className: 'w-20 font-medium' },
     { header: 'Nombre', render: (r) => r.nombre, className: 'font-medium' },
-    { header: 'NIT / RUC', render: (r) => r.ruc || '—' },
+    { header: 'NIT', render: (r) => r.ruc || '—' },
     {
       header: 'Correo',
       render: (r) => r.correoElectronico || '—',

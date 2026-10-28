@@ -23,6 +23,7 @@ interface ProveedoresModalProps {
   deleteCountdown: number;
   canConfirmDelete: boolean;
   loading: boolean;
+  error?: string | null;
   onClose: () => void;
   onInputChange: (
     e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>,
@@ -44,6 +45,7 @@ export const ProveedoresModal: React.FC<ProveedoresModalProps> = ({
   deleteCountdown,
   canConfirmDelete,
   loading,
+  error,
   onClose,
   onInputChange,
   onCreateProveedor,
@@ -137,6 +139,24 @@ export const ProveedoresModal: React.FC<ProveedoresModalProps> = ({
         <div className="flex-grow overflow-y-auto pr-2">
           {(mode === 'create' || mode === 'edit') && !showDeleteConfirm ? (
             <form onSubmit={(e) => e.preventDefault()} className="space-y-3">
+              {error && (
+                <p
+                  className="text-sm px-3 py-2 rounded"
+                  style={{
+                    color: 'var(--badge-danger)',
+                    background: 'rgba(211, 47, 47, 0.1)',
+                  }}
+                  role="alert"
+                >
+                  {error}
+                </p>
+              )}
+              {mode === 'create' &&
+                renderFormField(
+                  'Código (opcional; vacío = se asigna automáticamente)',
+                  'id',
+                  'number',
+                )}
               {renderFormField('Nombre', 'nombre', 'text', true)}
               {renderFormField('NIT', 'ruc', 'text', true)}
               {renderFormField(
@@ -150,6 +170,10 @@ export const ProveedoresModal: React.FC<ProveedoresModalProps> = ({
             </form>
           ) : mode === 'view' && selectedProveedor && !showDeleteConfirm ? (
             <div className="space-y-2 text-sm">
+              <p>
+                <strong style={{ color: secondaryTextColor }}>Código:</strong>{' '}
+                <span style={{ color: textColor }}>{selectedProveedor.id}</span>
+              </p>
               <p>
                 <strong style={{ color: secondaryTextColor }}>Nombre:</strong>{' '}
                 <span style={{ color: textColor }}>

@@ -1,14 +1,25 @@
-import { IsString } from 'class-validator';
+import { IsInt, IsOptional, IsPositive, IsString } from 'class-validator';
 
 export class CreateProveedorDto {
+  // Código del proveedor = su ID. Opcional: si no se envía, se asigna el
+  // siguiente automáticamente.
+  @IsOptional()
+  @IsInt()
+  @IsPositive()
+  id?: number;
+
   @IsString()
   name: string;
+  @IsOptional()
   @IsString()
-  ruc: string;
+  ruc?: string;
+  @IsOptional()
   @IsString()
-  correoElectronico: string;
+  correoElectronico?: string;
+  @IsOptional()
   @IsString()
-  telefono: string;
+  telefono?: string;
+  @IsOptional()
   @IsString()
-  direccion: string;
+  direccion?: string;
 }

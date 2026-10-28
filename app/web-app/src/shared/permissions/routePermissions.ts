@@ -18,7 +18,7 @@ export const ROUTE_PERMISSIONS: Array<{
   { prefix: '/process', permission: 'verActivos' },
   { prefix: '/subunidad', permission: 'verActivos' },
   { prefix: '/tipo-mantenimiento', permission: 'verActivos' },
-  { prefix: '/proveedores', permission: 'verInventario' },
+  { prefix: '/proveedores', permission: 'gestionarProveedores' },
   { prefix: '/repuestos', permission: 'verRepuestos' },
   { prefix: '/compras', permission: 'gestionarCompras' },
   { prefix: '/salidas', permission: 'verInventario' },

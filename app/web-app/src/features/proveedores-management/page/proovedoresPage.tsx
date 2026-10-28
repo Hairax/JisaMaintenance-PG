@@ -1,11 +1,15 @@
 import React from 'react';
-import { ManagementPage } from '../../../shared/components/management/ManagementPage';
-import { FaTruck } from 'react-icons/fa';
+import {
+  ManagementPage,
+  SecondaryButton,
+} from '../../../shared/components/management/ManagementPage';
+import { FaFileUpload, FaTruck } from 'react-icons/fa';
 import { filtrarPorTexto } from '../../../shared/utils/search';
 import { useTheme } from '../../../shared/contexts/ThemeContext';
 import { useProveedores } from '../hooks/useProveedores';
 import { ProveedoresTable } from '../components/proovedoresTable';
 import { ProveedoresModal } from '../components/proovedoresModal';
+import { ImportarProveedoresModal } from '../components/ImportarProveedoresModal';
 import { exportProveedoresToExcel } from '../functions/exportExcel';
 
 export const colors = {
@@ -21,6 +25,7 @@ export const colors = {
 export const ProovedoresPage: React.FC = () => {
   const { theme } = useTheme();
   const [busqueda, setBusqueda] = React.useState('');
+  const [importarAbierto, setImportarAbierto] = React.useState(false);
   const {
     state,
     handleOpenModal,
@@ -30,6 +35,7 @@ export const ProovedoresPage: React.FC = () => {
     handleUpdateProveedor,
     handleDeleteClick,
     handleDelete,
+    fetchProveedores,
   } = useProveedores();
 
   const filtrados = filtrarPorTexto(state.proveedores, busqueda, (p) => [
@@ -50,7 +56,12 @@ export const ProovedoresPage: React.FC = () => {
         resultados={filtrados.length}
         busqueda={busqueda}
         onBusquedaChange={setBusqueda}
-        searchPlaceholder="Buscar por ID, nombre, NIT, correo o teléfono..."
+        searchPlaceholder="Buscar por código, nombre, NIT, correo o teléfono..."
+        extraActions={
+          <SecondaryButton onClick={() => setImportarAbierto(true)}>
+            <FaFileUpload style={{ color: '#1565C0' }} /> Importar
+          </SecondaryButton>
+        }
         onExport={() => exportProveedoresToExcel(state.proveedores)}
         onAdd={() => handleOpenModal('create')}
         addLabel="Nuevo proveedor"
@@ -72,6 +83,7 @@ export const ProovedoresPage: React.FC = () => {
         deleteCountdown={state.deleteCountdown}
         canConfirmDelete={state.canConfirmDelete}
         loading={state.loading}
+        error={state.error}
         onClose={handleCloseModal}
         onInputChange={handleInputChange}
         onCreateProveedor={handleCreateProveedor}
@@ -79,6 +91,12 @@ export const ProovedoresPage: React.FC = () => {
         onDeleteClick={handleDeleteClick}
         onDelete={handleDelete}
         onEditMode={() => handleOpenModal('edit', state.selectedProveedor)}
+      />
+      <ImportarProveedoresModal
+        isOpen={importarAbierto}
+        proveedores={state.proveedores}
+        onClose={() => setImportarAbierto(false)}
+        onImportado={fetchProveedores}
       />
     </>
   );
